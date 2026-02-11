@@ -1,0 +1,14 @@
+# Git LFS only inside Unity folder
+
+XR-Ad_block/**/*.png filter=lfs diff=lfs merge=lfs -text
+XR-Ad_block/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+XR-Ad_block/**/*.psd filter=lfs diff=lfs merge=lfs -text
+
+XR-Ad_block/**/*.fbx filter=lfs diff=lfs merge=lfs -text
+XR-Ad_block/**/*.obj filter=lfs diff=lfs merge=lfs -text
+
+XR-Ad_block/**/*.wav filter=lfs diff=lfs merge=lfs -text
+XR-Ad_block/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+
+XR-Ad_block/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+XR-Ad_block/**/*.mov filter=lfs diff=lfs merge=lfs -text

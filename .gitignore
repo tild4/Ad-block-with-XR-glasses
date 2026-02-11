@@ -1,0 +1,12 @@
+# Ignore everything except Unity project folder
+/*
+!/XR-Ad_block/
+
+# --- Unity ignores inside subfolder ---
+XR-Ad_block/[Ll]ibrary/
+XR-Ad_block/[Tt]emp/
+XR-Ad_block/[Oo]bj/
+XR-Ad_block/[Bb]uild/
+XR-Ad_block/[Bb]uilds/
+XR-Ad_block/[Ll]ogs/
+XR-Ad_block/[Uu]ser[Ss]ettings/
