@@ -10,3 +10,7 @@ XR-Ad_block/[Bb]uild/
 XR-Ad_block/[Bb]uilds/
 XR-Ad_block/[Ll]ogs/
 XR-Ad_block/[Uu]ser[Ss]ettings/
+XR-Ad_block/.DS_Store
+*.json
+*.csproj
+*.csproj
