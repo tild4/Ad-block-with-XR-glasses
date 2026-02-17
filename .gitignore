@@ -1,6 +1,7 @@
 # Ignore everything except Unity project folder
 /*
 !/XR-Ad_block/
+!/AI-core/
 
 # --- Unity ignores inside subfolder ---
 XR-Ad_block/[Ll]ibrary/
