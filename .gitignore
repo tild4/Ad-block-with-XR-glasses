@@ -4,6 +4,8 @@
 !/AI-core/
 
 # --- Unity ignores inside subfolder ---
+AI-core/runs/
+AI-core/.DS_Store
 XR-Ad_block/[Ll]ibrary/
 XR-Ad_block/[Tt]emp/
 XR-Ad_block/[Oo]bj/
