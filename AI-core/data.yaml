@@ -1,4 +1,4 @@
-path: . 
+path: AI-core 
 train: images  # for later use images/train
 val: images    # for later use images/val
 

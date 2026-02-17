@@ -2,10 +2,10 @@ from ultralytics import YOLO
 import cv2
 
 # load the trained model (replace with the path to your best.pt file)
-model = YOLO('models/best.pt')
+model = YOLO('AI-core/models/best.pt')
 
 # run prediction on a completely new image
-results = model('test_images/IMG_7891.jpg')
+results = model('AI-core/test_images/IMG_7891.jpg')
 
 for r in results:
     # returns an RGB image array with the detections drawn on it
