@@ -24,6 +24,18 @@ python AI-core/train_model.py
 ```
 Note: Training logs and results are saved in the /runs directory (this directory is ignored by Git)
 
+After finishing training, remember to manually copy the `best.pt` file from:
+
+```
+runs/detect/train/weights/
+```
+
+to:
+
+```
+AI-core/models/
+```
+
 #### Testing
 To verify that the model can find advertisements in a test image, run:
 
@@ -56,15 +68,3 @@ AI-core/
 ## Note for Mac Users
 
 The `.DS_Store` files and the `/runs` directory are automatically ignored by Git.
-
-After finishing training, remember to manually copy the `best.pt` file from:
-
-```
-runs/detect/train/weights/
-```
-
-to:
-
-```
-AI-core/models/
-```
