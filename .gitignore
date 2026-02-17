@@ -2,6 +2,8 @@
 /*
 !/XR-Ad_block/
 !/AI-core/
+!/AI-core/**
+!requirements.txt
 
 # --- Unity ignores inside subfolder ---
 AI-core/runs/
@@ -17,3 +19,5 @@ XR-Ad_block/[Uu]ser[Ss]ettings/
 *.csproj
 .DS_Store
 **/.DS_Store
+*.cache
+yolov8n.pt
