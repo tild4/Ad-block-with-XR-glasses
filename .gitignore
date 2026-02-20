@@ -1,13 +1,18 @@
-# Ignore everything except Unity project folder
+# =====================================================
+# Ignore everything except these tracked roots
+# =====================================================
 /*
 !/XR-Ad_block/
+!/XR-Ad_block/**
 !/AI-core/
 !/AI-core/**
-!requirements.txt
+!/requirements.txt
 
-# --- Unity ignores inside subfolder ---
-AI-core/runs/
-AI-core/.DS_Store
+# =====================================================
+# Unity (XR-Ad_block)
+# =====================================================
+
+# Unity generated folders
 XR-Ad_block/[Ll]ibrary/
 XR-Ad_block/[Tt]emp/
 XR-Ad_block/[Oo]bj/
@@ -15,9 +20,42 @@ XR-Ad_block/[Bb]uild/
 XR-Ad_block/[Bb]uilds/
 XR-Ad_block/[Ll]ogs/
 XR-Ad_block/[Uu]ser[Ss]ettings/
-*.json
-*.csproj
+XR-Ad_block/[Mm]emoryCaptures/
+
+# Auto-generated IDE files
+XR-Ad_block/*.csproj
+XR-Ad_block/*.sln
+XR-Ad_block/*.user
+XR-Ad_block/*.unityproj
+XR-Ad_block/*.pidb
+XR-Ad_block/*.booproj
+XR-Ad_block/*.svd
+
+XR-Ad_block/.vs/
+XR-Ad_block/.vscode/
+XR-Ad_block/.idea/
+
+# =====================================================
+# AI-core (Python / ML)
+# =====================================================
+
+# Python cache
+AI-core/__pycache__/
+AI-core/**/*.pyc
+AI-core/**/*.pyo
+
+# Virtual environments
+AI-core/venv/
+AI-core/.venv/
+
+# Training outputs
+AI-core/runs/
+
+# OS junk
 .DS_Store
 **/.DS_Store
+Thumbs.db
+desktop.ini
+
+# General cache files
 *.cache
-yolov8n.pt
