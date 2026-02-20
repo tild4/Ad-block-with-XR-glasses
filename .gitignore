@@ -34,7 +34,8 @@ XR-Ad_block/*.svd
 XR-Ad_block/.vs/
 XR-Ad_block/.vscode/
 XR-Ad_block/.idea/
-
+!XR-Ad_block/.config/
+!XR-Ad_block/.config/dotnet-tools.json
 # =====================================================
 # AI-core (Python / ML)
 # =====================================================
