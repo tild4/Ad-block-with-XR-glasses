@@ -21,10 +21,11 @@ using UnityEngine;
 
 public class CaptureCameraFrame : MonoBehaviour
 {
-    [SerializeField] private PassthroughCameraAccess cameraAccess;     
+    [SerializeField]
+    private PassthroughCameraAccess cameraAccess;
 
-    // Used by ViewportPointToRay indicates the center of input camera               
-    private Vector2 normalizedViewportPoint = new Vector2(0.5f, 0.5f);  
+    // Used by ViewportPointToRay indicates the center of input camera
+    private Vector2 normalizedViewportPoint = new Vector2(0.5f, 0.5f);
 
     public struct FrameData
     {
@@ -33,22 +34,27 @@ public class CaptureCameraFrame : MonoBehaviour
         public Ray currentRay;
         public Vector2Int currentResolution;
         public DateTime currentTimestamp;
-    }   
+    }
 
     // Event-based architecture
     public event Action<FrameData> newFrame;
- 
+
     // Update every frame
     private void Update()
     {
         // Guard rail
-        if(cameraAccess == null || !cameraAccess.enabled || !cameraAccess.IsPlaying || !cameraAccess.IsUpdatedThisFrame)
+        if (
+            cameraAccess == null
+            || !cameraAccess.enabled
+            || !cameraAccess.IsPlaying
+            || !cameraAccess.IsUpdatedThisFrame
+        )
         {
             return;
         }
-        
+
         //PassthroughCameraAccess.CameraIntrinsics intrinsics = cameraAccess.Intrinsics; *vet ej om detta behövs*
-        
+
         // Contruct frame
 
         FrameData frame = new FrameData
@@ -57,13 +63,11 @@ public class CaptureCameraFrame : MonoBehaviour
             currentPose = cameraAccess.GetCameraPose(),
             currentRay = cameraAccess.ViewportPointToRay(normalizedViewportPoint),
             currentResolution = cameraAccess.CurrentResolution,
-            currentTimestamp = cameraAccess.Timestamp
+            currentTimestamp = cameraAccess.Timestamp,
         };
 
         // Invokes event -> new frame ready to be utilized
 
         newFrame?.Invoke(frame);
-        
     }
-
 }

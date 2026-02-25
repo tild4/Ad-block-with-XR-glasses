@@ -15,21 +15,26 @@
     Everything happens on GPU via CommandBuffer.
     No CPU texture readback (fast).
 */
-using UnityEngine;
-using Unity.InferenceEngine;
-using UnityEngine.Rendering;
-using JetBrains.Annotations;
 using System;
+using JetBrains.Annotations;
+using Unity.InferenceEngine;
+using UnityEngine;
+using UnityEngine.Rendering;
+
 public class CameraTextureToTensor : MonoBehaviour
 {
+    [SerializeField]
+    private CaptureCameraFrame cameraFrame;
 
-    [SerializeField] private CaptureCameraFrame cameraFrame;
-    [SerializeField] private int targetWidth = 224;
-    [SerializeField] private int targetHeight = 224;
+    [SerializeField]
+    private int targetWidth = 224;
+
+    [SerializeField]
+    private int targetHeight = 224;
 
     // GPU texture we render into (resized version of camera frame)
     private RenderTexture renderTexture;
-    
+
     // GPU command recorder (stores GPU operations before execution)
     private CommandBuffer commandBuffer;
 
@@ -72,7 +77,7 @@ public class CameraTextureToTensor : MonoBehaviour
         Called when component is disabled or destroyed.
         Always unsubscribe from events.
         Prevents memory leaks and null reference errors.
-    */   
+    */
 
     private void OnDisable()
     {
@@ -99,7 +104,7 @@ public class CameraTextureToTensor : MonoBehaviour
         }
 
         // Clear previously recorded GPU commands
-        
+
         commandBuffer.Clear();
 
         /*
@@ -120,8 +125,8 @@ public class CameraTextureToTensor : MonoBehaviour
             NOTE:
             This runs on GPU.
         */
-        
-        commandBuffer.ToTensor(renderTexture,currentTensor);
+
+        commandBuffer.ToTensor(renderTexture, currentTensor);
 
         /*
             Actually sends recorded GPU commands to execute.
@@ -143,21 +148,21 @@ public class CameraTextureToTensor : MonoBehaviour
         - Tensor
     */
     private void OnDestroy()
-{
-    if (commandBuffer != null)
     {
-        commandBuffer.Release();
-        commandBuffer = null;
-    }
+        if (commandBuffer != null)
+        {
+            commandBuffer.Release();
+            commandBuffer = null;
+        }
 
-    if (renderTexture != null)
-    {
-        renderTexture.Release();
-        Destroy(renderTexture);
-        renderTexture = null;
-    }
+        if (renderTexture != null)
+        {
+            renderTexture.Release();
+            Destroy(renderTexture);
+            renderTexture = null;
+        }
 
-    currentTensor?.Dispose();
-    currentTensor = null;
-}
+        currentTensor?.Dispose();
+        currentTensor = null;
+    }
 }
