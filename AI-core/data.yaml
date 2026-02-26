@@ -1,6 +1,13 @@
-path: AI-core 
-train: images  # for later use images/train
-val: images    # for later use images/val
+train: ../train/images
+val: ../valid/images
+test: ../test/images
 
-names:
-  0: advertisement
+nc: 1
+names: ['ad']
+
+roboflow:
+  workspace: ads-hdft5
+  project: advertisement-detector
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/ads-hdft5/advertisement-detector/dataset/2
