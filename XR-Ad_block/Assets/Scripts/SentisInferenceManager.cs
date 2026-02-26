@@ -140,7 +140,14 @@
 
         // store the results as a Rect (x, y, width, height) and confidence score in our Detections list
         Detections.Add((new Rect(x1, y1, nw, nh), confidence));
+
     }
+
+    // Log detection results for debugging (visible via ADB logcat or Meta Quest Developer Hub)                                   
+    if (Detections.Count > 0)                                                                                                     
+      Debug.Log($"[Sentis] Detected {Detections.Count} ads. Top confidence: {Detections[0].confidence:0.00}");                  
+    else                                                                                                                          
+      Debug.Log("[Sentis] No ads detected this frame.");
 
     yield return null;
     }
