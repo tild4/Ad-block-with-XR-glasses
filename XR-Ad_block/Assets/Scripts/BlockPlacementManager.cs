@@ -16,7 +16,7 @@ public class BlockPlacementManager : MonoBehaviour
     // Raycasts against real-world spatial mesh.
     [SerializeField] private EnvironmentRaycastManager raycastManager;
 
-    // Used to spawned blockers can be place correctly in the world and move with the user.
+    // Used so spawned blockers can be place correctly in the world and move with the user.
     [SerializeField] private OVRCameraRig cameraRig;
 
     // The object to be spawned, if we want to use a customprefab later, we can just swap it out here / editor.
@@ -37,7 +37,6 @@ public class BlockPlacementManager : MonoBehaviour
         }
 
         // Convert normalized viewport coordinates (0-1) to a ray in world space.
-        // YOLO gives us the center of the detected object in normalized viewport space.
         // Accounts for: Camera projection, field of view, current head pose
         // Here we can probably replace by our own methods if we want future optimizations.
         // Will require some linear algebra to convert 2D screen point to a 3D ray based on camera intrinsics and head pose.
@@ -55,6 +54,8 @@ public class BlockPlacementManager : MonoBehaviour
                 currentBlock.transform.SetParent(cameraRig.trackingSpace);
             }
 
+
+            // hit.point gives us the centre point, then we rotate the blocker to align with the surface normal of the hit point.
             currentBlock.transform.position = hit.point;
             currentBlock.transform.rotation = Quaternion.LookRotation(hit.normal); 
 
