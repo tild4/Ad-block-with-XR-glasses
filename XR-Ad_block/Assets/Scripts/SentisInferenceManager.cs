@@ -9,14 +9,15 @@ public class SentisInferenceManager : MonoBehaviour
     [SerializeField] private ModelAsset m_modelAsset;
     [SerializeField, Range(0f, 1f)] private float m_confidenceThreshold = 0.5f;
     [SerializeField] private CameraTextureToTensor m_cameraTextureToTensor;
-    // store the latest tensor received from CameraTextureToTensor
+    // store the latest tensor and its timestamp received from CameraTextureToTensor
     private Tensor<float> m_latestTensor;
+    private DateTime m_latestTimestamp;
 
     private Worker m_worker;
     private Vector2Int m_inputSize;
 
-    public static List<(Rect boundingBox, float confidence)> Detections { get; private set; }
-        = new List<(Rect, float)>();
+    public static List<(Rect boundingBox, float confidence, DateTime timestamp)> Detections { get; private set; }
+        = new List<(Rect, float, DateTime)>();
 
     private void Awake()
     {
@@ -46,8 +47,9 @@ public class SentisInferenceManager : MonoBehaviour
 
     private void OnNewTensor(Tensor<float> tensor, DateTime timestamp)
     {
-        // store the latest GPU-converted tensor so RunInference() can use it
+        // store the latest GPU-converted tensor and its timestamp so RunInference() can use them
         m_latestTensor = tensor;
+        m_latestTimestamp = timestamp;
     }
 
     private IEnumerator Start()
@@ -66,6 +68,9 @@ public class SentisInferenceManager : MonoBehaviour
             yield return null;
             yield break;
         }
+
+        // snapshot the timestamp for this inference run
+        DateTime frameTimestamp = m_latestTimestamp;
 
         // run model by scheduling all layers with the GPU-prepared tensor
         m_worker.Schedule(m_latestTensor);
@@ -121,8 +126,8 @@ public class SentisInferenceManager : MonoBehaviour
             float nw = width / m_inputSize.x;
             float nh = height / m_inputSize.y;
 
-            // store the results as a Rect (x, y, width, height) and confidence score in our Detections list
-            Detections.Add((new Rect(x1, y1, nw, nh), confidence));
+            // store the results as a Rect (x, y, width, height), confidence score and frame timestamp
+            Detections.Add((new Rect(x1, y1, nw, nh), confidence, frameTimestamp));
         }
 
         // Log detection results for debugging (visible via ADB logcat or Meta Quest Developer Hub)
