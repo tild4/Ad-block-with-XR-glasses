@@ -4,7 +4,7 @@ using UnityEngine;
 [Serializable]
 public struct DetectionResult
 {
-    public Vector2 viewportPoint;   // normalized 0–1
+    public Vector2 viewportPoint; // normalized 0ï¿½1
     public float confidence;
     public string label;
     public DateTime timestamp;
