@@ -27,10 +27,10 @@ public class CameraTextureToTensor : MonoBehaviour
     private CaptureCameraFrame cameraFrame;
 
     [SerializeField]
-    private int targetWidth = 224;
+    private int targetWidth = 640;
 
     [SerializeField]
-    private int targetHeight = 224;
+    private int targetHeight = 640;
 
     // GPU texture we render into (resized version of camera frame)
     private RenderTexture renderTexture;
