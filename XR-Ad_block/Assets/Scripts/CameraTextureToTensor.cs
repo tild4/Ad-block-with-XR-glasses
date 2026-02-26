@@ -41,7 +41,7 @@ public class CameraTextureToTensor : MonoBehaviour
     // Tensor that will hold the image data in (N, C, H, W) format
     private Tensor<float> currentTensor;
 
-    // Event ej färdigt
+    // Event to send tensor
     public event Action<Tensor<float>, DateTime> sendTensor;
 
     private void Awake()
