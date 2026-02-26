@@ -38,15 +38,15 @@ public class CameraTextureToTensor : MonoBehaviour
     // GPU command recorder (stores GPU operations before execution)
     private CommandBuffer commandBuffer;
 
-    // Tensor that will hold the image data in (N, H, W, C) format
+    // Tensor that will hold the image data in (N, C, H, W) format
     private Tensor<float> currentTensor;
 
     // Event ej färdigt
-    public event Action<Tensor<float>> sendTensor;
+    public event Action<Tensor<float>, DateTime> sendTensor;
 
     private void Awake()
     {
-        currentTensor = new Tensor<float>(new TensorShape(1, targetHeight, targetWidth, 3));
+        currentTensor = new Tensor<float>(new TensorShape(1, 3, targetHeight, targetWidth));
 
         renderTexture = new RenderTexture(targetWidth, targetHeight, 0, RenderTextureFormat.ARGB32);
 
@@ -134,6 +134,8 @@ public class CameraTextureToTensor : MonoBehaviour
         */
 
         Graphics.ExecuteCommandBuffer(commandBuffer);
+
+        sendTensor?.Invoke(currentTensor,frame.currentTimestamp);
     }
 
     /*
