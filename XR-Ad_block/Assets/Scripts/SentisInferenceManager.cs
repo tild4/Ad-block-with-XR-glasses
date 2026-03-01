@@ -1,3 +1,4 @@
+/// *Sammanfattning saknas*
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,17 +7,17 @@ using Unity.InferenceEngine;
 
 public class SentisInferenceManager : MonoBehaviour
 {
-    [SerializeField] private ModelAsset m_modelAsset;
-    [SerializeField, Range(0f, 1f)] private float m_confidenceThreshold = 0.5f;
-    [SerializeField] private CameraTextureToTensor m_cameraTextureToTensor;
+    [SerializeField] private ModelAsset m_modelAsset; // *varibelnamn*
+    [SerializeField, Range(0f, 1f)] private float m_confidenceThreshold = 0.5f; // *varibelnamn*
+    [SerializeField] private CameraTextureToTensor m_cameraTextureToTensor; // *varibelnamn*
     // store the latest tensor and its timestamp received from CameraTextureToTensor
-    private Tensor<float> m_latestTensor;
-    private DateTime m_latestTimestamp;
+    private Tensor<float> m_latestTensor; // *varibelnamn*
+    private DateTime m_latestTimestamp; // *varibelnamn*
 
-    private Worker m_worker;
-    private Vector2Int m_inputSize;
+    private Worker m_worker; // *varibelnamn*
+    private Vector2Int m_inputSize; // *varibelnamn*
 
-    public static List<(Rect boundingBox, float confidence, DateTime timestamp)> Detections { get; private set; }
+    public static List<(Rect boundingBox, float confidence, DateTime timestamp)> Detections { get; private set; } // *global static -> polling, skapa event istället?*
         = new List<(Rect, float, DateTime)>();
 
     private void Awake()
@@ -45,7 +46,7 @@ public class SentisInferenceManager : MonoBehaviour
         m_cameraTextureToTensor.sendTensor -= OnNewTensor;
     }
 
-    private void OnNewTensor(Tensor<float> tensor, DateTime timestamp)
+    private void OnNewTensor(Tensor<float> tensor, DateTime timestamp) // *metodnamn*
     {
         // store the latest GPU-converted tensor and its timestamp so RunInference() can use them
         m_latestTensor = tensor;
@@ -60,7 +61,7 @@ public class SentisInferenceManager : MonoBehaviour
         }
     }
 
-    private IEnumerator RunInference()
+    private IEnumerator RunInference() // *metodnamn*
     {
         // check if we have received any tensor from CameraTextureToTensor yet
         if (m_latestTensor == null)
