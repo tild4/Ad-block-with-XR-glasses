@@ -42,7 +42,7 @@ public class CameraTextureToTensor : MonoBehaviour
     private Tensor<float> currentTensor;
 
     // Event to send tensor
-    public event Action<Tensor<float>, DateTime> sendTensor;
+    public event Action<Tensor<float>, FrameData> sendTensor;
 
     private void Awake()
     {
@@ -136,7 +136,7 @@ public class CameraTextureToTensor : MonoBehaviour
 
         Graphics.ExecuteCommandBuffer(commandBuffer);
 
-        sendTensor?.Invoke(currentTensor,frame.currentTimestamp);
+        sendTensor?.Invoke(currentTensor,frame);
 
         Debug.Log("Tensor ready");
     }

@@ -98,6 +98,7 @@
   <Project Path="Meta.XR.MultiplayerBlocks.NGO.Editor.csproj" />
   <Project Path="UnityEditor.UI.Analytics.csproj" />
   <Project Path="Meta.XR.EnvironmentDepth.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Meta.XR.Editor.Settings.csproj" />
   <Project Path="Unity.AppUI.Editor.csproj" />
@@ -119,7 +120,6 @@
   <Project Path="Oculus.Interaction.Samples.Editor.csproj" />
   <Project Path="Unity.RenderPipeline.Universal.ShaderLibrary.csproj" />
   <Project Path="Meta.XR.Editor.Callbacks.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.XR.OpenXR.Features.RuntimeDebugger.csproj" />
   <Project Path="UnityEngine.SpatialTracking.csproj" />
   <Project Path="Unity.XR.OpenXR.Features.OculusQuestSupport.Editor.csproj" />
