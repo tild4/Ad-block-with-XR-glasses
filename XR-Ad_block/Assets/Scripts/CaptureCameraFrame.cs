@@ -29,12 +29,10 @@ public class CaptureCameraFrame : MonoBehaviour
 
     // Used by ViewportPointToRay indicates the center of input camera
     private Vector2 normalizedViewportPoint = new Vector2(0.5f, 0.5f);
-<<<<<<< capture-simulator-frame
-    
-=======
 
     private float lastProcessTime = 0f;
 
+    /*
     public struct FrameData
     {
         public Texture currentTexture;
@@ -43,8 +41,8 @@ public class CaptureCameraFrame : MonoBehaviour
         public Vector2Int currentResolution;
         public DateTime currentTimestamp;
     }
+    */
 
->>>>>>> main
     // Event-based architecture
     public event Action<FrameData> newFrame;
 
