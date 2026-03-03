@@ -1,0 +1,17 @@
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/GAToUnityCallbacks.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/MacroEnd.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/MacroHeaderBegin.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/MacroSourceBegin.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UGAApplication.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UGAConfiguration.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UGADebug.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UGAEvents.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UGAInput.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UGASoftKeyboard.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UGASoftKeyboardCallbacks.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UGATypes.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UGAVersion.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UnityToGACallbacks.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UnityToGAConfigurationCallbacks.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UnityToGAKeyEventCallbacks.h
+/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/UnityToGAMotionEventCallbacks.h

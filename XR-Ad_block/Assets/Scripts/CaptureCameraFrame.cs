@@ -24,23 +24,49 @@ public class CaptureCameraFrame : MonoBehaviour
     [SerializeField]
     private PassthroughCameraAccess cameraAccess;
 
+    [SerializeField]
+    private float processingInterval = 0.15f;
+
     // Used by ViewportPointToRay indicates the center of input camera
     private Vector2 normalizedViewportPoint = new Vector2(0.5f, 0.5f);
+<<<<<<< capture-simulator-frame
     
+=======
+
+    private float lastProcessTime = 0f;
+
+    public struct FrameData
+    {
+        public Texture currentTexture;
+        public Pose currentPose;
+        public Ray currentRay;
+        public Vector2Int currentResolution;
+        public DateTime currentTimestamp;
+    }
+
+>>>>>>> main
     // Event-based architecture
     public event Action<FrameData> newFrame;
 
     // Update every frame
     private void Update()
     {
+
+        if (Time.time - lastProcessTime < processingInterval)
+        {
+            return;
+        }
+
+        lastProcessTime = Time.time;
+
         // Guard rail
         if (
             cameraAccess == null
             || !cameraAccess.enabled
             || !cameraAccess.IsPlaying
-            || !cameraAccess.IsUpdatedThisFrame
         )
         {
+            Debug.Log("failed frame");
             return;
         }
 
@@ -60,5 +86,7 @@ public class CaptureCameraFrame : MonoBehaviour
         // Invokes event -> new frame ready to be utilized
 
         newFrame?.Invoke(frame);
+
+        Debug.Log("frame invoked");
     }
 }

@@ -100,6 +100,7 @@ public class CameraTextureToTensor : MonoBehaviour
     {
         if (frame.currentTexture == null)
         {
+            Debug.Log("null tensor");
             return;
         }
 
@@ -136,6 +137,8 @@ public class CameraTextureToTensor : MonoBehaviour
         Graphics.ExecuteCommandBuffer(commandBuffer);
 
         sendTensor?.Invoke(currentTensor,frame.currentTimestamp);
+
+        Debug.Log("Tensor ready");
     }
 
     /*
