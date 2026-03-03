@@ -1,4 +1,4 @@
-/*
+﻿/*
     CameraTextureToTensor
 
     PURPOSE:
@@ -21,10 +21,10 @@ using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class CameraTextureToTensor : MonoBehaviour
+public class SimulatorToTensor : MonoBehaviour
 {
     [SerializeField]
-    private CaptureCameraFrame cameraFrame;
+    private CaptureSimulatorFrame simulatorFrame;
 
     [SerializeField]
     private int targetWidth = 640;
@@ -67,9 +67,9 @@ public class CameraTextureToTensor : MonoBehaviour
     */
     private void OnEnable()
     {
-        if (cameraFrame != null)
+        if (simulatorFrame != null)
         {
-            cameraFrame.newFrame += convertToTensor;
+            simulatorFrame.newFrame += convertToTensor;
         }
     }
 
@@ -81,9 +81,9 @@ public class CameraTextureToTensor : MonoBehaviour
 
     private void OnDisable()
     {
-        if (cameraFrame != null)
+        if (simulatorFrame != null)
         {
-            cameraFrame.newFrame -= convertToTensor;
+            simulatorFrame.newFrame -= convertToTensor;
         }
     }
 
@@ -100,10 +100,9 @@ public class CameraTextureToTensor : MonoBehaviour
     {
         if (frame.currentTexture == null)
         {
-            Debug.Log("null tensor");
             return;
         }
-
+        //Debug.Log($"frame received");
         // Clear previously recorded GPU commands
 
         commandBuffer.Clear();
@@ -136,9 +135,7 @@ public class CameraTextureToTensor : MonoBehaviour
 
         Graphics.ExecuteCommandBuffer(commandBuffer);
 
-        sendTensor?.Invoke(currentTensor,frame.currentTimestamp);
-
-        Debug.Log("Tensor ready");
+        sendTensor?.Invoke(currentTensor, frame.currentTimestamp);
     }
 
     /*
