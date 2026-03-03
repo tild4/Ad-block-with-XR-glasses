@@ -60,3 +60,21 @@ desktop.ini
 
 # General cache files
 *.cache
+
+# Ignore dataset contents but keep folder structure
+AI-core/test/images/*
+AI-core/test/labels/*
+
+AI-core/train/images/*
+AI-core/train/labels/*
+
+AI-core/valid/images/*
+AI-core/valid/labels/*
+
+# Keep the folders themselves
+!AI-core/test/images/.gitkeep
+!AI-core/test/labels/.gitkeep
+!AI-core/train/images/.gitkeep
+!AI-core/train/labels/.gitkeep
+!AI-core/valid/images/.gitkeep
+!AI-core/valid/labels/.gitkeep
