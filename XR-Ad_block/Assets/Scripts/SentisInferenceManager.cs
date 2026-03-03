@@ -12,13 +12,13 @@ public class SentisInferenceManager : MonoBehaviour
     [SerializeField] private CameraTextureToTensor m_cameraTextureToTensor; // *varibelnamn*
     // store the latest tensor and its timestamp received from CameraTextureToTensor
     private Tensor<float> m_latestTensor; // *varibelnamn*
-    private DateTime m_latestTimestamp; // *varibelnamn*
+    private FrameData m_latestFrame; // *varibelnamn*
 
     private Worker m_worker; // *varibelnamn*
     private Vector2Int m_inputSize; // *varibelnamn*
 
-    public static List<(Rect boundingBox, float confidence, DateTime timestamp)> Detections { get; private set; } // *global static -> polling, skapa event istället?*
-        = new List<(Rect, float, DateTime)>();
+    public static List<(Rect boundingBox, float confidence, FrameData frame)> Detections { get; private set; } // *global static -> polling, skapa event istället?*
+        = new List<(Rect, float, FrameData)>();
 
     private void Awake()
     {
@@ -46,11 +46,11 @@ public class SentisInferenceManager : MonoBehaviour
         m_cameraTextureToTensor.sendTensor -= OnNewTensor;
     }
 
-    private void OnNewTensor(Tensor<float> tensor, DateTime timestamp) // *metodnamn*
+    private void OnNewTensor(Tensor<float> tensor, FrameData frame) // *metodnamn*
     {
         // store the latest GPU-converted tensor and its timestamp so RunInference() can use them
         m_latestTensor = tensor;
-        m_latestTimestamp = timestamp;
+        m_latestFrame = frame;
     }
 
     private IEnumerator Start()
@@ -70,8 +70,8 @@ public class SentisInferenceManager : MonoBehaviour
             yield break;
         }
 
-        // snapshot the timestamp for this inference run
-        DateTime frameTimestamp = m_latestTimestamp;
+        // snapshot the frame info for this inference run
+        FrameData frame = m_latestFrame;
 
         // run model by scheduling all layers with the GPU-prepared tensor
         m_worker.Schedule(m_latestTensor);
@@ -127,8 +127,8 @@ public class SentisInferenceManager : MonoBehaviour
             float nw = width / m_inputSize.x;
             float nh = height / m_inputSize.y;
 
-            // store the results as a Rect (x, y, width, height), confidence score and frame timestamp
-            Detections.Add((new Rect(x1, y1, nw, nh), confidence, frameTimestamp));
+            // store the results as a Rect (x, y, width, height), confidence score and frame data for this detection
+            Detections.Add((new Rect(x1, y1, nw, nh), confidence, frame));
         }
 
         // Log detection results for debugging (visible via ADB logcat or Meta Quest Developer Hub)
