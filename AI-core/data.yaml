@@ -4,10 +4,3 @@ test: ../test/images
 
 nc: 1
 names: ['ad']
-
-roboflow:
-  workspace: ads-hdft5
-  project: advertisement-detector
-  version: 3
-  license: CC BY 4.0
-  url: https://universe.roboflow.com/ads-hdft5/advertisement-detector/dataset/3
