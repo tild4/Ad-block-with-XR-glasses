@@ -165,6 +165,7 @@ public class SentisInferenceManager : MonoBehaviour
             );
         }
 
+        // Only take the best detection (highest confidence) for block placement to avoid clutter
         if (detections.Count > 0)
         {
             var best = detections.OrderByDescending(d => d.confidence).First();

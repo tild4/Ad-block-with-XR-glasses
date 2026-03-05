@@ -56,9 +56,11 @@ public class BlockPlacementManager : MonoBehaviour
             return;
         }
 
+        // Convert normalized rect (0-1) to viewport coordinates (0-1) with center point.
         float centerX = rect.x + rect.width * 0.5f;
         float centerY = rect.y + rect.height * 0.5f;
 
+        // Invert Y coordinate because screen space has (0,0) at top-left, but viewport space has (0,0) at bottom-left.
         centerY = 1f - centerY;
 
         Vector2 viewportPoint = new Vector2(centerX, centerY);
@@ -68,7 +70,6 @@ public class BlockPlacementManager : MonoBehaviour
         // Accounts for: Camera projection, field of view, current head pose
         // Here we can probably replace by our own methods if we want future optimizations.
         // Will require some linear algebra to convert 2D screen point to a 3D ray based on camera intrinsics and head pose.
-
         Ray ray = cameraAccess.ViewportPointToRay(viewportPoint);
 
 
@@ -83,15 +84,20 @@ public class BlockPlacementManager : MonoBehaviour
         );
         */
 
+
+        // Some debugging visuals and logs to verify the ray is correct and aligned with the user's view.
         Debug.DrawRay(ray.origin, ray.direction * 5f, Color.red, 1f);
         Debug.Log("Ray origin: " + ray.origin);
         Debug.Log("Ray direction: " + ray.direction);
 
-
+        // Raycast return true if it hits real-world geometry (like walls, furniture) and provides hit info (point, normal)
         if (raycastManager.Raycast(ray, out var hit))
         {
+            // Update the last detection time to keep the block visible
             lastDetectionTime = Time.time;
             Debug.Log("RAYCAST HIT AT: " + hit.point);
+
+            // Offset the block slightly along the normal to prevent z-fighting with the surface
             Vector3 targetPosition = hit.point + hit.normal * 0.01f;
 
             //Spawn only one block and adjust it's placement, instead of spawning multiple blocks for each detection.
@@ -102,10 +108,11 @@ public class BlockPlacementManager : MonoBehaviour
             }
             else
             {
+                // Smoothly move the existing block to the new position
                 currentBlock.transform.position = Vector3.Lerp(
                     currentBlock.transform.position,
                     targetPosition,
-                    Time.deltaTime * 10f); // Smoothly move the block to the new position
+                    Time.deltaTime * 10f); // Can be adjusted for faster/slower movement
             }
 
             Debug.Log("Block position: " + currentBlock.transform.position);
