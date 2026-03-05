@@ -1,0 +1,2 @@
+C:\Users\zolo_\Desktop\Kandidat\XR-Ad_block\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\CMakeLists.txt
+C:\Users\zolo_\Desktop\Kandidat\XR-Ad_block\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\CMakeLists.txt
