@@ -2,7 +2,7 @@ from ultralytics import YOLO
 import cv2
 
 # load the trained model (replace with the path to your best.pt file)
-model = YOLO('AI-core/models/best.pt')
+model = YOLO('AI-core/models/best_v4_2.pt')
 
 # run prediction on a completely new image
 results = model('AI-core/test_images/IMG_7891.jpg')
