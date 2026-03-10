@@ -136,7 +136,7 @@ public class CameraTextureToTensor : MonoBehaviour
 
         Graphics.ExecuteCommandBuffer(commandBuffer);
 
-        sendTensor?.Invoke(currentTensor,frame);
+        sendTensor?.Invoke(currentTensor, frame);
 
         Debug.Log("Tensor ready");
     }

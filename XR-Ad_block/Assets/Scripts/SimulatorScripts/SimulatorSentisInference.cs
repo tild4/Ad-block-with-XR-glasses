@@ -1,15 +1,23 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using Unity.InferenceEngine;
+using UnityEngine;
 
 public class SimulatorSentisInference : MonoBehaviour
 {
-    [SerializeField] private ModelAsset m_modelAsset;
-    [SerializeField, Range(0f, 1f)] private float m_confidenceThreshold = 0.5f;
-    [SerializeField, Range(0f, 1f)] private float iouThreshold = 0.5f;
-    [SerializeField] private SimulatorToTensor m_cameraTextureToTensor;
+    [SerializeField]
+    private ModelAsset m_modelAsset;
+
+    [SerializeField, Range(0f, 1f)]
+    private float m_confidenceThreshold = 0.5f;
+
+    [SerializeField, Range(0f, 1f)]
+    private float iouThreshold = 0.5f;
+
+    [SerializeField]
+    private SimulatorToTensor m_cameraTextureToTensor;
+
     // store the latest tensor and its timestamp received from CameraTextureToTensor
     private Tensor<float> m_latestTensor;
     private DateTime m_latestTimestamp;
@@ -17,14 +25,21 @@ public class SimulatorSentisInference : MonoBehaviour
     private Worker m_worker;
     private Vector2Int m_inputSize;
 
-    public static List<(Rect boundingBox, float confidence, DateTime timestamp)> Detections { get; private set; }
-        = new List<(Rect, float, DateTime)>();
-    public static List<(Rect boundingBox, float confidence, DateTime timestamp)> IOU_Detections { get; private set; }
-        = new List<(Rect, float, DateTime)>();
+    public static List<(Rect boundingBox, float confidence, DateTime timestamp)> Detections
+    {
+        get;
+        private set;
+    } = new List<(Rect, float, DateTime)>();
+    public static List<(Rect boundingBox, float confidence, DateTime timestamp)> IOU_Detections
+    {
+        get;
+        private set;
+    } = new List<(Rect, float, DateTime)>();
 
     // Non-Maximum Suppression, used to remove duplicate detections
     List<(Rect rect, float conf, DateTime ts)> ApplyNMS(
-        List<(Rect rect, float conf, DateTime ts)> boxes)
+        List<(Rect rect, float conf, DateTime ts)> boxes
+    )
     {
         // sort confidence highest to lowest
         boxes.Sort((a, b) => b.conf.CompareTo(a.conf));
@@ -43,7 +58,8 @@ public class SimulatorSentisInference : MonoBehaviour
                     break;
                 }
             }
-            if (keep) result.Add(box);
+            if (keep)
+                result.Add(box);
         }
         return result;
     }
@@ -62,7 +78,7 @@ public class SimulatorSentisInference : MonoBehaviour
         float union = a.width * a.height + b.width * b.height - inter;
         return inter / union;
     }
-    
+
     private void Awake()
     {
         // Load the model from the assigned ModelAsset (the imported .onnx file)
@@ -120,7 +136,9 @@ public class SimulatorSentisInference : MonoBehaviour
         m_worker.Schedule(m_latestTensor);
 
         // Read the output tensor asynchronously so we dont freeze the main thread while waiting for results
-        var outputAwaiter = (m_worker.PeekOutput(0) as Tensor<float>).ReadbackAndCloneAsync().GetAwaiter();
+        var outputAwaiter = (m_worker.PeekOutput(0) as Tensor<float>)
+            .ReadbackAndCloneAsync()
+            .GetAwaiter();
 
         // wait each frame until the output tensor is ready
         while (!outputAwaiter.IsCompleted)
@@ -136,10 +154,10 @@ public class SimulatorSentisInference : MonoBehaviour
             yield break;
         }
 
-        // parse the output tensor of shape (1, 5, 8400):   YOLOv8 delar upp bilden i ett rutnät på tre olika skalor:
-        // 640/8  = 80×80 = 6400 ankare   (hittar små objekt)
-        // 640/16 = 40×40 = 1600 ankare   (hittar medelstora)
-        // 640/32 = 20×20 =  400 ankare   (hittar stora)
+        // parse the output tensor of shape (1, 5, 8400):   YOLOv8 delar upp bilden i ett rutnï¿½t pï¿½ tre olika skalor:
+        // 640/8  = 80ï¿½80 = 6400 ankare   (hittar smï¿½ objekt)
+        // 640/16 = 40ï¿½40 = 1600 ankare   (hittar medelstora)
+        // 640/32 = 20ï¿½20 =  400 ankare   (hittar stora)
         //                = 8400 totalt
 
         // clear previous frames detections
@@ -176,10 +194,11 @@ public class SimulatorSentisInference : MonoBehaviour
 
         IOU_Detections = ApplyNMS(Detections);
 
-
         // Log detection results for debugging (visible via ADB logcat or Meta Quest Developer Hub)
         if (IOU_Detections.Count > 0)
-            Debug.Log($"[Sentis] Detected {IOU_Detections.Count} ads. Top confidence: {IOU_Detections[0].confidence:0.00}");
+            Debug.Log(
+                $"[Sentis] Detected {IOU_Detections.Count} ads. Top confidence: {IOU_Detections[0].confidence:0.00}"
+            );
         else
             Debug.Log("[Sentis] No ads detected this frame.");
 

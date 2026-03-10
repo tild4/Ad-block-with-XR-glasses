@@ -3,8 +3,7 @@ using UnityEngine.Android;
 
 public class PermissionManager : MonoBehaviour
 {
-    private const string HeadsetCameraPermission =
-        "horizonos.permission.HEADSET_CAMERA";
+    private const string HeadsetCameraPermission = "horizonos.permission.HEADSET_CAMERA";
 
     void Start()
     {

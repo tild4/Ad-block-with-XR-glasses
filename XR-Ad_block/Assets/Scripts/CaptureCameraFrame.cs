@@ -49,7 +49,6 @@ public class CaptureCameraFrame : MonoBehaviour
     // Update every frame
     private void Update()
     {
-
         if (Time.time - lastProcessTime < processingInterval)
         {
             return;
@@ -58,11 +57,7 @@ public class CaptureCameraFrame : MonoBehaviour
         lastProcessTime = Time.time;
 
         // Guard rail
-        if (
-            cameraAccess == null
-            || !cameraAccess.enabled
-            || !cameraAccess.IsPlaying
-        )
+        if (cameraAccess == null || !cameraAccess.enabled || !cameraAccess.IsPlaying)
         {
             Debug.Log("failed frame");
             return;

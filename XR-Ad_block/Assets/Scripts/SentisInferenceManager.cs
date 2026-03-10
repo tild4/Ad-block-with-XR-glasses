@@ -6,7 +6,6 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.InferenceEngine;
 using UnityEngine;
-using System.Linq;
 
 public class SentisInferenceManager : MonoBehaviour
 {
@@ -21,8 +20,6 @@ public class SentisInferenceManager : MonoBehaviour
     // Reference to CameraTextureToTensor, assigned in the Inspector
     [SerializeField]
     private CameraTextureToTensor cameraTextureToTensor;
-
-    [SerializeField] private BlockPlacementManager blockPlacementManager;
 
     // The most recent GPU-prepared tensor received from CameraTextureToTensor
     private Tensor<float> latestTensor;
@@ -163,13 +160,6 @@ public class SentisInferenceManager : MonoBehaviour
             detections.Add(
                 (new Rect(x1, y1, normalizedWidth, normalizedHeight), confidence, frame)
             );
-        }
-
-        // Only take the best detection (highest confidence) for block placement to avoid clutter
-        if (detections.Count > 0)
-        {
-            var best = detections.OrderByDescending(d => d.confidence).First();
-            blockPlacementManager.ProcessDetection(best.boundingBox, best.confidence, best.frame);
         }
 
         // Log results for debugging (visible via ADB logcat or Meta Quest Developer Hub)

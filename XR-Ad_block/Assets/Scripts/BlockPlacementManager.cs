@@ -1,3 +1,6 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using Meta.XR;
 using UnityEngine;
 
@@ -17,11 +20,15 @@ public class BlockPlacementManager : MonoBehaviour
     [SerializeField]
     private EnvironmentRaycastManager raycastManager;
 
-    // Used so spawned blockers can be place correctly in the world and move with the user.
+    // Reference to XR camera rig. Used if spatial alignment with headset pose is required.
     [SerializeField]
     private OVRCameraRig cameraRig;
 
-    // The object to be spawned, if we want to use a customprefab later, we can just swap it out here / editor.
+    // Reference to SentisInferenceManager to subscribe to detection events.
+    [SerializeField]
+    private SentisInferenceManager inferenceManager;
+
+    // Prefab spawned to visually block ads
     [SerializeField]
     private GameObject blockPrefab;
 
@@ -31,9 +38,11 @@ public class BlockPlacementManager : MonoBehaviour
     public float persistenceDuration = 0.5f; // How long the block should persist after the last detection
     private GameObject currentBlock;
 
+    // In Update, we check if the current block should still be visible based on the last detection time.
+    // If the detection is older than the persistence duration, we hide the block until a new detection comes in.
     void Update()
     {
-    if (currentBlock != null)
+        if (currentBlock != null)
         {
             if (Time.time - lastDetectionTime > persistenceDuration)
             {
@@ -44,6 +53,32 @@ public class BlockPlacementManager : MonoBehaviour
                 currentBlock.SetActive(true);
             }
         }
+    }
+
+    void OnEnable()
+    {
+        // Subscribe to the detection event from SentisInferenceManager
+        inferenceManager.onDetectionsReady += HandleDetections;
+    }
+
+    void OnDisable()
+    {
+        // Unsubscribe to prevent memory leaks
+        inferenceManager.onDetectionsReady -= HandleDetections;
+    }
+
+    // Handle the list of detections from SentisInferenceManager, pick the best one, and process it.
+    private void HandleDetections(
+        List<(Rect boundingBox, float confidence, FrameData frame)> detections
+    )
+    {
+        if (detections.Count == 0)
+        {
+            return;
+        }
+
+        var best = detections.OrderByDescending(d => d.confidence).First();
+        ProcessDetection(best.boundingBox, best.confidence, best.frame);
     }
 
     // Take in detection result from YOLO, chekc confidence and raycast blocker into world.
@@ -60,19 +95,15 @@ public class BlockPlacementManager : MonoBehaviour
         float centerX = rect.x + rect.width * 0.5f;
         float centerY = rect.y + rect.height * 0.5f;
 
-        // Invert Y coordinate because screen space has (0,0) at top-left, but viewport space has (0,0) at bottom-left.
+        // Invert Y coordinate because YOLO coordinates are at the top-left of the image,
+        // while Unity's viewport coordinates are at the bottom-left.
         centerY = 1f - centerY;
 
         Vector2 viewportPoint = new Vector2(centerX, centerY);
         Debug.Log("Viewport point: " + viewportPoint);
 
-        // Convert normalized viewport coordinates (0-1) to a ray in world space.
-        // Accounts for: Camera projection, field of view, current head pose
-        // Here we can probably replace by our own methods if we want future optimizations.
-        // Will require some linear algebra to convert 2D screen point to a 3D ray based on camera intrinsics and head pose.
+        // Convert the viewport coordinates to a ray in world space using the passthrough camera projection.
         Ray ray = cameraAccess.ViewportPointToRay(viewportPoint);
-
-
 
         /*
         //Debugging method
@@ -83,12 +114,6 @@ public class BlockPlacementManager : MonoBehaviour
             centerEye.forward
         );
         */
-
-
-        // Some debugging visuals and logs to verify the ray is correct and aligned with the user's view.
-        Debug.DrawRay(ray.origin, ray.direction * 5f, Color.red, 1f);
-        Debug.Log("Ray origin: " + ray.origin);
-        Debug.Log("Ray direction: " + ray.direction);
 
         // Raycast return true if it hits real-world geometry (like walls, furniture) and provides hit info (point, normal)
         if (raycastManager.Raycast(ray, out var hit))
@@ -112,7 +137,8 @@ public class BlockPlacementManager : MonoBehaviour
                 currentBlock.transform.position = Vector3.Lerp(
                     currentBlock.transform.position,
                     targetPosition,
-                    Time.deltaTime * 10f); // Can be adjusted for faster/slower movement
+                    Time.deltaTime * 10f
+                ); // Can be adjusted for faster/slower movement
             }
 
             Debug.Log("Block position: " + currentBlock.transform.position);
@@ -121,13 +147,10 @@ public class BlockPlacementManager : MonoBehaviour
             {
                 currentBlock.transform.rotation = Quaternion.LookRotation(hit.normal);
             }
-
-            //currentBlock.transform.SetParent(cameraRig.trackingSpace);
         }
         else
         {
             Debug.Log("RAYCAST MISSED");
         }
-        
     }
 }
