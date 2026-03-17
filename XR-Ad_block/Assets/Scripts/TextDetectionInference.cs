@@ -2,34 +2,31 @@
     TextRecognitionInference
 
     PURPOSE:
-    Runs OCR model inference on cropped image tensors.
+    Runs OCR detection model inference on cropped image tensors.
 
     FEATURES:
     - Async GPU readback
     - Coroutine structure prevents overlapping inference
-
-    [SerializeField] int targetWidth = 320;
-
-    [SerializeField] int targetHeight = 48;
-
-    inputs för recognition model
 */
 using System;
 using System.Collections;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
-public class TextRecognitionInference : MonoBehaviour
+public class TextDetectionInference : MonoBehaviour
 {
     // Will be loaded with ONNX model
    [SerializeField] private ModelAsset modelAsset;
 
-    // TEMPORÄRT BYTT TILL CAPTURE CAMERA FRAME
    [SerializeField] private CaptureCameraFrame captureCameraFrame;
 
-    [SerializeField] private int tensorTargetHeight = 48;
+   [SerializeField] private int tensorTargetHeight = 640;
 
-   [SerializeField] private int tensorTargetWidth = 320;
+   [SerializeField] private int tensorTargetWidth = 640;
+
+    [SerializeField] private float processingInterval = 0.3f;
+
+    private float lastProcessTime = 0f;
 
    // Reference to the newest incoming tensor (older queued tensors are discarded)
    private Tensor<float> latestTensor;
@@ -43,7 +40,7 @@ public class TextRecognitionInference : MonoBehaviour
 
    private CommandBuffer commandBuffer;
 
-   public event Action<Tensor<float>, FrameData> sendOCRTensor;
+   public event Action<Tensor<float>, FrameData> decodeDetectionTensor;
 
 
     private void Awake()
@@ -69,7 +66,7 @@ public class TextRecognitionInference : MonoBehaviour
     {
         if (captureCameraFrame != null)
         {
-            captureCameraFrame.newFrame += onNewTensor;           
+            captureCameraFrame.newFrame += onNewFrame;           
         }
     }
 
@@ -77,7 +74,7 @@ public class TextRecognitionInference : MonoBehaviour
     {
         if (captureCameraFrame != null)
         {
-            captureCameraFrame.newFrame -= onNewTensor;           
+            captureCameraFrame.newFrame -= onNewFrame;           
         }
     }
 
@@ -87,8 +84,17 @@ public class TextRecognitionInference : MonoBehaviour
         Only the latest arriving tensor will be used for inference
         Therefore each old one needs to be disposed to prevent memory leaks
     */
-    private void onNewTensor(FrameData frame) 
+    private void onNewFrame(FrameData frame) 
     {
+
+        if (Time.time - lastProcessTime < processingInterval)
+        {
+            return;
+        }
+
+        lastProcessTime = Time.time;
+
+
         // Dispose queued tensor if still stored
         latestTensor?.Dispose();
 
@@ -96,6 +102,8 @@ public class TextRecognitionInference : MonoBehaviour
         latestTensor = ConvertToTensor.convert(frame.currentTexture, renderTexture, tensorTargetHeight, tensorTargetWidth, commandBuffer);
 
         latestFrame = frame;
+
+        Debug.Log("yes min broder");
     }
 
     /*
@@ -156,7 +164,9 @@ public class TextRecognitionInference : MonoBehaviour
             yield break;
         }
 
-        sendOCRTensor?.Invoke(outputTensor, frame);
+        Debug.Log("send to decode");
+
+        decodeDetectionTensor?.Invoke(outputTensor, frame);
     }
 
 
@@ -164,7 +174,7 @@ public class TextRecognitionInference : MonoBehaviour
     {
         latestTensor?.Dispose();
         worker?.Dispose();
-
+        
         if (commandBuffer != null)
         {
             commandBuffer.Release();
