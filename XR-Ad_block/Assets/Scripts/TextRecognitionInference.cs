@@ -7,12 +7,6 @@
     FEATURES:
     - Async GPU readback
     - Coroutine structure prevents overlapping inference
-
-    [SerializeField] int targetWidth = 320;
-
-    [SerializeField] int targetHeight = 48;
-
-    inputs för recognition model
 */
 using System;
 using System.Collections;
@@ -96,6 +90,8 @@ public class TextRecognitionInference : MonoBehaviour
         latestTensor = ConvertToTensor.convert(frame.currentTexture, renderTexture, tensorTargetHeight, tensorTargetWidth, commandBuffer);
 
         latestFrame = frame;
+        
+        Debug.Log("cash");
     }
 
     /*
@@ -155,6 +151,8 @@ public class TextRecognitionInference : MonoBehaviour
         {
             yield break;
         }
+
+        Debug.Log("skiiiiicka");
 
         sendOCRTensor?.Invoke(outputTensor, frame);
     }
