@@ -2,43 +2,61 @@
     TextRecognitionInference
 
     PURPOSE:
-    Runs OCR model inference on cropped image tensors.
+    Runs Paddle OCR recognition model inference on image tensors.
+
+    PIPELINE:
+    ... → Post processing → THIS (OCR recognition) → Decoder -> ...
 
     FEATURES:
-    - Async GPU readback
-    - Coroutine structure prevents overlapping inference
+    - Converts Texture → Tensor on GPU
+    - Async GPU readback (non-blocking)
+    - Processes only latest frame (no queue)
+    - Safe tensor disposal (no memory leaks)
 */
 using System;
 using System.Collections;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
+
 public class TextRecognitionInference : MonoBehaviour
 {
-    // Will be loaded with ONNX model
-   [SerializeField] private ModelAsset modelAsset;
+    // ONNX OCR model (assigned in Inspector)
+    [SerializeField]
+    private ModelAsset modelAsset;
 
-    // TEMPORÄRT BYTT TILL CAPTURE CAMERA FRAME
-   [SerializeField] private CaptureCameraFrame captureCameraFrame;
+    // TEMP: using camera frames directly instead of cropped text regions
+    [SerializeField]
+    private CaptureCameraFrame captureCameraFrame;
 
-    [SerializeField] private int tensorTargetHeight = 48;
+    /*
+    Exact tensor input settings for ONNX model is: [DynamicDimension.0,3,48,DynamicDimension.1]
+    In NCHW format
+    Therefore tTW can be changed, with multiples of 32 being recommmended
+    Default Batch Number should always be 1
+    */
 
-   [SerializeField] private int tensorTargetWidth = 320;
+    [SerializeField]
+    private int tensorTargetHeight = 48;
 
-   // Reference to the newest incoming tensor (older queued tensors are discarded)
-   private Tensor<float> latestTensor;
+    [SerializeField]
+    private int tensorTargetWidth = 320;
 
-   private FrameData latestFrame;
+    // Reference to the newest incoming tensor (older queued tensors are discarded)
+    private Tensor<float> latestTensor;
 
-    // Worker runs Inference
-   private Worker worker;
+    // Metadata for corresponding frame
+    private FrameData latestFrame;
 
-   private RenderTexture renderTexture;
+    // Sentis worker → runs model on GPU
+    private Worker worker;
 
-   private CommandBuffer commandBuffer;
+    // Reused GPU resources for conversion
+    private RenderTexture renderTexture;
 
-   public event Action<Tensor<float>, FrameData> sendOCRTensor;
+    private CommandBuffer commandBuffer;
 
+    public event Action<Tensor<float>, FrameData> sendOCRTensor;
 
     private void Awake()
     {
@@ -49,7 +67,14 @@ public class TextRecognitionInference : MonoBehaviour
 
         var ocrModel = ModelLoader.Load(modelAsset);
 
-        renderTexture = new RenderTexture(tensorTargetWidth, tensorTargetHeight, 0, RenderTextureFormat.ARGB32);
+        //Allocate reusable GPU resources
+
+        renderTexture = new RenderTexture(
+            tensorTargetWidth,
+            tensorTargetHeight,
+            0,
+            RenderTextureFormat.ARGB32
+        );
 
         renderTexture.Create();
 
@@ -63,7 +88,7 @@ public class TextRecognitionInference : MonoBehaviour
     {
         if (captureCameraFrame != null)
         {
-            captureCameraFrame.newFrame += onNewTensor;           
+            captureCameraFrame.newFrame += onNewTensor;
         }
     }
 
@@ -71,26 +96,34 @@ public class TextRecognitionInference : MonoBehaviour
     {
         if (captureCameraFrame != null)
         {
-            captureCameraFrame.newFrame -= onNewTensor;           
+            captureCameraFrame.newFrame -= onNewTensor;
         }
     }
 
-
     /*
-        Called whenever a cropped tensor is ready. 
+        Called whenever a cropped tensor is ready.
         Only the latest arriving tensor will be used for inference
         Therefore each old one needs to be disposed to prevent memory leaks
     */
-    private void onNewTensor(FrameData frame) 
+    private void onNewTensor(FrameData frame)
     {
-        // Dispose queued tensor if still stored
+        // Dispose previous tensor if it was never used. Prevents memory leaks.
         latestTensor?.Dispose();
 
-        // Make latest tensor point to incoming tensor
-        latestTensor = ConvertToTensor.convert(frame.currentTexture, renderTexture, tensorTargetHeight, tensorTargetWidth, commandBuffer);
+        /*
+            Convert current frame → tensor (GPU)
+            Ownership is transferred to this class
+        */
+        latestTensor = ConvertToTensor.convert(
+            frame.currentTexture,
+            renderTexture,
+            tensorTargetHeight,
+            tensorTargetWidth,
+            commandBuffer
+        );
 
         latestFrame = frame;
-        
+
         Debug.Log("cash");
     }
 
@@ -100,9 +133,9 @@ public class TextRecognitionInference : MonoBehaviour
     */
     private IEnumerator Start()
     {
-        while(true)
+        while (true)
         {
-                yield return runInference();
+            yield return runInference();
         }
     }
 
@@ -111,7 +144,7 @@ public class TextRecognitionInference : MonoBehaviour
     {
         if (latestTensor == null || worker == null)
         {
-            yield return null; 
+            yield return null;
             yield break;
         }
 
@@ -133,7 +166,9 @@ public class TextRecognitionInference : MonoBehaviour
             Async GPU readback.
             Does NOT block main thread.
         */
-        var outputAwaiter = (worker.PeekOutput(0) as Tensor<float>).ReadbackAndCloneAsync().GetAwaiter();
+        var outputAwaiter = (worker.PeekOutput(0) as Tensor<float>)
+            .ReadbackAndCloneAsync()
+            .GetAwaiter();
 
         // Loop until GPU has finished computing
         while (!outputAwaiter.IsCompleted)
@@ -144,7 +179,7 @@ public class TextRecognitionInference : MonoBehaviour
 
         // Disposes tensor used by inference
         inputTensor.Dispose();
-        
+
         Tensor<float> outputTensor = outputAwaiter.GetResult();
 
         if (outputTensor == null)
@@ -157,7 +192,7 @@ public class TextRecognitionInference : MonoBehaviour
         sendOCRTensor?.Invoke(outputTensor, frame);
     }
 
-
+    // Mandatory cleanup
     private void OnDestroy()
     {
         latestTensor?.Dispose();
@@ -176,8 +211,4 @@ public class TextRecognitionInference : MonoBehaviour
             renderTexture = null;
         }
     }
-
-
-
-
 }
