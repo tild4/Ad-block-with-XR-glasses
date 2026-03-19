@@ -70,7 +70,8 @@ public class TextDetectionInference : MonoBehaviour
 
     private void Awake()
     {
-        if (modelAsset == null)
+        // CAPTURE CAMERA FRAME IS TEMP!
+        if (modelAsset == null || captureCameraFrame == null)
         {
             return;
         }

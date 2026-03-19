@@ -175,6 +175,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Camera TextDet
       objectReference: {fileID: 0}
+    - target: {fileID: 8186863320401897522, guid: 9ff07047b2c0240af847a8d676346d9e, type: 3}
+      propertyPath: ymlFile
+      value: 
+      objectReference: {fileID: 4900000, guid: e2f6a750319d64bf08a7e49d05325e83, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

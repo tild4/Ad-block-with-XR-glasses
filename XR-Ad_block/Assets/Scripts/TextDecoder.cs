@@ -18,26 +18,24 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;  
+using Unity.InferenceEngine;
 
-public class TextDecoder : MonoBehaviour
+public class TextDecoder
 {
-    // The yml file from PaddleOCR that maps class indices to characters 
-    [SerializeField] 
-    private TextAsset dictionaryYml; 
-
     private Dictionary<int, char> indexToChar;
 
-    private void Awake()
+    public TextDecoder(TextAsset file) 
     {
-        // Parse the yml file to create a mapping of class indices to characters
-        indexToChar = parseYml(dictionaryYml);
+        this.indexToChar = parseYml(file);
     }
 
-    public string decode(Tensor<float> ocrOutput)
+    // Check size for debug purposes, remove later
+    public int DictionarySize => indexToChar.Count;
+    public string decode(Tensor<float> tensor)
     {
         // The output tensor shape is (1, sequence_length, num_classes)
-        int numClasses = ocrOutput.shape.Get(2);
-        int sequenceLength = ocrOutput.shape.Get(1);
+        int numClasses = tensor.shape[2];
+        int sequenceLength = tensor.shape[1];
 
         var decodedString = new StringBuilder(sequenceLength);
         int previousIndex = -1;
@@ -50,7 +48,7 @@ public class TextDecoder : MonoBehaviour
 
             for (int j = 0; j < numClasses; j++)
             {
-                float confidence = ocrOutput[0, i, j];
+                float confidence = tensor[0, i, j];
                 if (confidence > maxConfidence)
                 {
                     maxConfidence = confidence;

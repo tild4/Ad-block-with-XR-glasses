@@ -18,6 +18,7 @@ using System.Collections;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
+using System.Collections.Generic;   // TEMP REMOVE! used for debugging!
 
 public class TextRecognitionInference : MonoBehaviour
 {
@@ -42,6 +43,10 @@ public class TextRecognitionInference : MonoBehaviour
     [SerializeField]
     private int tensorTargetWidth = 320;
 
+    // Loaded with the yml file
+    [SerializeField]
+    private TextAsset ymlFile;
+
     // Reference to the newest incoming tensor (older queued tensors are discarded)
     private Tensor<float> latestTensor;
 
@@ -56,16 +61,21 @@ public class TextRecognitionInference : MonoBehaviour
 
     private CommandBuffer commandBuffer;
 
+    private TextDecoder textDecoder;
+
     public event Action<Tensor<float>, FrameData> sendOCRTensor;
 
     private void Awake()
     {
-        if (modelAsset == null)
+        // CAPTURE CAMERA FRAME IS TEMP!
+        if (modelAsset == null || ymlFile == null || captureCameraFrame == null)
         {
             return;
         }
 
         var ocrModel = ModelLoader.Load(modelAsset);
+
+        textDecoder = new TextDecoder(ymlFile);
 
         //Allocate reusable GPU resources
 
@@ -187,7 +197,50 @@ public class TextRecognitionInference : MonoBehaviour
             yield break;
         }
 
-        Debug.Log("skiiiiicka");
+        /*----------DEBUG----------*/
+        Debug.Log($"OCR Output Shape: {outputTensor.shape}");
+
+        for (int i = 0; i < Mathf.Min(5, outputTensor.shape[1]); i++)
+        {
+            string row = "";
+            for (int j = 0; j < Mathf.Min(10, outputTensor.shape[2]); j++)
+            {
+                row += outputTensor[0, i, j].ToString("F2") + " ";
+            }
+            Debug.Log($"Timestep {i}: {row}");
+        }
+
+        Debug.Log($"Dict size: {textDecoder.DictionarySize}");
+        Debug.Log($"Num classes: {outputTensor.shape[2]}");
+
+
+        HashSet<int> seenIndices = new HashSet<int>();
+
+        int numClasses = outputTensor.shape[2];
+        int sequenceLength = outputTensor.shape[1];
+
+        for (int i = 0; i < sequenceLength; i++)
+        {
+            float maxConfidence = float.MinValue;
+            int maxIndex = -1;
+
+            for (int j = 0; j < numClasses; j++)
+            {
+                float confidence = outputTensor[0, i, j];
+                if (confidence > maxConfidence)
+                {
+                    maxConfidence = confidence;
+                    maxIndex = j;
+                }
+            }
+
+            seenIndices.Add(maxIndex);
+            Debug.Log($"step {i}: maxIndex={maxIndex}, maxConfidence={maxConfidence:F4}");
+        }
+
+        Debug.Log("Predicted indices: " + string.Join(", ", seenIndices));
+        /*----------DEBUG----------*/
+        
 
         sendOCRTensor?.Invoke(outputTensor, frame);
     }
