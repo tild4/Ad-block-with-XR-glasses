@@ -2,14 +2,14 @@
     BlockPlacementManager2
 
     PURPOSE:
-    Handles the physical spawning, positioning, and persistence of 3D blocker 
+    Handles the physical spawning, positioning, and persistence of 3D blocker
     prefabs in the AR environment based on tracked AI detections.
 
     ARCHITECTURE:
     - Event-Driven: Subscribes to TrackingManager.onTrackedObjectsUpdated.
-    - Dual-Raycast System: Automatically switches between MockEnvironmentRaycastManager 
+    - Dual-Raycast System: Automatically switches between MockEnvironmentRaycastManager
       (for Editor testing) and realRaycastManager (for Meta Quest hardware).
-    - Spatial Persistence: Uses Meta's OVRSpatialAnchor to lock blocks to 
+    - Spatial Persistence: Uses Meta's OVRSpatialAnchor to lock blocks to
       real-world physical locations.
     - Lifecycle Management:
         1. CreateBlockWithAnchor: Spawns prefab and initializes visualization.
@@ -21,34 +21,44 @@
     Parenting to cameraRig.trackingSpace ensures blocks stay relative to the user's room.
 */
 
+using System.Collections.Generic;
 using Meta.XR;
 using UnityEngine;
-using System.Collections.Generic;
 
 public class BlockPlacementManager2 : MonoBehaviour
 {
     [Header("Dependencies")]
-    [SerializeField] private PassthroughCameraAccess cameraAccess;
-    
+    [SerializeField]
+    private PassthroughCameraAccess cameraAccess;
+
     // Two separate fields - use mock for Editor, real for Quest
-    [SerializeField] private EnvironmentRaycastManager realRaycastManager;
-    [SerializeField] private MockEnvironmentRaycastManager mockRaycastManager;
-    
-    [SerializeField] private OVRCameraRig cameraRig;
-    [SerializeField] private TrackingManager trackingManager;
-    
+    [SerializeField]
+    private EnvironmentRaycastManager realRaycastManager;
+
+    [SerializeField]
+    private MockEnvironmentRaycastManager mockRaycastManager;
+
+    [SerializeField]
+    private OVRCameraRig cameraRig;
+
+    [SerializeField]
+    private TrackingManager trackingManager;
+
     [Header("Prefab")]
-    [SerializeField] private GameObject blockPrefab;
-    
+    [SerializeField]
+    private GameObject blockPrefab;
+
     [Header("Settings")]
-    [SerializeField] private bool useSpatialAnchors = true;
-    
+    [SerializeField]
+    private bool useSpatialAnchors = true;
+
     // Holds active blocks per TrackedObject ID
     private Dictionary<int, GameObject> activeBlocks = new Dictionary<int, GameObject>();
 
     // Holds spatial anchors per TrackedObject ID
-    private Dictionary<int, OVRSpatialAnchor> activeSpatialAnchors = new Dictionary<int, OVRSpatialAnchor>();
-    
+    private Dictionary<int, OVRSpatialAnchor> activeSpatialAnchors =
+        new Dictionary<int, OVRSpatialAnchor>();
+
     /*
         For logging and debugging: Verifies that all dependencies are assigned in the Inspector.
     */
@@ -60,7 +70,7 @@ public class BlockPlacementManager2 : MonoBehaviour
         Debug.Log($"trackingManager: {(trackingManager != null ? "✓" : "✗ NULL")}");
         Debug.Log($"blockPrefab: {(blockPrefab != null ? "✓" : "✗ NULL")}");
     }
-    
+
     /*
         Subscribes to tracking updates when enabled.
     */
@@ -82,7 +92,7 @@ public class BlockPlacementManager2 : MonoBehaviour
             trackingManager.onTrackedObjectsUpdated -= SyncBlocksWithTracking;
         }
     }
-    
+
     /*
         Core method that synchronizes the active blocks with the current tracked objects.
         - For each active track, it calls PlaceOrUpdateBlock to ensure a block exists and is correctly positioned.
@@ -95,7 +105,7 @@ public class BlockPlacementManager2 : MonoBehaviour
         {
             PlaceOrUpdateBlock(obj);
         }
-        
+
         //Remove blocks that no longer have a corresponding tracked object
         List<int> idsToRemove = new List<int>();
         foreach (var id in activeBlocks.Keys)
@@ -106,13 +116,13 @@ public class BlockPlacementManager2 : MonoBehaviour
                 idsToRemove.Add(id);
             }
         }
-        
+
         foreach (var id in idsToRemove)
         {
             RemoveBlock(id);
         }
     }
-    
+
     /*
         Handles the logic for placing a new block or updating an existing one based on the tracked object's state.
         - If the object should not be blocked and a block exists, it removes the block.
@@ -126,19 +136,19 @@ public class BlockPlacementManager2 : MonoBehaviour
             RemoveBlock(obj.id);
             return;
         }
-        
+
         // If the object should not be blocked and we don't have an active block, do nothing
         if (!obj.shouldBlock)
         {
             return;
         }
-        
+
         // Perform raycast to find the correct position for the block
         Vector2 viewportCenter = new Vector2(
             obj.lastDetection.bboxNormalized.center.x,
-            obj.lastDetection.bboxNormalized.center.y
+            1f - obj.lastDetection.bboxNormalized.center.y // Invert Y for viewport coordinates
         );
-        
+
         Ray ray;
         if (cameraAccess != null)
         {
@@ -151,12 +161,14 @@ public class BlockPlacementManager2 : MonoBehaviour
                 Debug.LogError("No Camera.main found!");
                 return;
             }
-            ray = Camera.main.ViewportPointToRay(new Vector3(viewportCenter.x, viewportCenter.y, 0));
+            ray = Camera.main.ViewportPointToRay(
+                new Vector3(viewportCenter.x, viewportCenter.y, 0)
+            );
         }
-        
+
         EnvironmentRaycastHit hit;
         bool didHit = false;
-        
+
         if (mockRaycastManager != null)
         {
             didHit = mockRaycastManager.Raycast(ray, out hit);
@@ -170,13 +182,13 @@ public class BlockPlacementManager2 : MonoBehaviour
             Debug.LogError("No raycast manager assigned!");
             return;
         }
-        
+
         if (!didHit)
         {
             Debug.LogWarning($"Raycast failed for object {obj.id}");
             return;
         }
-        
+
         if (!activeBlocks.ContainsKey(obj.id))
         {
             CreateBlockWithAnchor(obj, hit);
@@ -186,7 +198,7 @@ public class BlockPlacementManager2 : MonoBehaviour
             UpdateBlock(obj, hit);
         }
     }
-    
+
     /*
         Creates a new block GameObject at the specified hit location and sets up a spatial anchor for it.
         - Instantiates the block prefab and names it based on the tracked object's ID.
@@ -206,32 +218,34 @@ public class BlockPlacementManager2 : MonoBehaviour
         {
             vis.SetBlockData(obj.id);
         }
-        
+
         // 2. Position and orient the block based on raycast hit
         block.transform.position = hit.point;
         block.transform.rotation = Quaternion.LookRotation(hit.normal);
-        
+
         // 3. Parent to camera rig's tracking space for room-relative positioning
         if (cameraRig != null)
         {
             block.transform.SetParent(cameraRig.trackingSpace);
         }
-        
+
         // 4. Create spatial anchor for persistence if enabled
         if (useSpatialAnchors && cameraRig != null)
         {
             OVRSpatialAnchor spatialAnchor = block.AddComponent<OVRSpatialAnchor>();
-            spatialAnchor.Save((anchor, success) =>
-            {
-                if (success)
+            spatialAnchor.Save(
+                (anchor, success) =>
                 {
-                    Debug.Log($"✓ Spatial anchor saved for object {obj.id}");
+                    if (success)
+                    {
+                        Debug.Log($"✓ Spatial anchor saved for object {obj.id}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"✗ Failed to save spatial anchor for object {obj.id}");
+                    }
                 }
-                else
-                {
-                    Debug.LogWarning($"✗ Failed to save spatial anchor for object {obj.id}");
-                }
-            });
+            );
             // Store the spatial anchor reference for later cleanup
             activeSpatialAnchors[obj.id] = spatialAnchor;
         }
@@ -239,7 +253,7 @@ public class BlockPlacementManager2 : MonoBehaviour
         activeBlocks[obj.id] = block;
         Debug.Log($"Created block for object {obj.id}");
     }
-    
+
     /*
         Updates the position and rotation of an existing block based on the new raycast hit information.
         - Retrieves the block GameObject from the activeBlocks dictionary using the tracked object's ID.
@@ -252,7 +266,7 @@ public class BlockPlacementManager2 : MonoBehaviour
         block.transform.position = hit.point;
         block.transform.rotation = Quaternion.LookRotation(hit.normal);
     }
-    
+
     /*
         Removes a block GameObject and its associated spatial anchor (if it exists) based on the tracked object's ID.
         - Checks if the block exists in the activeBlocks dictionary; if not, it returns early.
@@ -265,18 +279,18 @@ public class BlockPlacementManager2 : MonoBehaviour
         {
             return;
         }
-        
+
         if (activeSpatialAnchors.ContainsKey(objectId))
         {
             OVRSpatialAnchor anchor = activeSpatialAnchors[objectId];
             anchor.Erase((anchorToErase, success) => { });
             activeSpatialAnchors.Remove(objectId);
         }
-        
+
         Destroy(activeBlocks[objectId]);
         activeBlocks.Remove(objectId);
     }
-    
+
     /*
         Ensures that all active blocks and their spatial anchors are cleaned up when the manager is destroyed.
         - Iterates through all active block IDs and calls RemoveBlock to clean up each one.
