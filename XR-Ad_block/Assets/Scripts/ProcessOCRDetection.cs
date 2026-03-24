@@ -29,7 +29,7 @@ public class ProcessOCRDetection : MonoBehaviour
 
     private void decodeDetection(Tensor<float> tensor, FrameData frame)
     {
-        PipelineProfiler.Begin("OCR ProcessBFS");
+        PipelineProfiler.begin("OCR ProcessBFS");
         for (int y = 0; y < 640; y++)
         {
             for (int x = 0; x < 640; x++)
@@ -39,7 +39,7 @@ public class ProcessOCRDetection : MonoBehaviour
 
             List<Rect> boundingBoxes = findTextBoxes(mask);
         }
-        PipelineProfiler.End("OCR ProcessBFS");
+        PipelineProfiler.end("OCR ProcessBFS");
     }
 
     private List<Rect> findTextBoxes(bool[,] mask)

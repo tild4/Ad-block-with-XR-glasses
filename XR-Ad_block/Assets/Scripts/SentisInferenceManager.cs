@@ -96,7 +96,7 @@ public class SentisInferenceManager : MonoBehaviour
         FrameData frame = latestFrame;
 
         // Feed the tensor into the YOLO model
-        PipelineProfiler.Begin("YOLO Inference");
+        PipelineProfiler.begin("YOLO Inference");
         worker.Schedule(latestTensor);
 
         // Start async readback of the output tensor to avoid blocking the main thread
@@ -111,7 +111,7 @@ public class SentisInferenceManager : MonoBehaviour
         }
 
         // Retrieve the output tensor (shape: 1, 5, 8400)
-        PipelineProfiler.End("YOLO Inference");
+        PipelineProfiler.end("YOLO Inference");
         using var output = outputAwaiter.GetResult();
 
         // If readback failed, skip this frame
@@ -129,7 +129,7 @@ public class SentisInferenceManager : MonoBehaviour
         // For each anchor: [centerX, centerY, width, height, confidence]
 
         // Clear detections from the previous inference run
-        PipelineProfiler.Begin("YOLO Parse");
+        PipelineProfiler.begin("YOLO Parse");
         detections.Clear();
 
         // Total number of anchor predictions in the output
@@ -165,8 +165,8 @@ public class SentisInferenceManager : MonoBehaviour
             );
         }
 
-        PipelineProfiler.End("YOLO Parse");
-        PipelineProfiler.Set("Detections", detections.Count);
+        PipelineProfiler.end("YOLO Parse");
+        PipelineProfiler.set("Detections", detections.Count);
 
         // Log results for debugging (visible via ADB logcat or Meta Quest Developer Hub)
         if (detections.Count > 0)
