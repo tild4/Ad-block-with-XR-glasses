@@ -66,6 +66,7 @@ public class CaptureCameraFrame : MonoBehaviour
         //PassthroughCameraAccess.CameraIntrinsics intrinsics = cameraAccess.Intrinsics; *vet ej om detta behövs*
 
         // Contruct frame
+        PipelineProfiler.Begin("Capture");
 
         FrameData frame = new FrameData
         {
@@ -75,6 +76,8 @@ public class CaptureCameraFrame : MonoBehaviour
             currentResolution = cameraAccess.CurrentResolution,
             currentTimestamp = cameraAccess.Timestamp,
         };
+
+        PipelineProfiler.End("Capture");
 
         // Invokes event -> new frame ready to be utilized
 

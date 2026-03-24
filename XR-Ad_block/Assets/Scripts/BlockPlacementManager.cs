@@ -72,13 +72,17 @@ public class BlockPlacementManager : MonoBehaviour
         List<(Rect boundingBox, float confidence, FrameData frame)> detections
     )
     {
+        PipelineProfiler.Begin("BlockPlacement");
+
         if (detections.Count == 0)
         {
+            PipelineProfiler.End("BlockPlacement");
             return;
         }
 
         var best = detections.OrderByDescending(d => d.confidence).First();
         ProcessDetection(best.boundingBox, best.confidence, best.frame);
+        PipelineProfiler.End("BlockPlacement");
     }
 
     // Take in detection result from YOLO, chekc confidence and raycast blocker into world.
