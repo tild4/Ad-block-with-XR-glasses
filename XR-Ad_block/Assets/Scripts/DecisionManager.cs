@@ -17,9 +17,10 @@ public class DecisionManager : MonoBehaviour
     )
     {
         // initializing thresholds for blocking
-        float upperThreshold = 0.8f;
+        float upperThreshold = 0.9f;
         float fusionThreshold = 0.7f;
         float lowerThreshold = 0.4f;
+        //Hello world! this is a test
 
         //initializing wheights for confidence fusion
         float yoloWeight = 0.6f;
