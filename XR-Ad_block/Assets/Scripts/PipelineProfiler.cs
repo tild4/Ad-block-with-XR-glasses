@@ -58,11 +58,11 @@ public static class PipelineProfiler
     // Tracks when the last table was printed
     private static float lastPrintTime = -PrintIntervalSeconds;
 
-    /// <summary>
-    /// Start timing a named step. Call end() with the same name when done.
-    /// Stopwatch survives across coroutine yields (measures wall-clock time).
-    /// If the same step is started again before ending, the stopwatch restarts.
-    /// </summary>
+    /*
+        Start timing a named step. Call end() with the same name when done.
+        Stopwatch survives across coroutine yields (measures wall-clock time).
+        If the same step is started again before ending, the stopwatch restarts.
+    */
     public static void begin(string stepName)
     {
         // Restart existing stopwatch or create a new one
@@ -82,10 +82,10 @@ public static class PipelineProfiler
         }
     }
 
-    /// <summary>
-    /// Stop timing a named step and record the elapsed milliseconds.
-    /// Also triggers a table print if enough time has passed since the last one.
-    /// </summary>
+    /*
+        Stop timing a named step and record the elapsed milliseconds.
+        Also triggers a table print if enough time has passed since the last one.
+    */
     public static void end(string stepName)
     {
         if (running.TryGetValue(stepName, out Stopwatch sw))
@@ -97,18 +97,18 @@ public static class PipelineProfiler
         tryPrint();
     }
 
-    /// <summary>
-    /// Record an arbitrary key-value pair for display in the summary table.
-    /// </summary>
+    /*
+        Record an arbitrary key-value pair for display in the summary table.
+    */
     public static void set(string key, object val)
     {
         values[key] = val.ToString();
     }
 
-    /// <summary>
-    /// Prints the summary table if PrintIntervalSeconds has elapsed.
-    /// Called automatically from end() — no Update() loop needed.
-    /// </summary>
+    /*
+        Prints the summary table if PrintIntervalSeconds has elapsed.
+        Called automatically from end() — no Update() loop needed.
+    */
     private static void tryPrint()
     {
         // Rate-limit: skip if printed recently
