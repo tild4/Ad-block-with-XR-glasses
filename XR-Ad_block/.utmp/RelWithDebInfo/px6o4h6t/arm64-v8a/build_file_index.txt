@@ -1,2 +1,0 @@
-/Users/tilda.alm/Desktop/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/CMakeLists.txt
-/Users/tilda.alm/Desktop/Ad-block-with-XR-glasses/XR-Ad_block/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/src/main/cpp/GameActivity/CMakeLists.txt

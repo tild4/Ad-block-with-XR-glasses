@@ -15,12 +15,17 @@
 # Unity generated folders
 XR-Ad_block/[Ll]ibrary/
 XR-Ad_block/[Tt]emp/
+XR-Ad_block/.utmp/
 XR-Ad_block/[Oo]bj/
 XR-Ad_block/[Bb]uild/
 XR-Ad_block/[Bb]uilds/
 XR-Ad_block/[Ll]ogs/
 XR-Ad_block/[Uu]ser[Ss]ettings/
 XR-Ad_block/[Mm]emoryCaptures/
+
+# Unity performance test artifacts (auto-generated)
+XR-Ad_block/Assets/Resources/PerformanceTestRunInfo.json
+XR-Ad_block/Assets/Resources/PerformanceTestRunSettings.json
 
 # Auto-generated IDE files
 XR-Ad_block/*.csproj

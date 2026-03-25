@@ -1,5 +1,0 @@
-/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/.utmp/RelWithDebInfo/3d3j1t6h/arm64-v8a/CMakeFiles/edit_cache.dir
-/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/.utmp/RelWithDebInfo/3d3j1t6h/arm64-v8a/CMakeFiles/rebuild_cache.dir
-/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/.utmp/RelWithDebInfo/3d3j1t6h/arm64-v8a/GameActivity/CMakeFiles/game.dir
-/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/.utmp/RelWithDebInfo/3d3j1t6h/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
-/Users/razeen/Documents/Ad-block-with-XR-glasses/XR-Ad_block/.utmp/RelWithDebInfo/3d3j1t6h/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir

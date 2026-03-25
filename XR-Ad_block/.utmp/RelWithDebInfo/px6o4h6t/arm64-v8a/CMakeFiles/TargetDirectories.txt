@@ -1,5 +1,0 @@
-/Users/tilda.alm/Desktop/Ad-block-with-XR-glasses/XR-Ad_block/.utmp/RelWithDebInfo/px6o4h6t/arm64-v8a/CMakeFiles/edit_cache.dir
-/Users/tilda.alm/Desktop/Ad-block-with-XR-glasses/XR-Ad_block/.utmp/RelWithDebInfo/px6o4h6t/arm64-v8a/CMakeFiles/rebuild_cache.dir
-/Users/tilda.alm/Desktop/Ad-block-with-XR-glasses/XR-Ad_block/.utmp/RelWithDebInfo/px6o4h6t/arm64-v8a/GameActivity/CMakeFiles/game.dir
-/Users/tilda.alm/Desktop/Ad-block-with-XR-glasses/XR-Ad_block/.utmp/RelWithDebInfo/px6o4h6t/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
-/Users/tilda.alm/Desktop/Ad-block-with-XR-glasses/XR-Ad_block/.utmp/RelWithDebInfo/px6o4h6t/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir
