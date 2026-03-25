@@ -8,7 +8,7 @@
 
     ARCHITECTURE:
     - Data-only: No logic, just properties (Value Object).
-    - Dual Coordinate System: 
+    - Dual Coordinate System:
         1. bboxNormalized: Used for Raycasting (0.0 to 1.0).
         2. bboxPixels: Used for UI/Debug overlays on the screen.
     - Metadata: Stores confidence score and a reference to the source FrameData.

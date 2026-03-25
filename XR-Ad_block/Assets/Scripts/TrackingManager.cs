@@ -7,8 +7,11 @@
     AI detection momentarily flickers or disappears.
 
     ARCHITECTURE:
-    - Object Association: Uses the IOU (Intersection over Union) algorithm to match
-      new incoming detections with existing 'TrackedObjects'.
+    - Object Association: Matches new detections with existing 'TrackedObjects'
+      using pose-compensated IOU. The old bbox is reprojected into the new frame's
+      screen space using the relative camera rotation between frames, then standard
+      2D IOU is calculated. This is exact for head rotation and nearly exact for
+      small translations, regardless of the ad's distance.
     - ID Management: Assigns a permanent 'nextId' to every new unique detection.
     - Lifecycle Control:
         1. TTL (Time To Live): Keeps objects alive for a few seconds (e.g., 2.0s)
@@ -18,8 +21,8 @@
       broadcasts them via 'onNewOCRCandidate'.
 
     IMPORTANT:
-    - The 'iouThreshold' is key: too high and tracking "breaks" easily; too low
-      and different objects might swap IDs.
+    - The 'iouThreshold' controls matching sensitivity.
+    - Reprojection uses only rotation (ignores translation parallax which is when objects at different distances move at different speeds).
     - 'UpdateDetections' is the main entry point, triggered by the DetectionPostProcessor.
 */
 
@@ -94,7 +97,8 @@ public class TrackingManager : MonoBehaviour
 
     /*
         Main method to update tracking with new detections.
-        - For each new detection, tries to match it with an existing tracked object using IOU.
+        - For each new detection, tries to match it with an existing tracked object
+          using pose-compensated IOU (reprojection).
         - If a match is found, updates the existing object; if not, creates a new tracked object.
         - Resets the TTL for matched objects and sends new candidates for OCR analysis.
     */
@@ -121,18 +125,41 @@ public class TrackingManager : MonoBehaviour
     }
 
     /*
-        Tries to match a new detection with existing tracked objects using IOU.
-        If a good match is found, returns the matched object; otherwise, creates and returns a new tracked object.
+        Tries to match a new detection with existing tracked objects using
+        pose-compensated IOU. For each tracked object, the old bbox is reprojected
+        into the new detection's frame using the relative camera rotation. Then
+        standard 2D IOU is calculated between the reprojected bbox and the new bbox.
+
+        This compensates for head movement so the same physical ad matches even if
+        its screen-space position has shifted between frames.
     */
     private TrackedObject MatchOrCreate(DetectionData detection)
     {
         float bestIOU = 0f;
         TrackedObject bestMatch = null;
+        Camera cam = Camera.main;
 
-        // Find best matching existing object
         foreach (var obj in trackedObjects)
         {
-            float iou = CalculateIOU(detection.bboxNormalized, obj.lastDetection.bboxNormalized);
+            float iou;
+
+            if (cam != null)
+            {
+                // Reprojected matching: compensate for head rotation
+                Rect reprojected = reprojectBbox(
+                    obj.lastDetection.bboxNormalized,
+                    obj.lastDetection.frame.currentPose,
+                    detection.frame.currentPose,
+                    cam
+                );
+
+                iou = CalculateIOU(detection.bboxNormalized, reprojected);
+            }
+            else
+            {
+                // Fallback without camera: raw IOU (original behavior)
+                iou = CalculateIOU(detection.bboxNormalized, obj.lastDetection.bboxNormalized);
+            }
 
             if (iou > bestIOU && iou > iouThreshold)
             {
@@ -141,7 +168,6 @@ public class TrackingManager : MonoBehaviour
             }
         }
 
-        // If good match found, return it
         if (bestMatch != null)
         {
             return bestMatch;
@@ -163,6 +189,85 @@ public class TrackingManager : MonoBehaviour
         Debug.Log($"Created new TrackedObject with ID: {newObj.id}");
 
         return newObj;
+    }
+
+    /*
+        If someone sees an ad at some bbox coordinates in one frame and then looks 
+        a little to the left, then the new angle of the ad will have different bbox
+         coordinates. This might be a necessary fix to that.
+        Reprojects a bounding box from an old camera frame into a new camera frame.
+
+        Steps:
+        1. Takes the 4 corners of the old bbox in viewport space (0-1).
+        2. Converts each corner to a camera-local direction using the projection
+           matrix (depends only on FOV/aspect, not on pose).
+        3. Applies the relative rotation (oldPose → newPose) to each direction.
+        4. Projects the rotated directions back to viewport space.
+        5. Returns the axis-aligned bounding rect of the 4 reprojected corners.
+
+
+    */
+    private Rect reprojectBbox(Rect oldBbox, Pose oldPose, Pose newPose, Camera cam)
+    {
+        // Relative rotation from old frame to new frame
+        Quaternion relativeRot = Quaternion.Inverse(newPose.rotation) * oldPose.rotation;
+
+        // Current camera rotation (used as intermediate reference, cancels out)
+        Quaternion camRot = cam.transform.rotation;
+        Quaternion invCamRot = Quaternion.Inverse(camRot);
+
+        // 4 corners of old bbox in viewport space
+        Vector2 bottomLeft = new Vector2(oldBbox.xMin, oldBbox.yMin);
+        Vector2 bottomRight = new Vector2(oldBbox.xMax, oldBbox.yMin);
+        Vector2 topRight = new Vector2(oldBbox.xMax, oldBbox.yMax);
+        Vector2 topLeft = new Vector2(oldBbox.xMin, oldBbox.yMax);
+
+        float minX = float.MaxValue;
+        float minY = float.MaxValue;
+        float maxX = float.MinValue;
+        float maxY = float.MinValue;
+
+        Vector2[] corners = { bottomLeft, bottomRight, topRight, topLeft };
+        bool anyVisible = false;
+
+        foreach (var corner in corners)
+        {
+            // Viewport → world ray direction (depends on current cam rotation + FOV)
+            Ray ray = cam.ViewportPointToRay(new Vector3(corner.x, corner.y, 0f));
+
+            // World direction → camera-local direction (removes current cam rotation)
+            Vector3 localDir = invCamRot * ray.direction;
+
+            // Apply relative rotation (old frame → new frame)
+            Vector3 newLocalDir = relativeRot * localDir;
+
+            // Skip corners that end up behind the camera
+            if (newLocalDir.z <= 0f)
+            {
+                continue;
+            }
+
+            // Camera-local → world direction (re-applies current cam rotation)
+            Vector3 newWorldDir = camRot * newLocalDir;
+
+            // Project back to viewport: use a point along the direction
+            Vector3 worldPoint = cam.transform.position + newWorldDir * 10f;
+            Vector3 vp = cam.WorldToViewportPoint(worldPoint);
+
+            minX = Mathf.Min(minX, vp.x);
+            minY = Mathf.Min(minY, vp.y);
+            maxX = Mathf.Max(maxX, vp.x);
+            maxY = Mathf.Max(maxY, vp.y);
+            anyVisible = true;
+        }
+
+        // If no corners are visible, return empty rect (no match possible)
+        if (!anyVisible)
+        {
+            return new Rect(0, 0, 0, 0);
+        }
+
+        return new Rect(minX, minY, maxX - minX, maxY - minY);
     }
 
     /*
