@@ -53,6 +53,19 @@ public class BlockPlacementManager2 : MonoBehaviour
     [SerializeField]
     private bool useSpatialAnchors = true;
 
+    [Header("Debug")]
+    [SerializeField]
+    private bool debugLogSceneStatus = true;
+
+    [SerializeField]
+    private float debugSceneStatusLogIntervalSeconds = 2f;
+
+    [SerializeField]
+    private bool debugPlaceInFrontOnRaycastMiss = true;
+
+    [SerializeField]
+    private float debugFallbackDistanceMeters = 1.5f;
+
     // Holds active blocks per TrackedObject ID
     private Dictionary<int, GameObject> activeBlocks = new Dictionary<int, GameObject>();
 
@@ -60,12 +73,299 @@ public class BlockPlacementManager2 : MonoBehaviour
     private Dictionary<int, OVRSpatialAnchor> activeSpatialAnchors =
         new Dictionary<int, OVRSpatialAnchor>();
 
-    private void Awake()
+    private float nextSceneStatusLogTime;
+
+    private float nextSceneRaycastHintLogTime;
+
+    private bool IsPassthroughRayReady =>
+        cameraAccess != null && cameraAccess.enabled && cameraAccess.IsPlaying;
+
+    private string GetPreferredRaycastManagerLabel()
     {
-        Debug.Log("Found raycast manager " + (realRaycastManager != null ? "REAL" : "MOCK"));
+        if (Application.isEditor)
+        {
+            if (mockRaycastManager != null)
+            {
+                return "MOCK";
+            }
+
+            if (realRaycastManager != null)
+            {
+                return "REAL";
+            }
+
+            return "NONE";
+        }
+
+        if (realRaycastManager != null)
+        {
+            return "REAL";
+        }
+
+        if (mockRaycastManager != null)
+        {
+            return "MOCK";
+        }
+
+        return "NONE";
     }
 
-    // Ensure only one raycast manager is active based on the platfor
+    private bool TryGetPlacementRay(Vector2 viewportPoint, out Ray ray, out string source)
+    {
+        if (IsPassthroughRayReady)
+        {
+            ray = cameraAccess.ViewportPointToRay(viewportPoint);
+            source = "PassthroughCameraAccess";
+            return true;
+        }
+
+        if (Camera.main != null)
+        {
+            ray = Camera.main.ViewportPointToRay(new Vector3(viewportPoint.x, viewportPoint.y, 0f));
+            source = "Camera.main";
+            return true;
+        }
+
+        if (cameraRig != null && cameraRig.centerEyeAnchor != null)
+        {
+            ray = new Ray(cameraRig.centerEyeAnchor.position, cameraRig.centerEyeAnchor.forward);
+            source = "OVRCameraRig.centerEyeAnchor.forward";
+            return true;
+        }
+
+        ray = default;
+        source = "NONE";
+        return false;
+    }
+
+    private bool TryEnvironmentRaycast(Ray ray, out EnvironmentRaycastHit hit, out string manager)
+    {
+        // IMPORTANT: Prefer mock only in Editor. On device, prefer real raycast.
+        // A very common failure mode is having a Mock manager assigned in the scene,
+        // which then unintentionally gets used on Quest.
+        if (Application.isEditor)
+        {
+            if (mockRaycastManager != null)
+            {
+                manager = "MOCK";
+                return mockRaycastManager.Raycast(ray, out hit);
+            }
+
+            if (realRaycastManager != null)
+            {
+                manager = "REAL";
+                return realRaycastManager.Raycast(ray, out hit);
+            }
+        }
+        else
+        {
+            if (realRaycastManager != null)
+            {
+                manager = "REAL";
+                return realRaycastManager.Raycast(ray, out hit);
+            }
+
+            if (mockRaycastManager != null)
+            {
+                manager = "MOCK";
+                return mockRaycastManager.Raycast(ray, out hit);
+            }
+        }
+
+        manager = "NONE";
+        hit = default;
+        return false;
+    }
+
+    private static bool HasLoadedBehaviourWithFullName(string fullName)
+    {
+        // Uses string matching to avoid a hard compile-time dependency on MRUK types.
+        var behaviours = Resources.FindObjectsOfTypeAll<MonoBehaviour>();
+        foreach (var behaviour in behaviours)
+        {
+            if (behaviour == null)
+            {
+                continue;
+            }
+
+            if (behaviour.GetType().FullName == fullName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void LogSceneStatusIfDue()
+    {
+        if (!debugLogSceneStatus)
+        {
+            return;
+        }
+
+        if (Time.unscaledTime < nextSceneStatusLogTime)
+        {
+            return;
+        }
+
+        nextSceneStatusLogTime =
+            Time.unscaledTime + Mathf.Max(0.1f, debugSceneStatusLogIntervalSeconds);
+
+        bool hasMruk = HasLoadedBehaviourWithFullName("Meta.XR.MRUtilityKit.MRUK");
+        bool hasOvrSceneManager = HasLoadedBehaviourWithFullName("OVRSceneManager");
+
+        Debug.Log(
+            "[BlockPlacementManager2] SceneStatus: "
+                + $"time={Time.timeSinceLevelLoad:0.0}s, "
+                + $"passthroughReady={IsPassthroughRayReady}, "
+                + $"raycastManagers: real={(realRaycastManager != null ? (realRaycastManager.isActiveAndEnabled ? "active" : "inactive") : "null")}, "
+                + $"mock={(mockRaycastManager != null ? (mockRaycastManager.isActiveAndEnabled ? "active" : "inactive") : "null")}, "
+                + $"preferred={GetPreferredRaycastManagerLabel()}, "
+                + $"mrukPresent={hasMruk}, ovrSceneManagerPresent={hasOvrSceneManager}"
+        );
+    }
+
+    private void RemoveAnchorIfAny(int objectId)
+    {
+        if (
+            !activeSpatialAnchors.TryGetValue(objectId, out OVRSpatialAnchor anchor)
+            || anchor == null
+        )
+        {
+            return;
+        }
+
+        anchor.Erase((anchorToErase, success) => { });
+        activeSpatialAnchors.Remove(objectId);
+        Destroy(anchor);
+    }
+
+    private GameObject GetOrCreateBlock(TrackedObject obj)
+    {
+        if (activeBlocks.TryGetValue(obj.id, out GameObject existing) && existing != null)
+        {
+            return existing;
+        }
+
+        GameObject block = Instantiate(blockPrefab);
+        block.name = $"Block_{obj.id}";
+
+        BlockVisualization vis = block.GetComponent<BlockVisualization>();
+        if (vis != null)
+        {
+            vis.SetBlockData(obj.id);
+        }
+
+        if (cameraRig != null)
+        {
+            block.transform.SetParent(cameraRig.trackingSpace);
+        }
+
+        ApplyDebugVisibility(block);
+
+        activeBlocks[obj.id] = block;
+        return block;
+    }
+
+    private void ApplyDebugVisibility(GameObject block)
+    {
+        if (block == null)
+        {
+            return;
+        }
+
+        // Purely diagnostic: make spawned blocks hard to miss.
+        var renderers = block.GetComponentsInChildren<Renderer>(true);
+        foreach (var renderer in renderers)
+        {
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            renderer.enabled = true;
+
+            // renderer.material creates an instance per renderer (safe for debug).
+            var materials = renderer.materials;
+            for (int i = 0; i < materials.Length; i++)
+            {
+                Material mat = materials[i];
+                if (mat == null)
+                {
+                    continue;
+                }
+
+                Color debugColor = new Color(1f, 0f, 1f, 1f);
+                if (mat.HasProperty("_BaseColor"))
+                {
+                    mat.SetColor("_BaseColor", debugColor);
+                }
+                if (mat.HasProperty("_Color"))
+                {
+                    mat.SetColor("_Color", debugColor);
+                }
+                if (mat.HasProperty("_EmissionColor"))
+                {
+                    mat.EnableKeyword("_EMISSION");
+                    mat.SetColor("_EmissionColor", debugColor * 2.0f);
+                }
+            }
+        }
+    }
+
+    private void PlaceOrUpdateBlockFallbackInFront(TrackedObject obj, Ray ray, string reason)
+    {
+        if (!debugPlaceInFrontOnRaycastMiss)
+        {
+            return;
+        }
+
+        RemoveAnchorIfAny(obj.id);
+
+        Vector3 origin = ray.origin;
+        Vector3 direction = ray.direction;
+
+        // For visibility debugging: put the fallback block straight ahead of the HMD,
+        // not along the detection ray (which can point far off-center).
+        if (cameraRig != null && cameraRig.centerEyeAnchor != null)
+        {
+            origin = cameraRig.centerEyeAnchor.position;
+            direction = cameraRig.centerEyeAnchor.forward;
+        }
+
+        if (direction.sqrMagnitude > 0f)
+        {
+            direction = direction.normalized;
+        }
+        else
+        {
+            direction = Vector3.forward;
+        }
+
+        Vector3 position = origin + direction * Mathf.Max(0.05f, debugFallbackDistanceMeters);
+        Quaternion rotation = Quaternion.LookRotation(-direction, Vector3.up);
+
+        GameObject block = GetOrCreateBlock(obj);
+        block.transform.position = position;
+        block.transform.rotation = rotation;
+
+        Debug.Log(
+            $"[BlockPlacementManager2] Fallback placement for object {obj.id} ({reason}). "
+                + $"pos={position}, distance={debugFallbackDistanceMeters:0.00}m"
+        );
+    }
+
+    private void Awake()
+    {
+        Debug.Log(
+            "[BlockPlacementManager2] Ready. "
+                + $"PassthroughRayReady={IsPassthroughRayReady}, "
+                + $"ManagersAssigned: real={(realRaycastManager != null)}, mock={(mockRaycastManager != null)}, "
+                + $"Preferred={GetPreferredRaycastManagerLabel()}"
+        );
+    }
+
     /*
         Subscribes to tracking updates when enabled.
     */
@@ -125,6 +425,8 @@ public class BlockPlacementManager2 : MonoBehaviour
     */
     private void PlaceOrUpdateBlock(TrackedObject obj)
     {
+        LogSceneStatusIfDue();
+
         // If the object should not be blocked but we have an active block, remove it
         if (!obj.shouldBlock && activeBlocks.ContainsKey(obj.id))
         {
@@ -154,22 +456,13 @@ public class BlockPlacementManager2 : MonoBehaviour
             1f - obj.lastDetection.bboxNormalized.center.y // Invert Y for viewport coordinates
         );
         */
-
-        Ray ray;
-        if (cameraAccess != null)
+        if (!TryGetPlacementRay(viewportCenter, out Ray ray, out string raySource))
         {
-            ray = cameraAccess.ViewportPointToRay(viewportCenter);
-        }
-        else
-        {
-            if (Camera.main == null)
-            {
-                Debug.LogError("No Camera.main found!");
-                return;
-            }
-            ray = Camera.main.ViewportPointToRay(
-                new Vector3(viewportCenter.x, viewportCenter.y, 0)
+            Debug.LogError(
+                $"[BlockPlacementManager2] No valid camera source for ray. "
+                    + $"cameraAccess={(cameraAccess != null)}, cameraRig={(cameraRig != null)}, Camera.main={(Camera.main != null)}"
             );
+            return;
         }
 
         /*
@@ -186,29 +479,39 @@ public class BlockPlacementManager2 : MonoBehaviour
         */
 
         Debug.Log(
-            $"Object {obj.id}: viewport={viewportCenter}, ray.origin={ray.origin}, ray.direction={ray.direction}"
+            $"[BlockPlacementManager2] Object {obj.id}: viewport={viewportCenter}, raySource={raySource}, "
+                + $"ray.origin={ray.origin}, ray.direction={ray.direction}, passthroughReady={IsPassthroughRayReady}"
         );
 
-        EnvironmentRaycastHit hit;
-        bool didHit = false;
+        Debug.DrawRay(ray.origin, ray.direction * 3f, Color.magenta, 0.05f);
 
-        if (mockRaycastManager != null)
+        bool didHit = TryEnvironmentRaycast(ray, out EnvironmentRaycastHit hit, out string manager);
+
+        if (manager == "NONE")
         {
-            didHit = mockRaycastManager.Raycast(ray, out hit);
-        }
-        else if (realRaycastManager != null)
-        {
-            didHit = realRaycastManager.Raycast(ray, out hit);
-        }
-        else
-        {
-            Debug.LogError("No raycast manager assigned!");
+            Debug.LogError("[BlockPlacementManager2] No raycast manager assigned!");
             return;
         }
 
         if (!didHit)
         {
-            Debug.LogWarning($"Raycast failed for object {obj.id}");
+            PlaceOrUpdateBlockFallbackInFront(obj, ray, $"RaycastMiss manager={manager}");
+
+            if (manager == "REAL" && Time.unscaledTime >= nextSceneRaycastHintLogTime)
+            {
+                nextSceneRaycastHintLogTime = Time.unscaledTime + 10f;
+                Debug.LogWarning(
+                    "[BlockPlacementManager2] REAL raycast is missing. "
+                        + "This usually means there is no loaded Scene/Room geometry to hit. "
+                        + "Check Quest Space Setup/Room scan and ensure Scene permission is granted."
+                );
+            }
+
+            Debug.LogWarning(
+                $"[BlockPlacementManager2] Raycast failed for object {obj.id}. "
+                    + $"manager={manager}, preferred={GetPreferredRaycastManagerLabel()}, "
+                    + $"passthroughReady={IsPassthroughRayReady}"
+            );
             return;
         }
 
@@ -231,29 +534,14 @@ public class BlockPlacementManager2 : MonoBehaviour
     */
     private void CreateBlockWithAnchor(TrackedObject obj, EnvironmentRaycastHit hit)
     {
-        // 1. Instantiate block prefab
-        GameObject block = Instantiate(blockPrefab);
-        block.name = $"Block_{obj.id}";
-
-        // Set block visualization (e.g., show ID) if the component exists
-        BlockVisualization vis = block.GetComponent<BlockVisualization>();
-        if (vis != null)
-        {
-            vis.SetBlockData(obj.id);
-        }
+        GameObject block = GetOrCreateBlock(obj);
 
         // 2. Position and orient the block based on raycast hit
         block.transform.position = hit.point;
         block.transform.rotation = Quaternion.LookRotation(hit.normal);
 
-        // 3. Parent to camera rig's tracking space for room-relative positioning
-        if (cameraRig != null)
-        {
-            block.transform.SetParent(cameraRig.trackingSpace);
-        }
-
         // 4. Create spatial anchor for persistence if enabled
-        if (useSpatialAnchors && cameraRig != null)
+        if (useSpatialAnchors && cameraRig != null && !activeSpatialAnchors.ContainsKey(obj.id))
         {
             OVRSpatialAnchor spatialAnchor = block.AddComponent<OVRSpatialAnchor>();
             spatialAnchor.Save(
@@ -272,8 +560,7 @@ public class BlockPlacementManager2 : MonoBehaviour
             // Store the spatial anchor reference for later cleanup
             activeSpatialAnchors[obj.id] = spatialAnchor;
         }
-        // 5. Store the block reference for later updates/removal
-        activeBlocks[obj.id] = block;
+
         Debug.Log($"Created block for object {obj.id}");
     }
 

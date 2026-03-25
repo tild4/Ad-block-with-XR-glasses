@@ -322,6 +322,10 @@ MonoBehaviour:
   trackingManager: {fileID: 160447953}
   blockPrefab: {fileID: 8439789976323026695, guid: f3841313d53e04bfb8d988bb2413481f, type: 3}
   useSpatialAnchors: 1
+  debugLogSceneStatus: 1
+  debugSceneStatusLogIntervalSeconds: 2
+  debugPlaceInFrontOnRaycastMiss: 1
+  debugFallbackDistanceMeters: 1.5
 --- !u!1001 &5024973278134454222
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -388,6 +392,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8830780129437502700, guid: 6e8425543190ce0439543036cc21989a, type: 3}
       propertyPath: _trackingOriginType
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8830780129437502700, guid: 6e8425543190ce0439543036cc21989a, type: 3}
+      propertyPath: requestScenePermissionOnStartup
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8830780129437502700, guid: 6e8425543190ce0439543036cc21989a, type: 3}
+      propertyPath: requestPassthroughCameraAccessPermissionOnStartup
       value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
