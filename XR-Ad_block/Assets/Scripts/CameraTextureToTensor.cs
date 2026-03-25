@@ -105,6 +105,7 @@ public class CameraTextureToTensor : MonoBehaviour
         }
 
         // Clear previously recorded GPU commands
+        PipelineProfiler.begin("ToTensor");
 
         commandBuffer.Clear();
 
@@ -135,6 +136,7 @@ public class CameraTextureToTensor : MonoBehaviour
         */
 
         Graphics.ExecuteCommandBuffer(commandBuffer);
+        PipelineProfiler.end("ToTensor");
 
         sendTensor?.Invoke(currentTensor, frame);
 

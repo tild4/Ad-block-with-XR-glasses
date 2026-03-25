@@ -187,6 +187,7 @@ public class TextDetectionInference : MonoBehaviour
         // Make latest tensor point to null
         latestTensor = null;
 
+        PipelineProfiler.begin("OCR TextDetect");
         worker.Schedule(inputTensor);
 
         /*
@@ -203,6 +204,8 @@ public class TextDetectionInference : MonoBehaviour
             // Pause execution, resume next FRAME
             yield return null;
         }
+
+        PipelineProfiler.end("OCR TextDetect");
 
         // Disposes tensor used by inference
         inputTensor.Dispose();
