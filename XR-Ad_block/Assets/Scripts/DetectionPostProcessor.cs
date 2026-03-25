@@ -77,6 +77,15 @@ public class DetectionPostProcessor : MonoBehaviour
         List<(Rect boundingBox, float confidence, FrameData frame)> rawDetections
     )
     {
+        Debug.Log($"========== RAW DETECTIONS: {rawDetections.Count} ==========");
+
+        foreach (var (bbox, conf, frame) in rawDetections)
+        {
+            Debug.Log(
+                $"  bbox: x={bbox.x:F3}, y={bbox.y:F3}, w={bbox.width:F3}, h={bbox.height:F3}, conf={conf:F2}"
+            );
+        }
+
         // Clear previous results
         processedDetections.Clear();
 
@@ -122,6 +131,14 @@ public class DetectionPostProcessor : MonoBehaviour
 
         // 3. Apply Non-Maximum Suppression
         List<DetectionData> nmsResults = ApplyNMS(detectionDataList);
+
+        Debug.Log($"========== AFTER NMS: {nmsResults.Count} ==========");
+        foreach (var det in nmsResults)
+        {
+            Debug.Log(
+                $"  FINAL: x={det.bboxNormalized.x:F3}, y={det.bboxNormalized.y:F3}, w={det.bboxNormalized.width:F3}, h={det.bboxNormalized.height:F3}, conf={det.confidence:F2}"
+            );
+        }
 
         // 4. Store results
         processedDetections.AddRange(nmsResults);

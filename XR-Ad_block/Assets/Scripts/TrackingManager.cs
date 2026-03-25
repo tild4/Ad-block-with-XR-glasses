@@ -42,6 +42,9 @@ public class TrackingManager : MonoBehaviour
     [SerializeField]
     private float iouThreshold = 0.5f; // Threshold for matching detections
 
+    [SerializeField]
+    private int maxTrackedObjects = 5; // Limit to prevent overload for testing
+
     // List of currently tracked objects
     private List<TrackedObject> trackedObjects = new List<TrackedObject>();
 
@@ -100,6 +103,14 @@ public class TrackingManager : MonoBehaviour
     */
     private void UpdateDetections(List<DetectionData> detections)
     {
+        if (trackedObjects.Count >= maxTrackedObjects)
+        {
+            Debug.LogWarning(
+                $"Max tracked objects ({maxTrackedObjects}) reached - ignoring new detections"
+            );
+            return;
+        }
+
         foreach (var detection in detections)
         {
             // Try to match with existing tracked object

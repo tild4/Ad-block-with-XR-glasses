@@ -11,9 +11,15 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/TestSceneMeta.unity
     guid: a862d1bf7ceac7247ad40a7aaa27606a
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/IrlScene.unity
     guid: c0b8505c2124a47e68e8cb4661479772
+  - enabled: 0
+    path: Assets/Scenes/TrackingManager_test.unity
+    guid: 45ad35bd8845f4bbca32f9986243c779
+  - enabled: 1
+    path: Assets/Scenes/TildaTrackingManager.unity
+    guid: 9988f6661018f4dcaa74e26465ac08b6
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

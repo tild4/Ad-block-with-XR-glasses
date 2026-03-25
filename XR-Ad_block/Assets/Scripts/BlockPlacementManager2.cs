@@ -22,6 +22,7 @@
 */
 
 using System.Collections.Generic;
+using System.Linq;
 using Meta.XR;
 using UnityEngine;
 
@@ -59,18 +60,12 @@ public class BlockPlacementManager2 : MonoBehaviour
     private Dictionary<int, OVRSpatialAnchor> activeSpatialAnchors =
         new Dictionary<int, OVRSpatialAnchor>();
 
-    /*
-        For logging and debugging: Verifies that all dependencies are assigned in the Inspector.
-    */
-    private void Start()
+    private void Awake()
     {
-        Debug.Log($"=== BlockPlacementManager2 Setup ===");
-        Debug.Log($"mockRaycastManager: {(mockRaycastManager != null ? "✓" : "✗ NULL")}");
-        Debug.Log($"realRaycastManager: {(realRaycastManager != null ? "✓" : "✗ NULL")}");
-        Debug.Log($"trackingManager: {(trackingManager != null ? "✓" : "✗ NULL")}");
-        Debug.Log($"blockPrefab: {(blockPrefab != null ? "✓" : "✗ NULL")}");
+        Debug.Log("Found raycast manager " + (realRaycastManager != null ? "REAL" : "MOCK"));
     }
 
+    // Ensure only one raycast manager is active based on the platfor
     /*
         Subscribes to tracking updates when enabled.
     */
@@ -143,11 +138,22 @@ public class BlockPlacementManager2 : MonoBehaviour
             return;
         }
 
+        Rect rect = obj.lastDetection.bboxNormalized;
+
+        float centerX = rect.x + rect.width * 0.5f;
+        float centerY = rect.y + rect.height * 0.5f;
+
+        centerY = 1f - centerY;
+
+        Vector2 viewportCenter = new Vector2(centerX, centerY);
+        // -------------------------------------------------------
+        /*
         // Perform raycast to find the correct position for the block
         Vector2 viewportCenter = new Vector2(
             obj.lastDetection.bboxNormalized.center.x,
             1f - obj.lastDetection.bboxNormalized.center.y // Invert Y for viewport coordinates
         );
+        */
 
         Ray ray;
         if (cameraAccess != null)
@@ -165,6 +171,23 @@ public class BlockPlacementManager2 : MonoBehaviour
                 new Vector3(viewportCenter.x, viewportCenter.y, 0)
             );
         }
+
+        /*
+        if (cameraRig != null && cameraRig.centerEyeAnchor != null)
+        {
+            ray = new Ray(cameraRig.centerEyeAnchor.position, cameraRig.centerEyeAnchor.forward);
+            Debug.Log("TEST: Skjuter stråle rakt fram från headsetet");
+        }
+        else
+        {
+            // Fallback om cameraRig saknas (din gamla logik)
+            ray = cameraAccess.ViewportPointToRay(viewportCenter);
+        }
+        */
+
+        Debug.Log(
+            $"Object {obj.id}: viewport={viewportCenter}, ray.origin={ray.origin}, ray.direction={ray.direction}"
+        );
 
         EnvironmentRaycastHit hit;
         bool didHit = false;
