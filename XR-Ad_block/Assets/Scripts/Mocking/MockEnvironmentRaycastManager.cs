@@ -32,6 +32,10 @@ public class MockEnvironmentRaycastManager : MonoBehaviour
     [SerializeField]
     private bool alwaysHit = true; // The raycast will always return a hit. Set to false to simulate misses.
 
+    [Header("Debug")]
+    [SerializeField]
+    private bool debugLogs;
+
     /*
         Simulates a raycast by calculating a hit point at a specified distance along the ray.
     */
@@ -45,13 +49,19 @@ public class MockEnvironmentRaycastManager : MonoBehaviour
                 normal = -ray.direction, // Set normal to face the ray origin, simulating a flat surface facing the camera
             };
 
-            Debug.Log($"[MOCK RAYCAST] ✓ Hit at {hit.point}");
+            if (debugLogs)
+            {
+                Debug.Log($"[MOCK RAYCAST] ✓ Hit at {hit.point}");
+            }
             return true;
         }
         else
         {
             hit = default;
-            Debug.Log($"[MOCK RAYCAST] ✗ Miss");
+            if (debugLogs)
+            {
+                Debug.Log($"[MOCK RAYCAST] ✗ Miss");
+            }
             return false;
         }
     }
