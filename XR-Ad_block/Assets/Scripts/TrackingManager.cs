@@ -1,3 +1,9 @@
+// Copyright (c) [Your Name or Project]. All rights reserved.
+//
+// This file contains code inspired by samples from Meta Platforms, Inc.
+// It is not a direct copy of Meta source; the implementation and
+// copyright belong to this project unless otherwise stated.
+//
 /*
     TrackingManager
 
@@ -105,6 +111,7 @@ public class TrackingManager : MonoBehaviour
     */
     private void UpdateDetections(List<DetectionData> detections)
     {
+        // Limit the number of tracked objects to prevent overload during testing
         if (trackedObjects.Count >= maxTrackedObjects)
         {
             Debug.LogWarning(
@@ -205,7 +212,12 @@ public class TrackingManager : MonoBehaviour
         // YOLO: (x, y) = top-left. Viewport: (x, y) = bottom-left.
         // Keep width/height unchanged; only Y origin flips.
         float viewportYMin = 1f - yoloNormalizedRect.yMax;
-        return new Rect(yoloNormalizedRect.xMin, viewportYMin, yoloNormalizedRect.width, yoloNormalizedRect.height);
+        return new Rect(
+            yoloNormalizedRect.xMin,
+            viewportYMin,
+            yoloNormalizedRect.width,
+            yoloNormalizedRect.height
+        );
     }
 
     private static Rect ReprojectBbox(Rect oldViewportRect, Pose oldPose, Pose newPose, Camera cam)

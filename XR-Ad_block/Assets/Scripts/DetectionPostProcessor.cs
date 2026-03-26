@@ -1,23 +1,29 @@
+// Copyright (c) [Your Name or Project]. All rights reserved.
+//
+// This file contains code inspired by samples from Meta Platforms, Inc.
+// It is not a direct copy of Meta source; the implementation and
+// copyright belong to this project unless otherwise stated.
+//
 /*
-    DetectionPostProcessor
+        DetectionPostProcessor
 
-    PURPOSE:
-    Filters and refines raw YOLO detections to ensure only high-quality,
-    unique bounding boxes are passed further into the system.
+        PURPOSE:
+        Filters and refines raw YOLO detections to ensure only high-quality,
+        unique bounding boxes are passed further into the system.
 
-    ARCHITECTURE:
-    - Data Filtering: Removes detections with confidence scores below 'confidenceThreshold'.
-    - Non-Maximum Suppression (NMS): An algorithm that identifies overlapping boxes
-      and keeps only the one with the highest confidence, using 'iouThreshold' (Intersection over Union).
-    - Coordinate Transformation: Converts normalized (0-1) AI coordinates into
-      actual pixel coordinates based on the frame resolution.
-    - Event-Driven: Listens to 'sentisInferenceManager' and broadcasts 'onProcessedDetections'.
+        ARCHITECTURE:
+        - Data Filtering: Removes detections with confidence scores below 'confidenceThreshold'.
+        - Non-Maximum Suppression (NMS): An algorithm that identifies overlapping boxes
+            and keeps only the one with the highest confidence, using 'iouThreshold' (Intersection over Union).
+        - Coordinate Transformation: Converts normalized (0-1) AI coordinates into
+            actual pixel coordinates based on the frame resolution.
+        - Event-Driven: Listens to 'sentisInferenceManager' and broadcasts 'onProcessedDetections'.
 
-    IMPORTANT:
-    - Pre-allocates lists in Awake to avoid Garbage Collection (GC) spikes and
-      maintain high performance during AR tracking.
-    - IOU calculation is critical: if set too low, you lose valid detections;
-      if set too high, you get duplicate blocks.
+        IMPORTANT:
+        - Pre-allocates lists in Awake to avoid Garbage Collection (GC) spikes and
+            maintain high performance during AR tracking.
+        - IOU calculation is critical: if set too low, you lose valid detections;
+            if set too high, you get duplicate blocks.
 */
 
 using System;
@@ -121,6 +127,7 @@ public class DetectionPostProcessor : MonoBehaviour
             DetectionData data = new DetectionData
             {
                 bboxNormalized = bbox,
+                bboxMinMaxNormalized = new Vector4(bbox.xMin, bbox.yMin, bbox.xMax, bbox.yMax),
                 bboxPixels = ConvertToPixelCoordinates(bbox, frame.currentResolution),
                 confidence = conf,
                 frame = frame,
