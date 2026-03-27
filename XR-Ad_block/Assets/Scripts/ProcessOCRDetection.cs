@@ -2,6 +2,7 @@ using Unity.InferenceEngine;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System;
 
 public class ProcessOCRDetection : MonoBehaviour
 {
@@ -10,6 +11,12 @@ public class ProcessOCRDetection : MonoBehaviour
     // Should be the same as targetWidth and targetHeight
     private bool[,] mask = new bool[640, 640];
     [SerializeField] private float threshold = 0.3f; 
+
+    [SerializeField] private int roiBatchThreshold = 5;
+
+    private int droppedROI = 0;
+
+    public event Action<List<Texture2D>, FrameData> sendCroppedROIText;
 
     private void OnEnable()
     {
@@ -29,6 +36,12 @@ public class ProcessOCRDetection : MonoBehaviour
 
     private void decodeDetection(Tensor<float> tensor, FrameData frame)
     {
+        
+        if (tensor == null)
+        {
+            return;
+        }
+
         PipelineProfiler.begin("OCR ProcessBFS");
         for (int y = 0; y < 640; y++)
         {
@@ -36,10 +49,47 @@ public class ProcessOCRDetection : MonoBehaviour
             {
                 mask[y, x] = tensor[0, 0, y, x] > threshold;
             }
-
-            List<Rect> boundingBoxes = findTextBoxes(mask);
         }
+
+        List<Rect> boundingBoxes = findTextBoxes(mask);
         PipelineProfiler.end("OCR ProcessBFS");
+
+        tensor.Dispose();
+
+        List<Texture2D> croppedROI = new List<Texture2D>();
+
+        PipelineProfiler.begin("Crop roi batch");
+        foreach (Rect box in boundingBoxes)
+        {
+
+            Rect normalizedBox = new Rect(
+            box.x * frame.currentResolution.x / 640f, 
+            box.y * frame.currentResolution.y / 640f,
+            box.width * frame.currentResolution.x / 640f,
+            box.height * frame.currentResolution.y / 640f
+            );
+
+            Texture2D cropped = TextureCropper.CropBoundingBox(normalizedBox, frame.currentTexture);
+
+            if (cropped != null && croppedROI.Count < roiBatchThreshold)
+            {
+                croppedROI.Add(cropped);
+                Debug.Log("added cropped frame yes");
+            } else if (cropped == null)
+            {
+                Debug.Log("null cropped frame");
+            } else
+            {
+                droppedROI++;
+            }
+        }
+        PipelineProfiler.end("Crop roi batch");
+        Debug.Log("Number of dropped roi : " + droppedROI);
+        droppedROI = 0;
+
+        sendCroppedROIText?.Invoke(croppedROI, frame);
+        Debug.Log("hellllo send to recognition pls");
+
     }
 
     private List<Rect> findTextBoxes(bool[,] mask)

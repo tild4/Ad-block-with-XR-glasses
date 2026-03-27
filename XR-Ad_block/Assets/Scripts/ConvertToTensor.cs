@@ -42,6 +42,7 @@ public static class ConvertToTensor
         CommandBuffer commandBuffer
     )
     {
+        PipelineProfiler.begin("Tensor conversion");
         if (texture == null)
         {
             return null;
@@ -74,6 +75,8 @@ public static class ConvertToTensor
         Graphics.ExecuteCommandBuffer(commandBuffer);
 
         Debug.Log("New tensor created!");
+
+        PipelineProfiler.end("Tensor conversion");
 
         return tensor;
     }

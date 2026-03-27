@@ -18,7 +18,8 @@ using System.Collections;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
-using System.Collections.Generic;   // TEMP REMOVE! used for debugging!
+using System.Collections.Generic;
+using System.Linq;   // TEMP REMOVE! used for debugging!
 
 public class TextRecognitionInference : MonoBehaviour
 {
@@ -28,7 +29,7 @@ public class TextRecognitionInference : MonoBehaviour
 
     // TEMP: using camera frames directly instead of cropped text regions
     [SerializeField]
-    private CaptureCameraFrame captureCameraFrame;
+    private ProcessOCRDetection getROIText;
 
     /*
     Exact tensor input settings for ONNX model is: [DynamicDimension.0,3,48,DynamicDimension.1]
@@ -47,11 +48,7 @@ public class TextRecognitionInference : MonoBehaviour
     [SerializeField]
     private TextAsset ymlFile;
 
-    // Reference to the newest incoming tensor (older queued tensors are discarded)
-    private Tensor<float> latestTensor;
-
-    // Metadata for corresponding frame
-    private FrameData latestFrame;
+    [SerializeField] ViewCroppedImage viewCroppedImage;
 
     // Sentis worker → runs model on GPU
     private Worker worker;
@@ -63,12 +60,15 @@ public class TextRecognitionInference : MonoBehaviour
 
     private TextDecoder textDecoder;
 
-    public event Action<Tensor<float>, FrameData> sendOCRTensor;
+    private bool isProcessing = false;
+
+    private Queue<(Texture texture, FrameData frame)> pendingItems =  new Queue<(Texture texture, FrameData frame)>();
+
+    //public event Action<Tensor<float>, FrameData> sendOCRTensor;
 
     private void Awake()
     {
-        // CAPTURE CAMERA FRAME IS TEMP!
-        if (modelAsset == null || ymlFile == null || captureCameraFrame == null)
+        if (modelAsset == null || ymlFile == null || getROIText == null)
         {
             return;
         }
@@ -96,82 +96,110 @@ public class TextRecognitionInference : MonoBehaviour
 
     private void OnEnable()
     {
-        if (captureCameraFrame != null)
+        if (getROIText != null)
         {
-            captureCameraFrame.newFrame += onNewTensor;
+            getROIText.sendCroppedROIText += onNewROI;
         }
     }
 
     private void OnDisable()
     {
-        if (captureCameraFrame != null)
+        if (getROIText != null)
         {
-            captureCameraFrame.newFrame -= onNewTensor;
+            getROIText.sendCroppedROIText -= onNewROI;
         }
     }
 
     /*
-        Called whenever a cropped tensor is ready.
-        Only the latest arriving tensor will be used for inference
-        Therefore each old one needs to be disposed to prevent memory leaks
+
     */
-    private void onNewTensor(FrameData frame)
+    private void onNewROI(List<Texture2D> croppedROI, FrameData frame)
     {
-        // Dispose previous tensor if it was never used. Prevents memory leaks.
-        latestTensor?.Dispose();
+        if (isProcessing)
+        {
+            // Drop whole incoming batch
+            foreach (Texture2D roi in croppedROI)
+            {
+                if (roi != null)
+                {
+                    Destroy(roi);
+                }
+            }
+            return;
+        }
 
-        /*
-            Convert current frame → tensor (GPU)
-            Ownership is transferred to this class
-        */
-        latestTensor = ConvertToTensor.convert(
-            frame.currentTexture,
-            renderTexture,
-            tensorTargetHeight,
-            tensorTargetWidth,
-            commandBuffer
-        );
+        if (croppedROI != null && croppedROI.Count > 0 && viewCroppedImage != null)
+        {
+            Debug.Log("Now showing image!");
+            viewCroppedImage.Show(croppedROI[0]);
+            Debug.Log("image should be seen");
+        }
 
-        latestFrame = frame;
+        foreach (Texture2D roi in croppedROI)
+        {
+            if (roi != null)
+            {
+                pendingItems.Enqueue((roi, frame));
+            }
+        }
 
-        Debug.Log("cash");
+        if (pendingItems.Count > 0)
+        {
+            StartCoroutine(ProcessQueue());
+        }
     }
 
-    /*
-        Coroutine that continuously runs inference attempts.
-        runInference() internally decides whether work exists.
-    */
-    private IEnumerator Start()
+    private IEnumerator ProcessQueue()
     {
-        while (true)
+        isProcessing = true;
+
+        Debug.Log("Number of ROI this batch : " + pendingItems.Count);
+
+        while (pendingItems.Count > 0)
         {
-            yield return runInference();
+            var item = pendingItems.Dequeue();
+            Texture roi = item.texture;
+            FrameData frame = item.frame;
+
+            Tensor<float> tensor = ConvertToTensor.convert(
+                roi,
+                renderTexture,
+                tensorTargetHeight,
+                tensorTargetWidth,
+                commandBuffer
+            );
+
+            if (tensor != null)
+            {
+                yield return runInference(tensor, frame);
+                tensor.Dispose();
+            }
+
+            if (roi is Texture2D roi2D)
+            {
+                Destroy(roi2D);
+            }
         }
+
+        isProcessing = false;
     }
 
     //Runs inference asynchronously.
-    private IEnumerator runInference()
+    private IEnumerator runInference(Tensor<float> tensor, FrameData frame)
     {
-        if (latestTensor == null || worker == null)
+        if (tensor == null || worker == null)
         {
             yield return null;
             yield break;
         }
-
-        FrameData frame = latestFrame;
 
         /*
          Transfer ownership safely of latest tensor to input tensor
          Input tensor points to the latest tensor
         */
 
-        Tensor<float> inputTensor = latestTensor;
-
-        // Make latest tensor point to null
-        latestTensor = null;
-
         PipelineProfiler.begin("OCR TextRecog");
-        worker.Schedule(inputTensor);
+        worker.Schedule(tensor);
 
         /*
             Async GPU readback.
@@ -190,17 +218,14 @@ public class TextRecognitionInference : MonoBehaviour
 
         PipelineProfiler.end("OCR TextRecog");
 
-        // Disposes tensor used by inference
-        inputTensor.Dispose();
-
         Tensor<float> outputTensor = outputAwaiter.GetResult();
 
         if (outputTensor == null)
         {
             yield break;
         }
-
-        /*----------DEBUG----------*/
+        
+        /* ----------DEBUG---------------------
         Debug.Log($"OCR Output Shape: {outputTensor.shape}");
 
         for (int i = 0; i < Mathf.Min(5, outputTensor.shape[1]); i++)
@@ -242,16 +267,21 @@ public class TextRecognitionInference : MonoBehaviour
         }
 
         Debug.Log("Predicted indices: " + string.Join(", ", seenIndices));
-        /*----------DEBUG----------*/
-        
+        */ 
 
-        sendOCRTensor?.Invoke(outputTensor, frame);
+        PipelineProfiler.begin("Text decoder");
+
+        String output = textDecoder.decode(outputTensor);
+
+        PipelineProfiler.end("Text decoder");
+
+        outputTensor.Dispose();
+        Debug.Log("Detected word is: " + output);
     }
 
     // Mandatory cleanup
     private void OnDestroy()
     {
-        latestTensor?.Dispose();
         worker?.Dispose();
 
         if (commandBuffer != null)

@@ -5,10 +5,23 @@ public static class TextureCropper
     //crops the region corresponding to a bounding box using pixel coordinates
     public static Texture2D CropBoundingBox(Rect boundingBox, Texture source)
     {
+
+        if (source == null)
+        {
+            Debug.LogWarning("TextureCropper: source texture is null.");
+            return null;
+        }
+
         int x = (int)boundingBox.x;
         int y = (int)boundingBox.y;
         int width = (int)boundingBox.width;
         int height = (int)boundingBox.height;
+
+        if (width <= 0 || height <= 0)
+        {
+            Debug.LogWarning($"TextureCropper: invalid crop size ({width}x{height}).");
+            return null;
+        }
 
         //create destination texture with same size as ROI
         Texture2D dst = new Texture2D(width, height);
@@ -25,4 +38,5 @@ public static class TextureCropper
 
         return dst;
     }
+
 }
