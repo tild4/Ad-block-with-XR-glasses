@@ -14,9 +14,12 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/IrlScene.unity
     guid: c0b8505c2124a47e68e8cb4661479772
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/TextDetection.unity
     guid: e8d2d71169ec24fba88972a8b9582e3f
+  - enabled: 1
+    path: Assets/Scenes/Sentis+Crop.unity
+    guid: 2ffdc23774817428a887ce93a25c5a1e
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

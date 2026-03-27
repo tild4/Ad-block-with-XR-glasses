@@ -21,6 +21,8 @@ public class SentisInferenceManager : MonoBehaviour
     [SerializeField]
     private CameraTextureToTensor cameraTextureToTensor;
 
+    [SerializeField] private ViewCroppedImage viewCroppedImage;
+
     // The most recent GPU-prepared tensor received from CameraTextureToTensor
     private Tensor<float> latestTensor;
 
@@ -174,17 +176,41 @@ public class SentisInferenceManager : MonoBehaviour
             Debug.Log(
                 $"[Sentis] Detected {detections.Count} ads. Top confidence: {detections[0].confidence:0.00}"
             );
+
+            Rect box = detections[0].boundingBox;
+            Texture cropTexture = detections[0].frame.currentTexture;
+
+            Rect pixelBox = new Rect(
+            box.x * cropTexture.width,
+            box.y * cropTexture.height,
+            box.width * cropTexture.width,
+            box.height * cropTexture.height
+            );
+
+            Texture lastCropped = TextureCropper.CropBoundingBox(pixelBox,cropTexture);
+
+            if (lastCropped != null)
+            {
+            viewCroppedImage.Show(lastCropped);
+            Debug.Log("We have a detected ad!");                
+            } else
+            {
+            Debug.Log("crop snea");
+            }
+
         }
         else
         {
             Debug.Log("[Sentis] No ads detected this frame.");
         }
 
+        /*
         // Notify subscribers that new detections are available
         if (detections.Count > 0)
         {
             onDetectionsReady?.Invoke(detections);
         }
+        */
 
         yield return null;
     }

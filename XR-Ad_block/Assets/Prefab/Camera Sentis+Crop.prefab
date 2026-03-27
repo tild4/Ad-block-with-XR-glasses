@@ -533,11 +533,8 @@ GameObject:
   - component: {fileID: 3273474748044194626}
   - component: {fileID: 7366201614722276872}
   - component: {fileID: 9042379651737172012}
-  - component: {fileID: 5503433006841227877}
-  - component: {fileID: 2275006687032452908}
-  - component: {fileID: 1036075393345851391}
   m_Layer: 0
-  m_Name: Camera TextDet
+  m_Name: Camera Sentis+Crop
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -572,7 +569,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Meta.XR.BuildingBlocks::Meta.XR.BuildingBlocks.BuildingBlock
   blockId: e47682b9-c270-40b1-b16d-90b627a5ce1b
-  instanceId: 002aa71b-42b0-48f4-bdbe-856b938a8795
+  instanceId: 4580d101-5f6b-4407-afd5-bd1e5ac2b250
   version: 1
   installationRoutineCheckpoint:
     _installationRoutineId: 
@@ -812,56 +809,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2acbacefbc77407dad219819c737d63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PermissionManager
---- !u!114 &5503433006841227877
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6015156192241102125}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a184d5688f6b24588b5239d32353fff1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TextDetectionInference
-  modelAsset: {fileID: 5022602860645237092, guid: 01e4f6ce9063d4fdcb2e8ec1e3e46d8d, type: 3}
-  captureCameraFrame: {fileID: 7366201614722276872}
-  tensorTargetHeight: 640
-  tensorTargetWidth: 640
-  processingInterval: 0.3
---- !u!114 &2275006687032452908
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6015156192241102125}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6da0be05902c4f9bbc78e5f555c108e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProcessOCRDetection
-  textDetectionInference: {fileID: 5503433006841227877}
-  threshold: 0.3
-  roiBatchThreshold: 5
---- !u!114 &1036075393345851391
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6015156192241102125}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f8ff9ef62851a4aeeacca2eda5f59ca3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TextRecognitionInference
-  modelAsset: {fileID: 5022602860645237092, guid: a3a3326d5abce415ebbb14560e4bbce7, type: 3}
-  getROIText: {fileID: 2275006687032452908}
-  tensorTargetHeight: 48
-  tensorTargetWidth: 320
-  ymlFile: {fileID: 4900000, guid: e2f6a750319d64bf08a7e49d05325e83, type: 3}
-  viewCroppedImage: {fileID: 0}
 --- !u!1 &6144179908738687086
 GameObject:
   m_ObjectHideFlags: 0
