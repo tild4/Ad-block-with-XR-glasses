@@ -55,6 +55,7 @@ public class BlockPlacementManager : MonoBehaviour
         }
     }
 
+    /*
     void OnEnable()
     {
         // Subscribe to the detection event from SentisInferenceManager
@@ -66,6 +67,7 @@ public class BlockPlacementManager : MonoBehaviour
         // Unsubscribe to prevent memory leaks
         inferenceManager.onDetectionsReady -= HandleDetections;
     }
+    */
 
     // Handle the list of detections from SentisInferenceManager, pick the best one, and process it.
     private void HandleDetections(

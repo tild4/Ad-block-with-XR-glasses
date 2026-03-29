@@ -28,8 +28,7 @@ public class TextDetectionInference : MonoBehaviour
     private ModelAsset modelAsset;
 
     [SerializeField]
-    private CaptureCameraFrame captureCameraFrame;
-
+    private SentisInferenceManager sentisInferenceManager;
     /*
     Exact tensor input settings for ONNX model is: [DynamicDimension.0,3,DynamicDimension.1,DynamicDimension.2]
     In NCHW format
@@ -70,8 +69,7 @@ public class TextDetectionInference : MonoBehaviour
 
     private void Awake()
     {
-        // CAPTURE CAMERA FRAME IS TEMP!
-        if (modelAsset == null || captureCameraFrame == null)
+        if (modelAsset == null || sentisInferenceManager == null)
         {
             return;
         }
@@ -97,17 +95,17 @@ public class TextDetectionInference : MonoBehaviour
 
     private void OnEnable()
     {
-        if (captureCameraFrame != null)
+        if (sentisInferenceManager!= null)
         {
-            captureCameraFrame.newFrame += onNewFrame;
+            sentisInferenceManager.sendYOLOROI += onNewFrame;
         }
     }
 
     private void OnDisable()
     {
-        if (captureCameraFrame != null)
+        if (sentisInferenceManager != null)
         {
-            captureCameraFrame.newFrame -= onNewFrame;
+            sentisInferenceManager.sendYOLOROI -= onNewFrame;
         }
     }
 
@@ -116,14 +114,18 @@ public class TextDetectionInference : MonoBehaviour
         Only the latest arriving tensor will be used for inference
         Therefore each old one needs to be disposed to prevent memory leaks
     */
-    private void onNewFrame(FrameData frame)
+    private void onNewFrame(Texture roi, float confidence, FrameData frame)
     {
+        Debug.Log("hej jag fick ditt event");
+
         if (Time.time - lastProcessTime < processingInterval)
         {
             return;
         }
 
         lastProcessTime = Time.time;
+
+        Debug.Log("im going in");
 
         // Dispose previous tensor if it was never used. Prevents memory leaks.
         latestTensor?.Dispose();
@@ -132,8 +134,14 @@ public class TextDetectionInference : MonoBehaviour
             Convert current frame → tensor (GPU)
             Ownership is transferred to this class
         */
+
+        if (roi == null)
+        {
+            Debug.Log("bror du har blivit nullad");
+        }
+        
         latestTensor = ConvertToTensor.convert(
-            frame.currentTexture,
+            roi,
             renderTexture,
             tensorTargetHeight,
             tensorTargetWidth,
@@ -142,7 +150,7 @@ public class TextDetectionInference : MonoBehaviour
 
         latestFrame = frame;
 
-        Debug.Log("yes min broder");
+        Debug.Log("suiiir");
     }
 
     /*

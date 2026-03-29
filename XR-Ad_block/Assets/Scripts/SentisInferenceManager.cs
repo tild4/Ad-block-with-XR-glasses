@@ -37,8 +37,11 @@ public class SentisInferenceManager : MonoBehaviour
 
     // Event fired after each inference run with all detections above the confidence threshold
     public event Action<
-        List<(Rect boundingBox, float confidence, FrameData frame)>
+        List<(Texture roi, float confidence, FrameData frame)>
     > onDetectionsReady;
+
+
+    public event Action<Texture, float, FrameData> sendYOLOROI;
 
     // Internal list of detections found in the current inference run
     private List<(Rect boundingBox, float confidence, FrameData frame)> detections =
@@ -177,8 +180,12 @@ public class SentisInferenceManager : MonoBehaviour
                 $"[Sentis] Detected {detections.Count} ads. Top confidence: {detections[0].confidence:0.00}"
             );
 
-            Rect box = detections[0].boundingBox;
-            Texture cropTexture = detections[0].frame.currentTexture;
+            // Temporarily only uses the first detection to filter out dupes
+
+            var firstDetection = detections[0];
+
+            Rect box = firstDetection.boundingBox;
+            Texture cropTexture = firstDetection.frame.currentTexture;
 
             Rect pixelBox = new Rect(
             box.x * cropTexture.width,
@@ -187,7 +194,10 @@ public class SentisInferenceManager : MonoBehaviour
             box.height * cropTexture.height
             );
 
-            Texture lastCropped = TextureCropper.CropBoundingBox(pixelBox,cropTexture);
+            Texture croppedROI = TextureCropper.CropBoundingBox(pixelBox,cropTexture);
+
+
+            /*
 
             if (lastCropped != null)
             {
@@ -197,6 +207,10 @@ public class SentisInferenceManager : MonoBehaviour
             {
             Debug.Log("crop snea");
             }
+            */
+
+            sendYOLOROI?.Invoke(croppedROI,firstDetection.confidence,firstDetection.frame);
+            Debug.Log("hej jag skickade event");
 
         }
         else

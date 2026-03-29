@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public class CropDetections : MonoBehaviour
 {
+    /*
     public SentisInferenceManager inferenceManager;
 
     public event Action<Texture2D> OnCropReady;
@@ -41,4 +42,5 @@ public class CropDetections : MonoBehaviour
 
         OnCropReady?.Invoke(cropped);
     }
+    */
 }
