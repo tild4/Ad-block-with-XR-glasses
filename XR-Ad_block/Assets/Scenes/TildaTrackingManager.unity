@@ -149,8 +149,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrackingManager
   detectionPostProcessor: {fileID: 1728951106}
-  timeToLive: 2
-  iouThreshold: 0.5
+  timeToLive: 1
+  iouThreshold: 0.7
   maxTrackedObjects: 5
 --- !u!4 &160447954
 Transform:
@@ -197,7 +197,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DetectionPostProcessor
   sentisInferenceManager: {fileID: 5024973278134454223}
-  confidenceThreshold: 0.85
+  confidenceThreshold: 0.7
   iouThreshold: 0.4
 --- !u!4 &1728951107
 Transform:
@@ -232,7 +232,7 @@ PrefabInstance:
       objectReference: {fileID: 7600718220393324320}
     - target: {fileID: 4380864974070896181, guid: 0eb47617a29cedd449a682eb6e0b77c3, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -4.24698
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4380864974070896181, guid: 0eb47617a29cedd449a682eb6e0b77c3, type: 3}
       propertyPath: m_LocalPosition.y
@@ -240,7 +240,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4380864974070896181, guid: 0eb47617a29cedd449a682eb6e0b77c3, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 15.89897
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4380864974070896181, guid: 0eb47617a29cedd449a682eb6e0b77c3, type: 3}
       propertyPath: m_LocalRotation.w
@@ -322,10 +322,9 @@ MonoBehaviour:
   trackingManager: {fileID: 160447953}
   blockPrefab: {fileID: 8439789976323026695, guid: f3841313d53e04bfb8d988bb2413481f, type: 3}
   useSpatialAnchors: 1
-  debugLogSceneStatus: 1
-  debugSceneStatusLogIntervalSeconds: 2
-  debugPlaceInFrontOnRaycastMiss: 1
-  debugFallbackDistanceMeters: 1.5
+  useCameraPlanePlacement: 1
+  placementPlaneOffsetMeters: 0.01
+  logRaycastMisses: 0
 --- !u!1001 &5024973278134454222
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -340,7 +339,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4745025405048073781, guid: 6e8425543190ce0439543036cc21989a, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -3.52039
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4745025405048073781, guid: 6e8425543190ce0439543036cc21989a, type: 3}
       propertyPath: m_LocalPosition.y
@@ -348,7 +347,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4745025405048073781, guid: 6e8425543190ce0439543036cc21989a, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 3.58036
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4745025405048073781, guid: 6e8425543190ce0439543036cc21989a, type: 3}
       propertyPath: m_LocalRotation.w
