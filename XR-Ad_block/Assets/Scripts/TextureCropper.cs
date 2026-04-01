@@ -2,8 +2,8 @@ using UnityEngine;
 
 public static class TextureCropper 
 {
-    //crops the region corresponding to a bounding box using pixel coordinates
-    public static Texture2D CropBoundingBox(Rect boundingBox, Texture source)
+    //crops the region corresponding to a bounding box 
+    public static RenderTexture CropBoundingBox(Rect boundingBox, Texture source)
     {
 
         if (source == null)
@@ -12,31 +12,15 @@ public static class TextureCropper
             return null;
         }
 
-        int x = (int)boundingBox.x;
-        int y = (int)boundingBox.y;
-        int width = (int)boundingBox.width;
-        int height = (int)boundingBox.height;
+        
+        RenderTexture rt = new RenderTexture(320, 48, 0);
+        rt.Create();
 
-        if (width <= 0 || height <= 0)
-        {
-            Debug.LogWarning($"TextureCropper: invalid crop size ({width}x{height}).");
-            return null;
-        }
+        Material cropMat = new Material(Shader.Find("Custom/CropShader"));
+        cropMat.SetVector("_Crop", new Vector4(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height));
+        Graphics.Blit(source, rt, cropMat);
 
-        //create destination texture with same size as ROI
-        Texture2D dst = new Texture2D(width, height);
-        Graphics.CopyTexture(
-            source,      
-            0,                  // source mipmap level, not used
-            0,                  // source element, not used
-            x, y, width, height,// source ROI
-            dst, // output texture
-            0,                  // dst mipmap level, not used
-            0,                  // dst element, not used
-            0, 0                // crop offset in dst, 0 because dst and ROI are same size
-        );
-
-        return dst;
+        return rt;
     }
 
 }
