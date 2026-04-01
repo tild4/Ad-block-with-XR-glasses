@@ -195,15 +195,19 @@ public class BlockPlacementManager2 : MonoBehaviour
         Ray centerRay = cameraAccess.ViewportPointToRay(viewportRect.center, cameraPose);
         worldPosition = centerRay.GetPoint(distance);
 
-        Vector3 normal = (worldPosition - cameraPose.position);
-        if (normal.sqrMagnitude < 1e-6f)
+        // Vector from camera to the placement point.
+        Vector3 fromCamera = (worldPosition - cameraPose.position);
+        if (fromCamera.sqrMagnitude < 1e-6f)
         {
             return false;
         }
-        normal = normal.normalized;
 
-        worldRotation = Quaternion.LookRotation(normal, Vector3.up);
-        worldPosition += normal * placementPlaneOffsetMeters;
+        // We want the block (and its ID label) to face the camera.
+        Vector3 towardCamera = (-fromCamera).normalized;
+
+        worldRotation = Quaternion.LookRotation(towardCamera, Vector3.up);
+        // Nudge slightly toward the camera to avoid embedding into the hit surface.
+        worldPosition += towardCamera * placementPlaneOffsetMeters;
         return true;
     }
 
@@ -237,8 +241,14 @@ public class BlockPlacementManager2 : MonoBehaviour
         Pose cameraPose = obj.lastDetection.frame.currentPose;
         Rect viewportRect = ToViewportRect(yoloRect);
 
+        bool usingPassthroughRay =
+            cameraAccess != null && cameraAccess.enabled && cameraAccess.IsPlaying;
+        Vector3 referenceCameraPosition = usingPassthroughRay
+            ? cameraPose.position
+            : Camera.main.transform.position;
+
         Ray ray;
-        if (cameraAccess != null && cameraAccess.enabled && cameraAccess.IsPlaying)
+        if (usingPassthroughRay)
         {
             ray = cameraAccess.ViewportPointToRay(viewportRect.center, cameraPose);
         }
@@ -278,12 +288,13 @@ public class BlockPlacementManager2 : MonoBehaviour
         {
             // Simple fallback: place at hit point, face camera.
             position = hit.point;
-            Vector3 dir = position - cameraPose.position;
-            if (dir.sqrMagnitude < 1e-6f)
+            Vector3 towardCamera = referenceCameraPosition - position;
+            if (towardCamera.sqrMagnitude < 1e-6f)
             {
-                dir = ray.direction;
+                // Ray points from camera -> world; invert to get world -> camera.
+                towardCamera = -ray.direction;
             }
-            rotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
+            rotation = Quaternion.LookRotation(towardCamera.normalized, Vector3.up);
         }
 
         if (!activeBlocks.ContainsKey(obj.id))

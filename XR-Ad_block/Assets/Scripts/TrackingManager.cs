@@ -50,6 +50,10 @@ public class TrackingManager : MonoBehaviour
     [SerializeField]
     private float iouThreshold = 0.5f; // Threshold for matching detections
 
+    [Header("Debug")]
+    [SerializeField]
+    private bool logAssociationMisses;
+
     [SerializeField]
     private int maxTrackedObjects = 5; // Limit to prevent overload for testing
 
@@ -111,19 +115,28 @@ public class TrackingManager : MonoBehaviour
     */
     private void UpdateDetections(List<DetectionData> detections)
     {
-        // Limit the number of tracked objects to prevent overload during testing
-        if (trackedObjects.Count >= maxTrackedObjects)
+        // If we're at capacity, keep matching/updating existing objects but don't create new ones.
+        // Otherwise tracked objects would stop receiving TTL refreshes and expire, causing IDs to
+        // continuously increase as objects get recreated.
+        bool suppressNewObjects = trackedObjects.Count >= maxTrackedObjects;
+        if (suppressNewObjects)
         {
             Debug.LogWarning(
-                $"Max tracked objects ({maxTrackedObjects}) reached - ignoring new detections"
+                $"Max tracked objects ({maxTrackedObjects}) reached - suppressing new objects"
             );
-            return;
         }
 
         foreach (var detection in detections)
         {
             // Try to match with existing tracked object
-            TrackedObject matchedObject = MatchOrCreate(detection);
+            bool allowCreate = !suppressNewObjects && trackedObjects.Count < maxTrackedObjects;
+            TrackedObject matchedObject = MatchOrCreate(detection, allowCreate);
+
+            if (matchedObject == null)
+            {
+                // At capacity and no match found - ignore this detection.
+                continue;
+            }
 
             // Update the object
             matchedObject.lastDetection = detection;
@@ -144,10 +157,10 @@ public class TrackingManager : MonoBehaviour
         Tries to match a new detection with existing tracked objects using IOU.
         If a good match is found, returns the matched object; otherwise, creates and returns a new tracked object.
     */
-    private TrackedObject MatchOrCreate(DetectionData detection)
+    private TrackedObject MatchOrCreate(DetectionData detection, bool allowCreate)
     {
-        float bestIOU = 0f;
-        TrackedObject bestMatch = null;
+        float bestIouOverall = float.NegativeInfinity;
+        TrackedObject bestCandidate = null;
         Camera cam = Camera.main;
 
         // YOLO bboxes are top-left-origin; Unity viewport is bottom-left-origin.
@@ -156,9 +169,9 @@ public class TrackingManager : MonoBehaviour
 
         foreach (var obj in trackedObjects)
         {
-            float iou;
-
             Rect trackedViewportRect = ToViewportRect(obj.lastDetection.bboxNormalized);
+
+            float iou;
 
             if (cam != null)
             {
@@ -169,7 +182,16 @@ public class TrackingManager : MonoBehaviour
                     cam
                 );
 
-                iou = CalculateIOU(detectionViewportRect, reprojected);
+                // Reprojection can produce an empty/invalid rect (e.g., corners behind camera).
+                // In that case, fall back to a simple IOU in the current viewport space.
+                if (reprojected.width <= 0f || reprojected.height <= 0f)
+                {
+                    iou = CalculateIOU(detectionViewportRect, trackedViewportRect);
+                }
+                else
+                {
+                    iou = CalculateIOU(detectionViewportRect, reprojected);
+                }
             }
             else
             {
@@ -177,16 +199,29 @@ public class TrackingManager : MonoBehaviour
                 iou = CalculateIOU(detection.bboxNormalized, obj.lastDetection.bboxNormalized);
             }
 
-            if (iou > bestIOU && iou > iouThreshold)
+            if (iou > bestIouOverall)
             {
-                bestIOU = iou;
-                bestMatch = obj;
+                bestIouOverall = iou;
+                bestCandidate = obj;
             }
         }
 
-        if (bestMatch != null)
+        if (bestCandidate != null && bestIouOverall >= iouThreshold)
         {
-            return bestMatch;
+            return bestCandidate;
+        }
+
+        if (logAssociationMisses)
+        {
+            string bestId = bestCandidate != null ? bestCandidate.id.ToString() : "none";
+            Debug.Log(
+                $"Association miss: bestIOU={bestIouOverall:0.000} < threshold={iouThreshold:0.000}, bestCandidateId={bestId}, allowCreate={allowCreate}"
+            );
+        }
+
+        if (!allowCreate)
+        {
+            return null;
         }
 
         // No match - create new tracked object

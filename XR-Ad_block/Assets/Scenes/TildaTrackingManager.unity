@@ -150,7 +150,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TrackingManager
   detectionPostProcessor: {fileID: 1728951106}
   timeToLive: 1
-  iouThreshold: 0.7
+  iouThreshold: 0.5
+  logAssociationMisses: 0
   maxTrackedObjects: 5
 --- !u!4 &160447954
 Transform:
