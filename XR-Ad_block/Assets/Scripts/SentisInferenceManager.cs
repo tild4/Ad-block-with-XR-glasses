@@ -1,11 +1,26 @@
-/// Runs YOLOv8 object detection on GPU-prepared tensors from CameraTextureToTensor.
-/// Parses the model output into bounding boxes and fires an event with the detections
-/// so that downstream scripts (e.g. BlockPlacementManager) can subscribe and react.
+/*
+    SentisInferenceManager
+
+    PURPOSE:
+    Runs YOLOv8 object detection model inference on camera frames.
+    Converts camera texture to tensor using GPU, runs inference,
+    and parses the output into bounding boxes.
+
+    PIPELINE POSITION:
+    CaptureCameraFrame → THIS (YOLO detection) → BlockPlacementManager
+
+    FEATURES:
+    - Converts camera Texture → Tensor on GPU via ConvertToTensor
+    - Async GPU readback (non-blocking)
+    - Processes only latest frame (no queue)
+    - Safe tensor ownership & disposal
+*/
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.InferenceEngine;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class SentisInferenceManager : MonoBehaviour
 {
@@ -17,13 +32,14 @@ public class SentisInferenceManager : MonoBehaviour
     [SerializeField, Range(0f, 1f)]
     private float confidenceThreshold = 0.5f;
 
-    // Reference to CameraTextureToTensor, assigned in the Inspector
+    // Reference to CaptureCameraFrame, assigned in the Inspector
     [SerializeField]
-    private CameraTextureToTensor cameraTextureToTensor;
+    private CaptureCameraFrame captureCameraFrame;
 
-    [SerializeField] private ViewCroppedImage viewCroppedImage;
+    [SerializeField]
+    private ViewCroppedImage viewCroppedImage;
 
-    // The most recent GPU-prepared tensor received from CameraTextureToTensor
+    // The most recent GPU-converted tensor, owned by this class
     private Tensor<float> latestTensor;
 
     // The FrameData associated with the most recent tensor (pose, timestamp, etc.)
@@ -32,16 +48,17 @@ public class SentisInferenceManager : MonoBehaviour
     // The Sentis inference engine that executes the YOLO model
     private Worker worker;
 
-    // The expected input dimensions read from the model (width, height)
+    // The expected input dimensions read from the model (height, width)
     private Vector2Int inputSize;
+
+    // Reused GPU resources for tensor conversion
+    private RenderTexture renderTexture;
+    private CommandBuffer commandBuffer;
 
     // Event fired after each inference run with all detections above the confidence threshold
     public event Action<
-        List<(Texture roi, float confidence, FrameData frame)>
+        List<(Rect boundingBox, float confidence, FrameData frame)>
     > onDetectionsReady;
-
-
-    public event Action<Texture, float, FrameData> sendYOLOROI;
 
     // Internal list of detections found in the current inference run
     private List<(Rect boundingBox, float confidence, FrameData frame)> detections =
@@ -55,30 +72,61 @@ public class SentisInferenceManager : MonoBehaviour
         // Read expected input dimensions from the model: shape is (1, 3, H, W)
         inputSize = new Vector2Int(model.inputs[0].shape.Get(2), model.inputs[0].shape.Get(3));
 
+        // Allocate reusable GPU resources for tensor conversion
+        renderTexture = new RenderTexture(inputSize.y, inputSize.x, 0, RenderTextureFormat.ARGB32);
+        renderTexture.Create();
+
+        // CommandBuffer records GPU commands
+        commandBuffer = new CommandBuffer();
+
         // Create the inference worker using CPU backend
         worker = new Worker(model, BackendType.CPU);
     }
 
     private void OnEnable()
     {
-        // Subscribe to the tensor event from CameraTextureToTensor
-        cameraTextureToTensor.sendTensor += onNewTensor;
+        // Subscribe to new camera frames
+        if (captureCameraFrame != null)
+        {
+            captureCameraFrame.newFrame += onNewFrame;
+        }
     }
 
     private void OnDisable()
     {
         // Unsubscribe to prevent memory leaks
-        cameraTextureToTensor.sendTensor -= onNewTensor;
+        if (captureCameraFrame != null)
+        {
+            captureCameraFrame.newFrame -= onNewFrame;
+        }
     }
 
-    /// Stores the latest tensor and its associated FrameData for the next inference run
-    private void onNewTensor(Tensor<float> tensor, FrameData frame)
+    /*
+        Called whenever a new camera frame is available.
+        Converts the frame texture to a tensor on GPU.
+        Disposes the previous tensor if it was never consumed by inference.
+    */
+    private void onNewFrame(FrameData frame)
     {
-        latestTensor = tensor;
+        // Skip conversion if inference hasn't consumed the previous tensor yet
+        if (latestTensor != null)
+        {
+            return;
+        }
+
+        // Convert frame texture → tensor on GPU (this class owns the tensor)
+        latestTensor = ConvertToTensor.convert(
+            frame.currentTexture,
+            renderTexture,
+            inputSize.x,
+            inputSize.y,
+            commandBuffer
+        );
+
         latestFrame = frame;
     }
 
-    /// Continuously runs inference in a coroutine loop
+    // Continuously runs inference in a coroutine loop
     private IEnumerator Start()
     {
         while (true)
@@ -87,10 +135,19 @@ public class SentisInferenceManager : MonoBehaviour
         }
     }
 
-    /// Runs one inference pass: schedules the model, reads output async, and parses detections
+    /*
+        Runs one inference pass.
+
+        FLOW:
+        1. Transfer tensor ownership from latestTensor to local variable
+        2. Run GPU inference
+        3. Await async readback
+        4. Dispose input tensor 
+        5. Parse detections
+    */
     private IEnumerator runInference()
     {
-        // Wait until we have received at least one tensor from CameraTextureToTensor
+        // Wait until we have received at least one tensor
         if (latestTensor == null)
         {
             yield return null;
@@ -100,9 +157,13 @@ public class SentisInferenceManager : MonoBehaviour
         // Snapshot the FrameData so it stays consistent even if a new tensor arrives during inference
         FrameData frame = latestFrame;
 
+        // Transfer ownership safely: inputTensor takes over, latestTensor is cleared
+        Tensor<float> inputTensor = latestTensor;
+        latestTensor = null;
+
         // Feed the tensor into the YOLO model
         PipelineProfiler.begin("YOLO Inference");
-        worker.Schedule(latestTensor);
+        worker.Schedule(inputTensor);
 
         // Start async readback of the output tensor to avoid blocking the main thread
         var outputAwaiter = (worker.PeekOutput(0) as Tensor<float>)
@@ -115,8 +176,12 @@ public class SentisInferenceManager : MonoBehaviour
             yield return null;
         }
 
-        // Retrieve the output tensor (shape: 1, 5, 8400)
         PipelineProfiler.end("YOLO Inference");
+
+        // Dispose input tensor after inference (consumer responsibility)
+        inputTensor.Dispose();
+
+        // Retrieve the output tensor (shape: 1, 5, 8400)
         using var output = outputAwaiter.GetResult();
 
         // If readback failed, skip this frame
@@ -180,38 +245,27 @@ public class SentisInferenceManager : MonoBehaviour
                 $"[Sentis] Detected {detections.Count} ads. Top confidence: {detections[0].confidence:0.00}"
             );
 
-            // Temporarily only uses the first detection to filter out dupes
-
-            var firstDetection = detections[0];
-
-            Rect box = firstDetection.boundingBox;
-            Texture cropTexture = firstDetection.frame.currentTexture;
+            Rect box = detections[0].boundingBox;
+            Texture cropTexture = detections[0].frame.currentTexture;
 
             Rect pixelBox = new Rect(
-            box.x * cropTexture.width,
-            box.y * cropTexture.height,
-            box.width * cropTexture.width,
-            box.height * cropTexture.height
+                box.x * cropTexture.width,
+                box.y * cropTexture.height,
+                box.width * cropTexture.width,
+                box.height * cropTexture.height
             );
 
-            Texture croppedROI = TextureCropper.CropBoundingBox(pixelBox,cropTexture);
-
-
-            /*
+            Texture lastCropped = TextureCropper.CropBoundingBox(pixelBox, cropTexture);
 
             if (lastCropped != null)
             {
-            viewCroppedImage.Show(lastCropped);
-            Debug.Log("We have a detected ad!");                
-            } else
-            {
-            Debug.Log("crop snea");
+                viewCroppedImage.Show(lastCropped);
+                Debug.Log("We have a detected ad!");
             }
-            */
-
-            sendYOLOROI?.Invoke(croppedROI,firstDetection.confidence,firstDetection.frame);
-            Debug.Log("hej jag skickade event");
-
+            else
+            {
+                Debug.Log("crop snea");
+            }
         }
         else
         {
@@ -229,9 +283,28 @@ public class SentisInferenceManager : MonoBehaviour
         yield return null;
     }
 
+    // cleanup of GPU resources and native memory
     private void OnDestroy()
     {
-        // Release the inference worker to free native memory
+        // Dispose any unconsumed tensor
+        latestTensor?.Dispose();
+
+        // Release the inference worker
         worker?.Dispose();
+
+        // Release GPU command buffer
+        if (commandBuffer != null)
+        {
+            commandBuffer.Release();
+            commandBuffer = null;
+        }
+
+        // Release GPU render texture
+        if (renderTexture != null)
+        {
+            renderTexture.Release();
+            Destroy(renderTexture);
+            renderTexture = null;
+        }
     }
 }

@@ -17,6 +17,7 @@
 */
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -28,7 +29,7 @@ public class TextDetectionInference : MonoBehaviour
     private ModelAsset modelAsset;
 
     [SerializeField]
-    private SentisInferenceManager sentisInferenceManager;
+    private YOLOPostProcessor yoloPostProcessor;
     /*
     Exact tensor input settings for ONNX model is: [DynamicDimension.0,3,DynamicDimension.1,DynamicDimension.2]
     In NCHW format
@@ -69,7 +70,7 @@ public class TextDetectionInference : MonoBehaviour
 
     private void Awake()
     {
-        if (modelAsset == null || sentisInferenceManager == null)
+        if (modelAsset == null || yoloPostProcessor == null)
         {
             return;
         }
@@ -95,17 +96,17 @@ public class TextDetectionInference : MonoBehaviour
 
     private void OnEnable()
     {
-        if (sentisInferenceManager!= null)
+        if (yoloPostProcessor!= null)
         {
-            sentisInferenceManager.sendYOLOROI += onNewFrame;
+            yoloPostProcessor.onProcessedDetections += onNewDetection;
         }
     }
 
     private void OnDisable()
     {
-        if (sentisInferenceManager != null)
+        if (yoloPostProcessor != null)
         {
-            sentisInferenceManager.sendYOLOROI -= onNewFrame;
+            yoloPostProcessor.onProcessedDetections -= onNewDetection;
         }
     }
 
@@ -114,9 +115,8 @@ public class TextDetectionInference : MonoBehaviour
         Only the latest arriving tensor will be used for inference
         Therefore each old one needs to be disposed to prevent memory leaks
     */
-    private void onNewFrame(Texture roi, float confidence, FrameData frame)
+    private void onNewDetection(List <(Texture, FrameData)> detection)
     {
-        Debug.Log("hej jag fick ditt event");
 
         if (Time.time - lastProcessTime < processingInterval)
         {
@@ -124,8 +124,6 @@ public class TextDetectionInference : MonoBehaviour
         }
 
         lastProcessTime = Time.time;
-
-        Debug.Log("im going in");
 
         // Dispose previous tensor if it was never used. Prevents memory leaks.
         latestTensor?.Dispose();

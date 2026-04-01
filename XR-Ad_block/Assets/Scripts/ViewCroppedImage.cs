@@ -4,7 +4,6 @@ using UnityEngine.UI;
 public class ViewCroppedImage : MonoBehaviour
 {
     [SerializeField] private RawImage debugImage;
-    [SerializeField] private AspectRatioFitter aspectRatioFitter;
 
     public void Show(Texture texture)
     {
@@ -16,11 +15,6 @@ public class ViewCroppedImage : MonoBehaviour
 
         debugImage.texture = texture;
         debugImage.enabled = texture != null;
-
-        if (texture != null && aspectRatioFitter != null)
-        {
-            aspectRatioFitter.aspectRatio = (float)texture.width / texture.height;
-        }
     }
 
     public void Clear()
