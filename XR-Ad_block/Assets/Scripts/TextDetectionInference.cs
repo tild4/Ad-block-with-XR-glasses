@@ -2,18 +2,25 @@
     TextDetectionInference
 
     PURPOSE:
-    Runs Paddle OCR detection model inference
-    on ads detected from YOLO .
+    Runs OCR text detection model (e.g. PaddleOCR detection)
+    on regions of interest (ROIs) provided by YOLO.
 
-    PIPELINE POSITION:
-    ... -> YOLO -> THIS (OCR detection) → Post Processing → OCR recognition -> ...
+    PIPELINE:
+    Camera → YOLO → ROI extraction → THIS → Post-processing → OCR recognition
 
     FEATURES:
-    - Converts camera Texture → Tensor on GPU
-    - Throttled inference (processingInterval)
-    - Only latest frame is processed (no queue)
+    - Processes batches of cropped ROIs (not full frames)
+    - Converts Texture → Tensor on GPU
+    - Throttled processing (processingInterval)
+    - "Latest batch wins" (older batches overwritten)
+    - Sequential inference per ROI (no parallel GPU overload)
     - Async GPU readback (non-blocking)
     - Safe tensor ownership & disposal
+
+    DESIGN:
+    - pendingBatch stores latest incoming detections
+    - Coroutine processes batch safely over time
+    - roiBatch accumulates outputs before emitting
 */
 using System;
 using System.Collections;
@@ -30,12 +37,15 @@ public class TextDetectionInference : MonoBehaviour
 
     [SerializeField]
     private YOLOPostProcessor yoloPostProcessor;
+
     /*
-    Exact tensor input settings for ONNX model is: [DynamicDimension.0,3,DynamicDimension.1,DynamicDimension.2]
-    In NCHW format
-    Therefore tTH and tTW can be changed, with multiples of 32 being recommmended
-    Default Batch Number should always be 1
+        Model input shape:
+        [Batch, Channels, Height, Width] (NCHW)
+
+        - Batch = 1 (per ROI)
+        - Height/Width should be multiples of 32 (model requirement)
     */
+
     [SerializeField]
     private int tensorTargetHeight = 640;
 
@@ -51,11 +61,7 @@ public class TextDetectionInference : MonoBehaviour
 
     private float lastProcessTime = 0f;
 
-    // Reference to the newest incoming tensor (older queued tensors are discarded)
-    private Tensor<float> latestTensor;
-
-    // Metadata for corresponding frame
-    private FrameData latestFrame;
+    private bool isProcessing = false;
 
     // Sentis worker → runs model on GPU
     private Worker worker;
@@ -65,13 +71,33 @@ public class TextDetectionInference : MonoBehaviour
 
     private CommandBuffer commandBuffer;
 
-    // Output event: Sends detection output tensor + frame metadata
-    public event Action<Tensor<float>, FrameData> decodeDetectionTensor;
+
+    /*
+        Holds latest batch of ROIs from YOLO
+
+        IMPORTANT:
+        - Overwritten on new detections
+        - Only latest batch is processed
+    */
+
+    private List <(Texture, FrameData)> pendingBatch;
+
+
+    /*
+        Accumulates output tensors for current batch
+        Cleared after emitting results
+    */
+
+    private List<(Tensor<float>, FrameData)> roiBatch = new List<(Tensor<float>, FrameData)>();
+
+    // Output event (batch of detection tensors)
+    public event Action<List<(Tensor<float>, FrameData)>> decodeDetectionTensors;
 
     private void Awake()
     {
         if (modelAsset == null || yoloPostProcessor == null)
         {
+            Debug.Log("Missing asset");
             return;
         }
 
@@ -111,87 +137,143 @@ public class TextDetectionInference : MonoBehaviour
     }
 
     /*
-        Called whenever a cropped tensor is ready.
-        Only the latest arriving tensor will be used for inference
-        Therefore each old one needs to be disposed to prevent memory leaks
+        Called when YOLO produces a new batch of ROIs.
+
+        RESPONSIBILITIES:
+        - Filter invalid textures
+        - Copy batch (avoid shared reference issues)
+        - Store as latest batch
+        - Start processing if not already running
     */
     private void onNewDetection(List <(Texture, FrameData)> detection)
     {
 
-        if (Time.time - lastProcessTime < processingInterval)
+        if (detection == null || detection.Count == 0)
+        {
+            return;
+        }
+        
+        // Create safe copy (avoid mutation from producer)
+        List<(Texture texture, FrameData frame)> batch =  new List<(Texture texture, FrameData frame)>();
+
+        foreach (var item in detection)
+        {
+            Texture roi = item.Item1;
+            FrameData frame = item.Item2;
+
+            // add if texture exists
+            if (roi != null)
+            {
+                batch.Add((roi, frame));
+            }
+        }
+
+        if (batch.Count == 0)
         {
             return;
         }
 
-        lastProcessTime = Time.time;
+        // Overwrite previous batch ("latest wins")
+        pendingBatch = batch;
 
-        // Dispose previous tensor if it was never used. Prevents memory leaks.
-        latestTensor?.Dispose();
-
-        /*
-            Convert current frame → tensor (GPU)
-            Ownership is transferred to this class
-        */
-
-        if (roi == null)
+        // Start coroutine if not already running
+        if (!isProcessing)
         {
-            Debug.Log("bror du har blivit nullad");
+            StartCoroutine(ProcessQueue());
         }
-        
-        latestTensor = ConvertToTensor.convert(
-            roi,
-            renderTexture,
-            tensorTargetHeight,
-            tensorTargetWidth,
-            commandBuffer
-        );
-
-        latestFrame = frame;
-
-        Debug.Log("suiiir");
     }
 
+
     /*
-        Coroutine that continuously runs inference attempts.
-        runInference() internally decides whether work exists.
+        Processes batches sequentially.
+
+        KEY IDEA:
+        - Always processes latest batch
+        - New incoming batches overwrite pendingBatch
     */
-    private IEnumerator Start()
+        private IEnumerator ProcessQueue()
     {
-        while (true)
+        isProcessing = true;
+
+        // Throttle processing rate
+        while (pendingBatch != null)
         {
-            yield return runInference();
+            float timeSinceLastProcess = Time.time - lastProcessTime;
+
+            if (timeSinceLastProcess < processingInterval)
+            {
+                // Yields control -> new batch can arrive in pending batches
+                yield return new WaitForSeconds(processingInterval - timeSinceLastProcess);
+            }
+
+            lastProcessTime = Time.time;
+
+            // Saves the latest batch
+            List<(Texture texture, FrameData frame)> batch = pendingBatch;
+
+            pendingBatch = null;
+
+            // runs inference on each item in batch
+            foreach (var item in batch)
+            {
+                Texture roi = item.texture;
+                FrameData frame = item.frame;
+
+                if (roi == null)
+                {
+                    Debug.Log("bror du har blivit nullad");
+                    continue;
+                }
+
+                Tensor<float> inputTensor = ConvertToTensor.convert(
+                    roi,
+                    renderTexture,
+                    tensorTargetHeight,
+                    tensorTargetWidth,
+                    commandBuffer
+                );
+
+                if (inputTensor != null)
+                {
+                    yield return runInference(inputTensor, frame);
+                } else if (inputTensor == null)
+                {
+                    Debug.Log("failed tensor conversion");
+                }
+            }
+
+
+            /*
+                Send batch results
+                Copy list to avoid mutation issues
+            */
+            var sendBatch = new List<(Tensor<float>, FrameData)>(roiBatch);
+            decodeDetectionTensors?.Invoke(sendBatch);
+
+
+            // Clear for next batch
+            roiBatch.Clear();
         }
+        isProcessing = false;
     }
 
+
     /*
-        Runs inference if a tensor is available.
+        Runs inference for ONE ROI.
 
         FLOW:
-        1. Grab latest tensor
-        2. Run GPU inference
-        3. Await async readback
-        4. Dispose input tensor
-        5. Emit output tensor
+        1. Schedule GPU inference
+        2. Await async readback
+        3. Dispose input tensor
+        4. Store output
     */
-    private IEnumerator runInference()
+    private IEnumerator runInference(Tensor<float> inputTensor, FrameData frame)
     {
-        if (latestTensor == null || worker == null)
+        if (inputTensor == null || worker == null)
         {
             yield return null;
             yield break;
         }
-
-        FrameData frame = latestFrame;
-
-        /*
-         Transfer ownership safely of latest tensor to input tensor
-         Input tensor points to the latest tensor
-        */
-
-        Tensor<float> inputTensor = latestTensor;
-
-        // Make latest tensor point to null
-        latestTensor = null;
 
         PipelineProfiler.begin("OCR TextDetect");
         worker.Schedule(inputTensor);
@@ -223,15 +305,14 @@ public class TextDetectionInference : MonoBehaviour
             yield break;
         }
 
-        Debug.Log("send to decode");
+        // Store result for batch emission
 
-        decodeDetectionTensor?.Invoke(outputTensor, frame);
+        roiBatch.Add((outputTensor, frame));
     }
 
     // Mandatory cleanup
     private void OnDestroy()
     {
-        latestTensor?.Dispose();
         worker?.Dispose();
 
         if (commandBuffer != null)

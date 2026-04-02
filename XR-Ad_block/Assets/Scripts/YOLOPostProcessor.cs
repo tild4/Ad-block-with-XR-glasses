@@ -43,12 +43,6 @@ public class YOLOPostProcessor : MonoBehaviour
     // Event to send processed detections
     public event Action<List<(Texture, FrameData)>> onProcessedDetections;
 
-    private void Awake()
-    {
-        // Pre-allocate list to avoid GC during runtime
-        processedDetections = new List<(Texture, FrameData)>();
-    }
-
     private void OnEnable()
     {
         if (sentisInferenceManager != null)
@@ -120,7 +114,7 @@ public class YOLOPostProcessor : MonoBehaviour
         // 3. Apply Non-Maximum Suppression
         List<DetectionData> nmsResults = ApplyNMS(detectionDataList);
 
-        foreach(var tmp in nmsResults)
+        foreach(var result in nmsResults)
         {
             /*
             ADD CROP CODE HERE

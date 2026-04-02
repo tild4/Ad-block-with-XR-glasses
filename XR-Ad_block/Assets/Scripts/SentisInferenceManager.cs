@@ -245,6 +245,8 @@ public class SentisInferenceManager : MonoBehaviour
                 $"[Sentis] Detected {detections.Count} ads. Top confidence: {detections[0].confidence:0.00}"
             );
 
+            /*
+
             Rect box = detections[0].boundingBox;
             Texture cropTexture = detections[0].frame.currentTexture;
 
@@ -266,6 +268,7 @@ public class SentisInferenceManager : MonoBehaviour
             {
                 Debug.Log("crop snea");
             }
+            */
         }
         else
         {

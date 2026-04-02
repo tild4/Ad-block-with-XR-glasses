@@ -3,6 +3,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System;
+using System.Diagnostics;
 
 public class ProcessOCRDetection : MonoBehaviour
 {
@@ -16,13 +17,15 @@ public class ProcessOCRDetection : MonoBehaviour
 
     private int droppedROI = 0;
 
-    public event Action<List<Texture2D>, FrameData> sendCroppedROIText;
+    private List<(List<Texture>, FrameData)> processedROIBatch = new List<(List<Texture>, FrameData)>();
+
+    public event Action<List<(List<Texture>, FrameData)>> sendCroppedROIText;
 
     private void OnEnable()
     {
         if (textDetectionInference != null)
         {
-            textDetectionInference.decodeDetectionTensor += decodeDetection;           
+            textDetectionInference.decodeDetectionTensors += decodeDetections;           
         }
     }
 
@@ -30,65 +33,54 @@ public class ProcessOCRDetection : MonoBehaviour
     {
         if (textDetectionInference != null)
         {
-            textDetectionInference.decodeDetectionTensor -= decodeDetection;           
+            textDetectionInference.decodeDetectionTensors -= decodeDetections;           
         }
     }
 
-    private void decodeDetection(Tensor<float> tensor, FrameData frame)
-    {
-        
-        if (tensor == null)
+    private void decodeDetections(List<(Tensor<float>, FrameData)> detections)
+    {        
+        if (detections == null || detections.Count == 0)
         {
             return;
         }
 
-        PipelineProfiler.begin("OCR ProcessBFS");
-        for (int y = 0; y < 640; y++)
+        foreach(var detection in detections)
         {
-            for (int x = 0; x < 640; x++)
+            Tensor<float> tensor = detection.Item1;
+            FrameData frame = detection.Item2;
+
+            PipelineProfiler.begin("OCR ProcessBFS");
+            for (int y = 0; y < 640; y++)
             {
-                mask[y, x] = tensor[0, 0, y, x] > threshold;
+                for (int x = 0; x < 640; x++)
+                {
+                    mask[y, x] = tensor[0, 0, y, x] > threshold;
+                }
             }
+
+            List<Rect> boundingBoxes = findTextBoxes(mask);
+            PipelineProfiler.end("OCR ProcessBFS");
+
+            tensor.Dispose();
+
+            List<Texture> croppedROIs = new List<Texture>();
+
+            /*
+            foreach (var bounds in boundingBoxes) {
+            croppedROIsForFrame.add(cropcode(bounds , ... , ...))
+            }
+            */
+
+            processedROIBatch.Add((croppedROIs,frame));
         }
 
-        List<Rect> boundingBoxes = findTextBoxes(mask);
-        PipelineProfiler.end("OCR ProcessBFS");
-
-        tensor.Dispose();
-
-        List<Texture2D> croppedROI = new List<Texture2D>();
-
-        PipelineProfiler.begin("Crop roi batch");
-        foreach (Rect box in boundingBoxes)
+        if(processedROIBatch.Count > 0)
         {
-
-            Rect normalizedBox = new Rect(
-            box.x * frame.currentResolution.x / 640f, 
-            box.y * frame.currentResolution.y / 640f,
-            box.width * frame.currentResolution.x / 640f,
-            box.height * frame.currentResolution.y / 640f
-            );
-
-            Texture2D cropped = TextureCropper.CropBoundingBox(normalizedBox, frame.currentTexture);
-
-            if (cropped != null && croppedROI.Count < roiBatchThreshold)
-            {
-                croppedROI.Add(cropped);
-                Debug.Log("added cropped frame yes");
-            } else if (cropped == null)
-            {
-                Debug.Log("null cropped frame");
-            } else
-            {
-                droppedROI++;
-            }
+        var sendBatch = new List<(List<Texture>, FrameData)>(processedROIBatch);
+        sendCroppedROIText?.Invoke(sendBatch);
+        processedROIBatch.Clear();
+        UnityEngine.Debug.Log("hellllo send to recognition pls");
         }
-        PipelineProfiler.end("Crop roi batch");
-        Debug.Log("Number of dropped roi : " + droppedROI);
-        droppedROI = 0;
-
-        sendCroppedROIText?.Invoke(croppedROI, frame);
-        Debug.Log("hellllo send to recognition pls");
 
     }
 
