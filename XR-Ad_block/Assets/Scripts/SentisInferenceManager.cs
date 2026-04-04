@@ -36,9 +36,6 @@ public class SentisInferenceManager : MonoBehaviour
     [SerializeField]
     private CaptureCameraFrame captureCameraFrame;
 
-    [SerializeField]
-    private ViewCroppedImage viewCroppedImage;
-
     // The most recent GPU-converted tensor, owned by this class
     private Tensor<float> latestTensor;
 
@@ -66,6 +63,13 @@ public class SentisInferenceManager : MonoBehaviour
 
     private void Awake()
     {
+
+        if(modelAsset == null || captureCameraFrame == null)
+        {
+            Debug.Log("missing asset");
+            return;
+        }
+
         // Load the YOLO model from the assigned ModelAsset
         var model = ModelLoader.Load(modelAsset);
 
@@ -245,43 +249,14 @@ public class SentisInferenceManager : MonoBehaviour
                 $"[Sentis] Detected {detections.Count} ads. Top confidence: {detections[0].confidence:0.00}"
             );
 
-            /*
-
-            Rect box = detections[0].boundingBox;
-            Texture cropTexture = detections[0].frame.currentTexture;
-
-            Rect pixelBox = new Rect(
-                box.x * cropTexture.width,
-                box.y * cropTexture.height,
-                box.width * cropTexture.width,
-                box.height * cropTexture.height
-            );
-
-            Texture lastCropped = TextureCropper.CropBoundingBox(pixelBox, cropTexture);
-
-            if (lastCropped != null)
-            {
-                viewCroppedImage.Show(lastCropped);
-                Debug.Log("We have a detected ad!");
-            }
-            else
-            {
-                Debug.Log("crop snea");
-            }
-            */
+            var sendDetections = new List<(Rect boundingBox, float confidence, FrameData frame)>(detections);
+            onDetectionsReady?.Invoke(sendDetections);
+            Debug.Log("sent event!");
         }
         else
         {
             Debug.Log("[Sentis] No ads detected this frame.");
         }
-
-        /*
-        // Notify subscribers that new detections are available
-        if (detections.Count > 0)
-        {
-            onDetectionsReady?.Invoke(detections);
-        }
-        */
 
         yield return null;
     }

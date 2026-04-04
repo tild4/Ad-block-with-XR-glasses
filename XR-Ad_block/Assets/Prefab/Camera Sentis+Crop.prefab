@@ -533,8 +533,8 @@ GameObject:
   - component: {fileID: 3273474748044194626}
   - component: {fileID: 7366201614722276872}
   - component: {fileID: 9042379651737172012}
-  - component: {fileID: 3595121349961663545}
-  - component: {fileID: 6904802070553472164}
+  - component: {fileID: 5424710677256349639}
+  - component: {fileID: 8662654631642125248}
   m_Layer: 0
   m_Name: Camera Sentis+Crop
   m_TagString: Untagged
@@ -571,7 +571,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Meta.XR.BuildingBlocks::Meta.XR.BuildingBlocks.BuildingBlock
   blockId: e47682b9-c270-40b1-b16d-90b627a5ce1b
-  instanceId: 4580d101-5f6b-4407-afd5-bd1e5ac2b250
+  instanceId: 4eca1286-5430-4406-963d-e0765ab7d93f
   version: 1
   installationRoutineCheckpoint:
     _installationRoutineId: 
@@ -811,22 +811,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2acbacefbc77407dad219819c737d63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PermissionManager
---- !u!114 &3595121349961663545
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6015156192241102125}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e3de6460e4166444288c4eabf536597f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CameraTextureToTensor
-  cameraFrame: {fileID: 7366201614722276872}
-  targetWidth: 640
-  targetHeight: 640
---- !u!114 &6904802070553472164
+--- !u!114 &5424710677256349639
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -840,8 +825,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SentisInferenceManager
   modelAsset: {fileID: 5022602860645237092, guid: 07179dc606e0daa4788da56f88c069b7, type: 3}
   confidenceThreshold: 0.5
-  cameraTextureToTensor: {fileID: 3595121349961663545}
-  viewCroppedImage: {fileID: 0}
+  captureCameraFrame: {fileID: 7366201614722276872}
+--- !u!114 &8662654631642125248
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6015156192241102125}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdda06cdbceca48898c08fccbb491cc6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::YOLOPostProcessor
+  sentisInferenceManager: {fileID: 5424710677256349639}
+  cropMaterial: {fileID: 2100000, guid: ac1ddba664915451b8b511e4a3544091, type: 2}
+  iouThreshold: 0.4
+  tensorTargetHeight: 640
+  tensorTargetWidth: 640
 --- !u!1 &6144179908738687086
 GameObject:
   m_ObjectHideFlags: 0

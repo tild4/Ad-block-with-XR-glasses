@@ -23,6 +23,8 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
+using Unity.InferenceEngine;
 
 public class YOLOPostProcessor : MonoBehaviour
 {
@@ -30,18 +32,84 @@ public class YOLOPostProcessor : MonoBehaviour
     [SerializeField]
     private SentisInferenceManager sentisInferenceManager;
 
+    /* ---------- UI----------------
+    [SerializeField] private ViewCroppedImage viewCroppedImage;
+    private RenderTexture debugPreviewRT;
+     ------------------------------- */
+
+    [SerializeField] private Material cropMaterial;
+
     [Header("Post-Processing Settings")]
+    
+    /*
     [SerializeField, Range(0f, 1f)]
     private float confidenceThreshold = 0.5f;
+    */
 
     [SerializeField, Range(0f, 1f)]
     private float iouThreshold = 0.4f;
 
+    [SerializeField]
+    private int tensorTargetHeight = 640;
+
+    [SerializeField]
+    private int tensorTargetWidth = 640;
+
     // Internal list for processed detections (reused to avoid allocations)
-    private List<(Texture, FrameData)> processedDetections = new List<(Texture, FrameData)>();
+    private List<(Tensor<float>, FrameData, Rect)> processedDetections = new List<(Tensor<float>, FrameData, Rect)>();
+
+    // Reused GPU resources for conversion
+    private RenderTexture croppedROI;
+
+    private RenderTexture convertRenderTexture;
+
+    private CommandBuffer commandBuffer;
 
     // Event to send processed detections
-    public event Action<List<(Texture, FrameData)>> onProcessedDetections;
+    public event Action<List<(Tensor<float>, FrameData, Rect)>> onProcessedDetections;
+
+
+    private void Awake()
+    {
+        if (sentisInferenceManager == null || cropMaterial == null)
+        {
+            Debug.Log("Missing asset");
+            return;
+        }
+
+        convertRenderTexture = new RenderTexture(
+            tensorTargetWidth,
+            tensorTargetHeight,
+            0,
+            RenderTextureFormat.ARGB32
+        );
+        
+        croppedROI = new RenderTexture(
+            tensorTargetWidth,
+            tensorTargetHeight,
+            0,
+            RenderTextureFormat.ARGB32
+        );
+
+        convertRenderTexture.Create();
+
+        croppedROI.Create();
+
+        commandBuffer = new CommandBuffer();
+
+        //---------UI---------------
+        /*
+        debugPreviewRT = new RenderTexture(
+            tensorTargetWidth,
+            tensorTargetHeight,
+            0,
+            RenderTextureFormat.ARGB32
+        );
+
+        debugPreviewRT.Create();
+        */
+
+    }
 
     private void OnEnable()
     {
@@ -79,6 +147,7 @@ public class YOLOPostProcessor : MonoBehaviour
             return;
         }
 
+        /*
         // 1. Filter by confidence threshold
         List<(Rect, float, FrameData)> filtered = new List<(Rect, float, FrameData)>();
 
@@ -94,11 +163,12 @@ public class YOLOPostProcessor : MonoBehaviour
         {
             return;
         }
+        */
 
         // 2. Convert to DetectionData format
         List<DetectionData> detectionDataList = new List<DetectionData>();
 
-        foreach (var (bbox, conf, frame) in filtered)
+        foreach (var (bbox, conf, frame) in rawDetections)
         {
             DetectionData data = new DetectionData
             {
@@ -111,29 +181,64 @@ public class YOLOPostProcessor : MonoBehaviour
             detectionDataList.Add(data);
         }
 
+        PipelineProfiler.begin("Apply nms on batch");
+        
         // 3. Apply Non-Maximum Suppression
         List<DetectionData> nmsResults = ApplyNMS(detectionDataList);
+        
+        PipelineProfiler.end("Apply nms on batch");
+
+        PipelineProfiler.begin("Handle filtered batch");
+
+        Debug.Log("Number of items to be processed : " + nmsResults.Count);
 
         foreach(var result in nmsResults)
         {
+            
+            //var bbox = result.bboxNormalized;
+            Rect bbox = ClampNormalizedRect(result.bboxNormalized);
+            var texture = result.frame.currentTexture;
+            var frame = result.frame;
+
+            // Skip boxes that became invalid after clamping TMP
+            if (bbox.width <= 0f || bbox.height <= 0f)
+            {
+                continue;
+            }
+
+
+            PipelineProfiler.begin("Crop time");
+
+            if (!TextureCropper.CropBoundingBox(bbox, texture, croppedROI, cropMaterial))
+            {
+                continue;
+            }
+
+            PipelineProfiler.end("Crop time");
+
+            //----------------UI-------------------
             /*
-            ADD CROP CODE HERE
+            // Copy the cropped result into a dedicated preview RT
+            Graphics.Blit(croppedROI, debugPreviewRT);
+            viewCroppedImage.Show(debugPreviewRT);     
             */
 
-            /*
-            Texture croppedTexture = tmp.frame.currentTexture;
-            FrameData frame = tmp.frame;
+            Tensor<float> roiTensor = ConvertToTensor.convert(croppedROI,convertRenderTexture,tensorTargetHeight,tensorTargetWidth,commandBuffer);
 
-            processedDetections.Add((croppedTexture, frame));
-            */
+            if (roiTensor != null)
+            {
+                processedDetections.Add((roiTensor, frame, bbox));               
+            }
         }
+
+        PipelineProfiler.end("Handle filtered batch");
 
         // 5. Notify subscribers
         Debug.Log(
             $"Post-processed {rawDetections.Count} raw detections → {processedDetections.Count} final detections"
         );
 
-        var sendDetections = new List<(Texture, FrameData)>(processedDetections);
+        var sendDetections = new List<(Tensor<float>, FrameData, Rect)>(processedDetections);
 
         onProcessedDetections?.Invoke(sendDetections);
     }
@@ -235,8 +340,30 @@ public class YOLOPostProcessor : MonoBehaviour
         );
     }
 
+
+    private Rect ClampNormalizedRect(Rect rect)
+    {
+        float xMin = Mathf.Clamp01(rect.xMin);
+        float yMin = Mathf.Clamp01(rect.yMin);
+        float xMax = Mathf.Clamp01(rect.xMax);
+        float yMax = Mathf.Clamp01(rect.yMax);
+
+        float width = xMax - xMin;
+        float height = yMax - yMin;
+
+        // Reject fully collapsed / invalid boxes after clamping
+        if (width <= 0f || height <= 0f)
+        {
+            return Rect.zero;
+        }
+
+        return new Rect(xMin, yMin, width, height);
+    }
+
     // Public getters for debugging/UI
 
+
+    /*
     public float GetConfidenceThreshold()
     {
         return confidenceThreshold;
@@ -246,6 +373,7 @@ public class YOLOPostProcessor : MonoBehaviour
     {
         confidenceThreshold = Mathf.Clamp01(value);
     }
+    */
 
     public float GetIouThreshold()
     {
@@ -256,4 +384,49 @@ public class YOLOPostProcessor : MonoBehaviour
     {
         iouThreshold = Mathf.Clamp01(value);
     }
+
+private void OnDestroy()
+{
+    // Dispose any ROI tensors still stored locally
+    if (processedDetections != null)
+    {
+        foreach (var item in processedDetections)
+        {
+            item.Item1?.Dispose();
+        }
+
+        processedDetections.Clear();
+    }
+
+    if (commandBuffer != null)
+    {
+        commandBuffer.Release();
+        commandBuffer = null;
+    }
+
+    if (convertRenderTexture != null)
+    {
+        convertRenderTexture.Release();
+        Destroy(convertRenderTexture);
+        convertRenderTexture = null;
+    }
+
+    if (croppedROI != null)
+    {
+        croppedROI.Release();
+        Destroy(croppedROI);
+        croppedROI = null;
+    }
+
+    //----------UI------------
+    /*
+
+    if (debugPreviewRT != null)
+    {
+        debugPreviewRT.Release();
+        Destroy(debugPreviewRT);
+        debugPreviewRT = null;
+    }
+    */
+}
 }

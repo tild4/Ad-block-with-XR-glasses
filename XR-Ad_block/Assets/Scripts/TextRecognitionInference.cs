@@ -24,12 +24,32 @@ using System.Collections.Generic;
 
 public class TextRecognitionInference : MonoBehaviour
 {
+
+    
+    //---------- UI----------------
+    [SerializeField] private ViewCroppedImage viewCroppedImage;
+
+    private RenderTexture debugPreviewRT;
+        [SerializeField]
+    private int tensorTargetHeight = 48;
+
+    [SerializeField]
+    private int tensorTargetWidth = 320;
+
+    [SerializeField] private Material cropMaterial;
+
+    private RenderTexture croppedROI;
+
+    private CommandBuffer commandBuffer;
+     //------------------------------- 
+
+
     // ONNX OCR model (assigned in Inspector)
     [SerializeField]
     private ModelAsset modelAsset;
 
     [SerializeField]
-    private ProcessOCRDetection getROIText;
+    private ProcessOCRDetection2 getROIText;
 
     /*
         Exact tensor input settings for ONNX model is:
@@ -40,25 +60,12 @@ public class TextRecognitionInference : MonoBehaviour
         are recommended. Batch is still 1 per ROI.
     */
 
-    [SerializeField]
-    private int tensorTargetHeight = 48;
-
-    [SerializeField]
-    private int tensorTargetWidth = 320;
-
     // Loaded with the yml file
     [SerializeField]
     private TextAsset ymlFile;
 
-    [SerializeField] ViewCroppedImage viewCroppedImage;
-
     // Sentis worker → runs model on GPU
     private Worker worker;
-
-    // Reused GPU resources for conversion
-    private RenderTexture renderTexture;
-
-    private CommandBuffer commandBuffer;
 
     private TextDecoder textDecoder;
 
@@ -73,7 +80,7 @@ public class TextRecognitionInference : MonoBehaviour
         - Overwritten on new incoming batch
         - Only latest batch is processed
     */
-    private List<(List<Texture> rois, FrameData frame)> pendingBatch;
+    private List<(List<(Tensor<float>, Rect)> rois, FrameData frame)> pendingBatch;
 
     //public event Action<Tensor<float>, FrameData> sendOCRTensor;
 
@@ -89,21 +96,29 @@ public class TextRecognitionInference : MonoBehaviour
 
         textDecoder = new TextDecoder(ymlFile);
 
-        //Allocate reusable GPU resources
+        //CPU
+        worker = new Worker(ocrModel, BackendType.CPU);
 
-        renderTexture = new RenderTexture(
+        //---------UI---------------
+        debugPreviewRT = new RenderTexture(
             tensorTargetWidth,
             tensorTargetHeight,
             0,
             RenderTextureFormat.ARGB32
         );
 
-        renderTexture.Create();
+        debugPreviewRT.Create();
+
+        croppedROI = new RenderTexture(
+            tensorTargetWidth,
+            tensorTargetHeight,
+            0,
+            RenderTextureFormat.ARGB32
+        );
+
+        croppedROI.Create();
 
         commandBuffer = new CommandBuffer();
-
-        // GPUCompute backend → runs model on GPU
-        worker = new Worker(ocrModel, BackendType.GPUCompute);
     }
 
     private void OnEnable()
@@ -131,19 +146,23 @@ public class TextRecognitionInference : MonoBehaviour
         - Store latest batch only
         - Start processing if not already running
     */
-    private void onNewROI(List<(List<Texture>, FrameData)> roiBatch)
+    private void onNewROI(List<(List<(Tensor<float>, Rect)>, FrameData)> roiBatch)
     {
         if (roiBatch == null || roiBatch.Count == 0)
         {
             return;
         }
 
-        // Build safe filtered copy
-        List<(List<Texture> rois, FrameData frame)> batch = new List<(List<Texture> rois, FrameData frame)>();
+        Debug.Log("new batch from ocr pp!");
 
+        // Build safe filtered copy
+        List<(List<(Tensor<float>, Rect)> rois, FrameData frame)> batch =
+            new List<(List<(Tensor<float>, Rect)> rois, FrameData frame)>();
+
+        PipelineProfiler.begin("Tensor filter 2");
         foreach (var item in roiBatch)
         {
-            List<Texture> incomingRois = item.Item1;
+            List<(Tensor<float>, Rect)> incomingRois = item.Item1;
             FrameData frame = item.Item2;
 
             if (incomingRois == null || incomingRois.Count == 0)
@@ -151,13 +170,19 @@ public class TextRecognitionInference : MonoBehaviour
                 continue;
             }
 
-            List<Texture> validRois = new List<Texture>();
+            List<(Tensor<float>, Rect)> validRois = new List<(Tensor<float>, Rect)>();
 
-            foreach (Texture roi in incomingRois)
+            foreach (var roiEntry in incomingRois)
             {
-                if (roi != null)
+                // GPT CODE
+                Tensor<float> roiTensor = roiEntry.Item1;
+                // GPT CODE
+                Rect roiBounds = roiEntry.Item2;
+
+                if (roiTensor != null)
                 {
-                    validRois.Add(roi);
+                    // GPT CODE
+                    validRois.Add((roiTensor, roiBounds));
                 }
             }
 
@@ -166,39 +191,29 @@ public class TextRecognitionInference : MonoBehaviour
                 batch.Add((validRois, frame));
             }
         }
+        PipelineProfiler.end("Tensor filter 2");
 
         if (batch.Count == 0)
         {
             return;
         }
 
-
+        PipelineProfiler.begin("Batch disposal 2");
+        // If an older batch was waiting but never processed, drop it safely
         if (pendingBatch != null)
         {
-            foreach (var oldFrameBatch in pendingBatch)
-            {
-                foreach (Texture oldRoi in oldFrameBatch.rois)
-                {
-                    if (oldRoi is Texture2D oldRoi2D)
-                    {
-                        Destroy(oldRoi2D);
-                    }
-                }
-            }
+            DisposeNestedTensorBatch(pendingBatch);
         }
-
-        // Optional debug preview
-        if (viewCroppedImage != null && batch[0].rois.Count > 0)
-        {
-            viewCroppedImage.Show(batch[0].rois[0]);
-        }
+        PipelineProfiler.end("Batch disposal 2");
 
         // Overwrite previous batch ("latest wins")
         pendingBatch = batch;
 
         if (!isProcessing)
         {
+            PipelineProfiler.begin("Process queue rec");
             StartCoroutine(ProcessQueue());
+            PipelineProfiler.end("Process queue rec");
         }
     }
 
@@ -209,39 +224,27 @@ public class TextRecognitionInference : MonoBehaviour
         while (pendingBatch != null)
         {
             // Save latest batch
-            List<(List<Texture> rois, FrameData frame)> batch = pendingBatch;
+            List<(List<(Tensor<float>, Rect)> rois, FrameData frame)> batch = pendingBatch;
             pendingBatch = null;
 
             foreach (var frameBatch in batch)
             {
-                List<Texture> rois = frameBatch.rois;
+                List<(Tensor<float>, Rect)> rois = frameBatch.rois;
                 FrameData frame = frameBatch.frame;
 
                 Debug.Log("Number of ROI this frame batch : " + rois.Count);
 
-                foreach (Texture roi in rois)
+                foreach (var roiEntry in rois)
                 {
-                    if (roi == null)
-                    {
-                        continue;
-                    }
+                    // GPT CODE
+                    Tensor<float> roiTensor = roiEntry.Item1;
+                    // GPT CODE
+                    Rect roiBounds = roiEntry.Item2;
 
-                    Tensor<float> inputTensor = ConvertToTensor.convert(
-                        roi,
-                        renderTexture,
-                        tensorTargetHeight,
-                        tensorTargetWidth,
-                        commandBuffer
-                    );
-
-                    if (inputTensor != null)
+                    if (roiTensor != null)
                     {
-                        yield return runInference(inputTensor, frame);
-                    }
-
-                    if (roi is Texture2D roi2D)
-                    {
-                        Destroy(roi2D);
+                        // GPT CODE
+                        yield return runInference(roiTensor, frame, roiBounds);
                     }
                 }
             }
@@ -251,7 +254,7 @@ public class TextRecognitionInference : MonoBehaviour
     }
 
     //Runs inference asynchronously.
-    private IEnumerator runInference(Tensor<float> inputTensor, FrameData frame)
+    private IEnumerator runInference(Tensor<float> inputTensor, FrameData frame, Rect roiBounds)
     {
         if (inputTensor == null || worker == null)
         {
@@ -290,12 +293,56 @@ public class TextRecognitionInference : MonoBehaviour
         PipelineProfiler.end("Text decoder");
 
         outputTensor.Dispose();
-        Debug.Log("Detected word is: " + output);
+        Debug.Log($"Detected word is: {output} | Bounds: {roiBounds}");
+
+        //-------------UI----------------
+        TextureCropper.CropBoundingBox(roiBounds,frame.currentTexture,croppedROI,cropMaterial);
+        Graphics.Blit(croppedROI, debugPreviewRT);
+        viewCroppedImage.Show(debugPreviewRT); 
+        //-------------UI----------------
+    }
+
+    private void DisposeNestedTensorBatch(List<(List<(Tensor<float>, Rect)> rois, FrameData frame)> batch)
+    {
+        if (batch == null)
+        {
+            return;
+        }
+
+        foreach (var frameBatch in batch)
+        {
+            if (frameBatch.rois == null)
+            {
+                continue;
+            }
+
+            foreach (var roiEntry in frameBatch.rois)
+            {
+                // GPT CODE
+                roiEntry.Item1?.Dispose();
+            }
+        }
     }
 
     private void OnDestroy()
     {
         worker?.Dispose();
+
+        if (pendingBatch != null)
+        {
+            DisposeNestedTensorBatch(pendingBatch);
+            pendingBatch = null;
+        }
+
+        
+        //----------UI------------
+        if (debugPreviewRT != null)
+        {
+            debugPreviewRT.Release();
+            Destroy(debugPreviewRT);
+            debugPreviewRT = null;
+        }
+
 
         if (commandBuffer != null)
         {
@@ -303,27 +350,12 @@ public class TextRecognitionInference : MonoBehaviour
             commandBuffer = null;
         }
 
-        if (renderTexture != null)
+        if (croppedROI != null)
         {
-            renderTexture.Release();
-            Destroy(renderTexture);
-            renderTexture = null;
+            croppedROI.Release();
+            Destroy(croppedROI);
+            croppedROI = null;
         }
 
-        if (pendingBatch != null)
-        {
-            foreach (var frameBatch in pendingBatch)
-            {
-                foreach (Texture roi in frameBatch.rois)
-                {
-                    if (roi is Texture2D roi2D)
-                    {
-                        Destroy(roi2D);
-                    }
-                }
-            }
-
-            pendingBatch = null;
-        }
     }
 }

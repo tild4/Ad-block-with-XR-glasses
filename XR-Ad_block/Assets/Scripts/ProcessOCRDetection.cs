@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 using System.Diagnostics;
+using UnityEngine.Rendering;
 
 public class ProcessOCRDetection : MonoBehaviour
 {
@@ -15,11 +16,57 @@ public class ProcessOCRDetection : MonoBehaviour
 
     [SerializeField] private int roiBatchThreshold = 5;
 
-    private int droppedROI = 0;
+    /*
+        Exact tensor input settings for ONNX model is:
+        [DynamicDimension.0, 3, 48, DynamicDimension.1]
+        in NCHW format.
 
-    private List<(List<Texture>, FrameData)> processedROIBatch = new List<(List<Texture>, FrameData)>();
+        Therefore tensorTargetWidth can vary, though multiples of 32
+        are recommended. Batch is still 1 per ROI.
+    */
 
-    public event Action<List<(List<Texture>, FrameData)>> sendCroppedROIText;
+    [SerializeField]
+    private int tensorTargetHeight = 48;
+
+    [SerializeField]
+    private int tensorTargetWidth = 320;
+
+    // Reused GPU resources for conversion
+    private RenderTexture convertRenderTexture;
+
+    private RenderTexture croppedROI;
+
+    private CommandBuffer commandBuffer;
+
+    private List<(List<Tensor<float>>, FrameData)> processedROIBatch = new List<(List<Tensor<float>>, FrameData)>();
+
+    public event Action<List<(List<Tensor<float>>, FrameData)>> sendCroppedROIText;
+
+
+    private void Awake()
+    {
+        //Allocate reusable GPU resources
+
+        convertRenderTexture = new RenderTexture(
+            tensorTargetWidth,
+            tensorTargetHeight,
+            0,
+            RenderTextureFormat.ARGB32
+        );
+
+        croppedROI = new RenderTexture(
+            tensorTargetWidth,
+            tensorTargetHeight,
+            0,
+            RenderTextureFormat.ARGB32
+        );
+
+        croppedROI.Create();
+
+        convertRenderTexture.Create();
+
+        commandBuffer = new CommandBuffer();
+    }
 
     private void OnEnable()
     {
@@ -37,7 +84,7 @@ public class ProcessOCRDetection : MonoBehaviour
         }
     }
 
-    private void decodeDetections(List<(Tensor<float>, FrameData)> detections)
+    private void decodeDetections(List<(Tensor<float>, FrameData, Rect)> detections)
     {        
         if (detections == null || detections.Count == 0)
         {
@@ -63,20 +110,32 @@ public class ProcessOCRDetection : MonoBehaviour
 
             tensor.Dispose();
 
-            List<Texture> croppedROIs = new List<Texture>();
+            List<Tensor<float>> croppedROIs = new List<Tensor<float>>();
 
-            /*
             foreach (var bounds in boundingBoxes) {
-            croppedROIsForFrame.add(cropcode(bounds , ... , ...))
+                
+                /*
+                if (!TextureCropper.CropBoundingBox(bounds,frame.currentTexture,croppedROI))
+                {
+                    continue;
+                }
+                */
+
+                Tensor<float> roiTensor = ConvertToTensor.convert(croppedROI,convertRenderTexture,tensorTargetHeight,tensorTargetWidth,commandBuffer);
+
+                if (roiTensor != null)
+                {
+                    croppedROIs.Add(roiTensor);
+                }
             }
-            */
+            
 
             processedROIBatch.Add((croppedROIs,frame));
         }
 
         if(processedROIBatch.Count > 0)
         {
-        var sendBatch = new List<(List<Texture>, FrameData)>(processedROIBatch);
+        var sendBatch = new List<(List<Tensor<float>>, FrameData)>(processedROIBatch);
         sendCroppedROIText?.Invoke(sendBatch);
         processedROIBatch.Clear();
         UnityEngine.Debug.Log("hellllo send to recognition pls");
@@ -150,6 +209,51 @@ public class ProcessOCRDetection : MonoBehaviour
         return boxes;
     }
 
+private void OnDestroy()
+{
+    // Dispose any ROI tensors still waiting in processedROIBatch
+    if (processedROIBatch != null)
+    {
+        foreach (var frameBatch in processedROIBatch)
+        {
+            List<Tensor<float>> roiTensors = frameBatch.Item1;
+
+            if (roiTensors == null)
+            {
+                continue;
+            }
+
+            foreach (Tensor<float> tensor in roiTensors)
+            {
+                tensor?.Dispose();
+            }
+
+            roiTensors.Clear();
+        }
+
+        processedROIBatch.Clear();
+    }
+
+    if (commandBuffer != null)
+    {
+        commandBuffer.Release();
+        commandBuffer = null;
+    }
+
+    if (convertRenderTexture != null)
+    {
+        convertRenderTexture.Release();
+        Destroy(convertRenderTexture);
+        convertRenderTexture = null;
+    }
+
+    if (croppedROI != null)
+    {
+        croppedROI.Release();
+        Destroy(croppedROI);
+        croppedROI = null;
+    }
+}
 
 
 }

@@ -39,23 +39,10 @@ public class TextDetectionInference : MonoBehaviour
     private YOLOPostProcessor yoloPostProcessor;
 
     /*
-        Model input shape:
-        [Batch, Channels, Height, Width] (NCHW)
-
-        - Batch = 1 (per ROI)
-        - Height/Width should be multiples of 32 (model requirement)
-    */
-
-    [SerializeField]
-    private int tensorTargetHeight = 640;
-
-    [SerializeField]
-    private int tensorTargetWidth = 640;
-
-    /*
         Minimum time between inference runs (seconds)
         Prevents running every frame
     */
+
     [SerializeField]
     private float processingInterval = 0.3f;
 
@@ -66,11 +53,6 @@ public class TextDetectionInference : MonoBehaviour
     // Sentis worker → runs model on GPU
     private Worker worker;
 
-    // Reused GPU resources for conversion
-    private RenderTexture renderTexture;
-
-    private CommandBuffer commandBuffer;
-
 
     /*
         Holds latest batch of ROIs from YOLO
@@ -80,7 +62,7 @@ public class TextDetectionInference : MonoBehaviour
         - Only latest batch is processed
     */
 
-    private List <(Texture, FrameData)> pendingBatch;
+    private List <(Tensor<float> roiTensor, FrameData, Rect)> pendingBatch;
 
 
     /*
@@ -88,10 +70,10 @@ public class TextDetectionInference : MonoBehaviour
         Cleared after emitting results
     */
 
-    private List<(Tensor<float>, FrameData)> roiBatch = new List<(Tensor<float>, FrameData)>();
+    private List<(Tensor<float>, FrameData, Rect)> roiBatch = new List<(Tensor<float>, FrameData, Rect)>();
 
     // Output event (batch of detection tensors)
-    public event Action<List<(Tensor<float>, FrameData)>> decodeDetectionTensors;
+    public event Action<List<(Tensor<float>, FrameData, Rect)>> decodeDetectionTensors;
 
     private void Awake()
     {
@@ -103,21 +85,8 @@ public class TextDetectionInference : MonoBehaviour
 
         var ocrModel = ModelLoader.Load(modelAsset);
 
-        //Allocate reusable GPU resources
-
-        renderTexture = new RenderTexture(
-            tensorTargetWidth,
-            tensorTargetHeight,
-            0,
-            RenderTextureFormat.ARGB32
-        );
-
-        renderTexture.Create();
-
-        commandBuffer = new CommandBuffer();
-
-        // GPUCompute backend → runs model on GPU
-        worker = new Worker(ocrModel, BackendType.GPUCompute);
+        // CPU
+        worker = new Worker(ocrModel, BackendType.CPU);
     }
 
     private void OnEnable()
@@ -145,33 +114,45 @@ public class TextDetectionInference : MonoBehaviour
         - Store as latest batch
         - Start processing if not already running
     */
-    private void onNewDetection(List <(Texture, FrameData)> detection)
+    private void onNewDetection(List <(Tensor<float>, FrameData, Rect)> detection)
     {
 
         if (detection == null || detection.Count == 0)
         {
             return;
         }
+    
+        Debug.Log("New roi from YOLO PP");
         
-        // Create safe copy (avoid mutation from producer)
-        List<(Texture texture, FrameData frame)> batch =  new List<(Texture texture, FrameData frame)>();
+        // Create safe copy 
+        List<(Tensor<float> roiTensor, FrameData frame, Rect yoloBounds)> batch =  new List<(Tensor<float> roiTensor, FrameData frame, Rect yoloBounds)>();
 
+        PipelineProfiler.begin("Tensor filter 1");
         foreach (var item in detection)
         {
-            Texture roi = item.Item1;
+            Tensor<float> roiTensor = item.Item1;
             FrameData frame = item.Item2;
+            Rect bounds = item.Item3;
 
-            // add if texture exists
-            if (roi != null)
+            if (roiTensor != null)
             {
-                batch.Add((roi, frame));
+                batch.Add((roiTensor, frame, bounds));
             }
         }
+        PipelineProfiler.end("Tensor filter 1");
 
         if (batch.Count == 0)
         {
             return;
         }
+
+        PipelineProfiler.begin("Pending batch disposal");
+        // If an older batch was waiting but never processed, drop it safely
+        if (pendingBatch != null)
+        {
+            DisposeTensorBatch(pendingBatch);
+        }
+        PipelineProfiler.end("Pending batch disposal");
 
         // Overwrite previous batch ("latest wins")
         pendingBatch = batch;
@@ -179,7 +160,9 @@ public class TextDetectionInference : MonoBehaviour
         // Start coroutine if not already running
         if (!isProcessing)
         {
+            PipelineProfiler.begin("Process queue det");
             StartCoroutine(ProcessQueue());
+            PipelineProfiler.end("Process queue det");
         }
     }
 
@@ -209,45 +192,34 @@ public class TextDetectionInference : MonoBehaviour
             lastProcessTime = Time.time;
 
             // Saves the latest batch
-            List<(Texture texture, FrameData frame)> batch = pendingBatch;
+            List<(Tensor<float> roiTensor, FrameData frame, Rect yoloBounds)> batch = pendingBatch;
 
             pendingBatch = null;
+            Debug.Log("Nr of items in ocr batch : " + batch.Count);
 
             // runs inference on each item in batch
             foreach (var item in batch)
             {
-                Texture roi = item.texture;
+                Tensor<float> inputTensor = item.roiTensor;
                 FrameData frame = item.frame;
-
-                if (roi == null)
-                {
-                    Debug.Log("bror du har blivit nullad");
-                    continue;
-                }
-
-                Tensor<float> inputTensor = ConvertToTensor.convert(
-                    roi,
-                    renderTexture,
-                    tensorTargetHeight,
-                    tensorTargetWidth,
-                    commandBuffer
-                );
+                Rect bounds = item.yoloBounds;
 
                 if (inputTensor != null)
                 {
-                    yield return runInference(inputTensor, frame);
-                } else if (inputTensor == null)
+                    yield return runInference(inputTensor, frame, bounds
+                    );
+                } 
+                else if (inputTensor == null)
                 {
                     Debug.Log("failed tensor conversion");
                 }
             }
 
-
             /*
                 Send batch results
                 Copy list to avoid mutation issues
             */
-            var sendBatch = new List<(Tensor<float>, FrameData)>(roiBatch);
+            var sendBatch = new List<(Tensor<float>, FrameData, Rect)>(roiBatch);
             decodeDetectionTensors?.Invoke(sendBatch);
 
 
@@ -267,7 +239,7 @@ public class TextDetectionInference : MonoBehaviour
         3. Dispose input tensor
         4. Store output
     */
-    private IEnumerator runInference(Tensor<float> inputTensor, FrameData frame)
+    private IEnumerator runInference(Tensor<float> inputTensor, FrameData frame, Rect bound)
     {
         if (inputTensor == null || worker == null)
         {
@@ -307,7 +279,20 @@ public class TextDetectionInference : MonoBehaviour
 
         // Store result for batch emission
 
-        roiBatch.Add((outputTensor, frame));
+        roiBatch.Add((outputTensor, frame, bound));
+    }
+
+    private void DisposeTensorBatch(List<(Tensor<float>, FrameData, Rect)> batch)
+    {
+        if (batch == null)
+        {
+            return;
+        }
+
+        foreach (var item in batch)
+        {
+            item.Item1?.Dispose();
+        }
     }
 
     // Mandatory cleanup
@@ -315,17 +300,16 @@ public class TextDetectionInference : MonoBehaviour
     {
         worker?.Dispose();
 
-        if (commandBuffer != null)
+        if (pendingBatch != null)
         {
-            commandBuffer.Release();
-            commandBuffer = null;
+            DisposeTensorBatch(pendingBatch);
+            pendingBatch = null;
         }
 
-        if (renderTexture != null)
+        if (roiBatch != null)
         {
-            renderTexture.Release();
-            Destroy(renderTexture);
-            renderTexture = null;
+            DisposeTensorBatch(roiBatch);
+            roiBatch.Clear();
         }
     }
 }

@@ -149,7 +149,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ViewCroppedImage
   debugImage: {fileID: 1280693501}
-  aspectRatioFitter: {fileID: 0}
 --- !u!4 &509986964
 Transform:
   m_ObjectHideFlags: 0
@@ -217,16 +216,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Camera Sentis+Crop
       objectReference: {fileID: 0}
+    - target: {fileID: 8662654631642125248, guid: b89630d043832470dadb221114a4fd4c, type: 3}
+      propertyPath: viewCroppedImage
+      value: 
+      objectReference: {fileID: 509986963}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 6015156192241102125, guid: b89630d043832470dadb221114a4fd4c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1280693505}
-    - targetCorrespondingSourceObject: {fileID: 6015156192241102125, guid: b89630d043832470dadb221114a4fd4c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1280693504}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b89630d043832470dadb221114a4fd4c, type: 3}
 --- !u!114 &1280693501 stripped
 MonoBehaviour:
@@ -239,53 +236,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1344c3c82d62a2a41a3576d8abb8e3ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
---- !u!114 &1280693502 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7366201614722276872, guid: b89630d043832470dadb221114a4fd4c, type: 3}
-  m_PrefabInstance: {fileID: 1280693500}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1280693503}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a90645fdaec714f4dba409fc30119d5a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CaptureCameraFrame
---- !u!1 &1280693503 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6015156192241102125, guid: b89630d043832470dadb221114a4fd4c, type: 3}
-  m_PrefabInstance: {fileID: 1280693500}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1280693504
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1280693503}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d66707d704ab544a985c754b4ce33cf2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SentisInferenceManager
-  modelAsset: {fileID: 5022602860645237092, guid: 07179dc606e0daa4788da56f88c069b7, type: 3}
-  confidenceThreshold: 0.5
-  cameraTextureToTensor: {fileID: 1280693505}
-  viewCroppedImage: {fileID: 509986963}
---- !u!114 &1280693505
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1280693503}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e3de6460e4166444288c4eabf536597f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CameraTextureToTensor
-  cameraFrame: {fileID: 1280693502}
-  targetWidth: 640
-  targetHeight: 640
 --- !u!1 &1813560645
 GameObject:
   m_ObjectHideFlags: 0
