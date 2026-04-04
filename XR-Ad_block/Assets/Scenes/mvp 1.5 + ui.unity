@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 88d6193f63d54432d95d1a19740663bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ViewCroppedImage
-  debugImage: {fileID: 987399908}
+  debugImage: {fileID: 5317914315716920325}
 --- !u!4 &509986964
 Transform:
   m_ObjectHideFlags: 0
@@ -164,102 +164,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &987399907
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 266905161392450433, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: viewCroppedImage
-      value: 
-      objectReference: {fileID: 509986963}
-    - target: {fileID: 2273068213581864661, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: sentisInferenceManager
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 2661580704770672338, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -5.27712
-      objectReference: {fileID: 0}
-    - target: {fileID: 2661580704770672338, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2661580704770672338, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -0.06778
-      objectReference: {fileID: 0}
-    - target: {fileID: 2661580704770672338, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2661580704770672338, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2661580704770672338, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2661580704770672338, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2661580704770672338, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2661580704770672338, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2661580704770672338, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2827998050805789483, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: maskThreshold
-      value: 0.15
-      objectReference: {fileID: 0}
-    - target: {fileID: 2827998050805789483, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: viewCroppedImage
-      value: 
-      objectReference: {fileID: 509986963}
-    - target: {fileID: 3824160150395532236, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: textDetectionInference
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 6015156192241102125, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: m_Name
-      value: Camera YOLO+OCR
-      objectReference: {fileID: 0}
-    - target: {fileID: 7011660290456817463, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: cropMaterial
-      value: 
-      objectReference: {fileID: 2100000, guid: ac1ddba664915451b8b511e4a3544091, type: 2}
-    - target: {fileID: 7011660290456817463, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-      propertyPath: viewCroppedImage
-      value: 
-      objectReference: {fileID: 509986963}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
---- !u!114 &987399908 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5317914316628755174, guid: 57a52900b64a84e549c3189337f673e5, type: 3}
-  m_PrefabInstance: {fileID: 987399907}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1344c3c82d62a2a41a3576d8abb8e3ea, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
 --- !u!1 &1813560645
 GameObject:
   m_ObjectHideFlags: 0
@@ -339,10 +243,82 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &358110834702486284
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1289168486500242355, guid: b33997a89294148868ff18426b9acd96, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -5.27712
+      objectReference: {fileID: 0}
+    - target: {fileID: 1289168486500242355, guid: b33997a89294148868ff18426b9acd96, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1289168486500242355, guid: b33997a89294148868ff18426b9acd96, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.06778
+      objectReference: {fileID: 0}
+    - target: {fileID: 1289168486500242355, guid: b33997a89294148868ff18426b9acd96, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1289168486500242355, guid: b33997a89294148868ff18426b9acd96, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1289168486500242355, guid: b33997a89294148868ff18426b9acd96, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1289168486500242355, guid: b33997a89294148868ff18426b9acd96, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1289168486500242355, guid: b33997a89294148868ff18426b9acd96, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1289168486500242355, guid: b33997a89294148868ff18426b9acd96, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1289168486500242355, guid: b33997a89294148868ff18426b9acd96, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1564941133275325931, guid: b33997a89294148868ff18426b9acd96, type: 3}
+      propertyPath: m_Name
+      value: Camera mvp1.5 + ui
+      objectReference: {fileID: 0}
+    - target: {fileID: 8279018104604307493, guid: b33997a89294148868ff18426b9acd96, type: 3}
+      propertyPath: viewCroppedImage
+      value: 
+      objectReference: {fileID: 509986963}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: b33997a89294148868ff18426b9acd96, type: 3}
+--- !u!114 &5317914315716920325 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3948992272262214435, guid: b33997a89294148868ff18426b9acd96, type: 3}
+  m_PrefabInstance: {fileID: 358110834702486284}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1344c3c82d62a2a41a3576d8abb8e3ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 987399907}
+  - {fileID: 358110834702486284}
   - {fileID: 1813560648}
   - {fileID: 509986964}
