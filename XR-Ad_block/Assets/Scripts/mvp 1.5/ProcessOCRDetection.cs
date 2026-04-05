@@ -64,6 +64,15 @@ public class ProcessOCRDetection : MonoBehaviour
     [SerializeField]
     private int tensorTargetWidth = 320;
 
+    /*
+    [SerializeField]
+    private int cropTargetHeight = 128;
+
+    [SerializeField]
+    private int cropTargetWidth = 512;
+    */
+    
+
     [SerializeField]
     private Material cropMaterial;
 
@@ -97,9 +106,10 @@ public class ProcessOCRDetection : MonoBehaviour
             RenderTextureFormat.ARGB32
         );
 
+        // CHANGE MAYBE
         croppedROI = new RenderTexture(
-            tensorTargetWidth,
-            tensorTargetHeight,
+            tensorTargetWidth, 
+            tensorTargetHeight, 
             0,
             RenderTextureFormat.ARGB32
         );
@@ -323,6 +333,7 @@ public class ProcessOCRDetection : MonoBehaviour
             ===================================================================
             */
 
+            // CONVERT WITH ASPECT PAD HER
             Tensor<float> roiTensor = ConvertToTensor.convert(
                 croppedROI,
                 convertRenderTexture,

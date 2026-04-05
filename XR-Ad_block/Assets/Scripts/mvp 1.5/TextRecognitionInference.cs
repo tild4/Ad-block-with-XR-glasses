@@ -43,12 +43,23 @@ public class TextRecognitionInference : MonoBehaviour
     [SerializeField]
     private int tensorTargetWidth = 320;
 
+    /*
+    [SerializeField]
+    private int previewCropHeight = 128;
+
+    [SerializeField]
+    private int previewCropWidth = 512;
+    */
+    
+
     [SerializeField]
     private Material cropMaterial;
 
     // Reusable GPU resources
     private RenderTexture debugPreviewRT;
     private RenderTexture croppedROI;
+
+    // REMOVE
     private CommandBuffer commandBuffer;
 
     [SerializeField]
@@ -77,6 +88,7 @@ public class TextRecognitionInference : MonoBehaviour
         textDecoder = new TextDecoder(ymlFile);
         worker = new Worker(ocrModel, BackendType.CPU);
 
+        // CHANGE MAYBE
         debugPreviewRT = new RenderTexture(
             tensorTargetWidth,
             tensorTargetHeight,
@@ -85,6 +97,7 @@ public class TextRecognitionInference : MonoBehaviour
         );
         debugPreviewRT.Create();
 
+        // CHANGE MAYBE
         croppedROI = new RenderTexture(
             tensorTargetWidth,
             tensorTargetHeight,
@@ -278,6 +291,7 @@ public class TextRecognitionInference : MonoBehaviour
         TextureCropper.CropBoundingBox(roiBounds, frame.currentTexture, croppedROI, cropMaterial);
         Graphics.Blit(croppedROI, debugPreviewRT);
         viewCroppedImage.Show(debugPreviewRT);
+        viewCroppedImage.SetDetectedWord(output);
     }
 
     private void DisposeNestedTensorBatch(List<FrameRoiBatch> batch)

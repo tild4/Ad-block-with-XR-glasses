@@ -1,9 +1,12 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class ViewCroppedImage : MonoBehaviour
 {
     [SerializeField] private RawImage debugImage;
+
+    [SerializeField] private TextMeshProUGUI wordText;
 
     public void Show(Texture texture)
     {
@@ -15,6 +18,11 @@ public class ViewCroppedImage : MonoBehaviour
 
         debugImage.texture = texture;
         debugImage.enabled = texture != null;
+    }
+
+    public void SetDetectedWord(string word)
+    {
+        wordText.text = string.IsNullOrEmpty(word) ? "" : word;
     }
 
     public void Clear()
