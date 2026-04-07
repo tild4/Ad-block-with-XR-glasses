@@ -55,9 +55,21 @@ public class BlockPlacementManager : MonoBehaviour
         }
     }
 
-    void OnEnable()
+    void Awake()
     {
-        // Subscribe to the detection event from SentisInferenceManager
+        if (inferenceManager == null)
+        {
+            inferenceManager = FindObjectOfType<SentisInferenceManager>();
+        }
+
+        if (inferenceManager == null)
+        {
+            Debug.LogError("NO SentisInferenceManager FOUND IN SCENE");
+            return;
+        }
+
+        Debug.Log("Found Sentis: " + inferenceManager.GetInstanceID());
+
         inferenceManager.onDetectionsReady += HandleDetections;
     }
 
