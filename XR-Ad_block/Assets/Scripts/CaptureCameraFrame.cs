@@ -54,12 +54,16 @@ public class CaptureCameraFrame : MonoBehaviour
             return;
         }
 
+        // --- START PROFILING ---
+        PipelineProfiler.begin("1. Capture Camera Data");
+
         lastProcessTime = Time.time;
 
         // Guard rail
         if (cameraAccess == null || !cameraAccess.enabled || !cameraAccess.IsPlaying)
         {
             Debug.Log("failed frame");
+            PipelineProfiler.end("1. Capture Camera Data");
             return;
         }
 
@@ -76,9 +80,13 @@ public class CaptureCameraFrame : MonoBehaviour
             currentTimestamp = cameraAccess.Timestamp,
         };
 
-        // Invokes event -> new frame ready to be utilized
+        PipelineProfiler.set("Cam Res", $"{frame.currentResolution.x}x{frame.currentResolution.y}");
 
+        // Invokes event -> new frame ready to be utilized
         newFrame?.Invoke(frame);
+
+        // --- END PROFILING ---
+        PipelineProfiler.end("1. Capture Camera Data");
 
         Debug.Log("frame invoked");
     }
