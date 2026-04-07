@@ -19,6 +19,7 @@
 */
 
 using UnityEngine;
+using Unity.InferenceEngine;
 
 [System.Serializable]
 public struct DetectionData
@@ -30,4 +31,5 @@ public struct DetectionData
     public Rect bboxPixels; // Pixel coordinates
     public float confidence;
     public FrameData frame;
+    public Tensor<float> RoiTensor;
 }
