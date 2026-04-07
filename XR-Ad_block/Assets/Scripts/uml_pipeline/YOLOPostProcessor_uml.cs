@@ -46,7 +46,7 @@ public class YOLOPostProcessor_uml : MonoBehaviour
     private int tensorTargetWidth = 640;
 
     // Each entry is a tensor of 1 ad
-    private readonly List<YoloRoiTensor> processedDetections = new List<YoloRoiTensor>();
+    private readonly List<DetectionData> processedDetections = new List<DetectionData>();
 
     // Reused GPU resources for crop + tensor conversion.
     private RenderTexture croppedROI;
@@ -54,7 +54,7 @@ public class YOLOPostProcessor_uml : MonoBehaviour
     private CommandBuffer commandBuffer;
 
     // Event sent to OCR text detection.
-    public event Action<List<YoloRoiTensor>> onProcessedDetections;
+    public event Action<List<DetectionData>> onProcessedDetections;
 
     private void Awake()
     {
@@ -133,17 +133,21 @@ public class YOLOPostProcessor_uml : MonoBehaviour
             return;
         }
 
-        List<DetectionData> detectionDataList = BuildDetectionDataList(rawDetections);
-        List<DetectionData> nmsResults = ApplyNMS(detectionDataList);
-        BuildProcessedDetectionBatch(nmsResults);
+        List<(Rect boundingBox, float confidence, FrameData frame)> nmsResults = ApplyNMS(rawDetections);
+
+        List<DetectionData> processedDetectionData = BuildProcessedDetectionBatch(nmsResults);
 
         Debug.Log(
-            $"Post-processed {rawDetections.Count} raw detections → {processedDetections.Count} final detections"
+            $"Post-processed {rawDetections.Count} raw detections → {processedDetectionData.Count} final detections"
         );
 
-        // Send a copy of the list to avoid mutations and referencing issues
-        var sendDetections = new List<YoloRoiTensor>(processedDetections);
+        if (processedDetectionData.Count == 0)
+        {
+            return;
+        }
 
+        // Keep current downstream logic the same
+        var sendDetections = new List<DetectionData>(processedDetections);
         onProcessedDetections?.Invoke(sendDetections);
     }
 
@@ -178,48 +182,70 @@ public class YOLOPostProcessor_uml : MonoBehaviour
         4. Add it to sending batch
         */
 
-    private void BuildProcessedDetectionBatch(List<DetectionData> nmsResults)
+private List<DetectionData> BuildProcessedDetectionBatch(
+    List<(Rect boundingBox, float confidence, FrameData frame)> nmsResults
+)
+{
+    List<DetectionData> processedDetectionData = new List<DetectionData>();
+
+    foreach (var (rawBbox, confidence, frame) in nmsResults)
     {
-        Debug.Log("Number of items to be processed : " + nmsResults.Count);
-        foreach (var result in nmsResults)
+        Rect bbox = ClampNormalizedRect(rawBbox);
+        Texture texture = frame.currentTexture;
+
+        if (bbox.width <= 0f || bbox.height <= 0f)
         {
-            Rect bbox = ClampNormalizedRect(result.bboxNormalized);
-            Texture texture = result.frame.currentTexture;
-            FrameData frame = result.frame;
-
-            if (bbox.width <= 0f || bbox.height <= 0f)
-            {
-                continue;
-            }
-
-
-            if (!TextureCropper.CropBoundingBox(bbox, texture, croppedROI, cropMaterial))
-            {
-                continue;
-            }
-
-            /*
-            ============================== DELETE ==============================
-            Graphics.Blit(croppedROI, debugPreviewRT);
-            viewCroppedImage.Show(debugPreviewRT);
-            ===================================================================
-            */
-
-            Tensor<float> roiTensor = ConvertToTensor.convert(
-                croppedROI,
-                convertRenderTexture,
-                tensorTargetHeight,
-                tensorTargetWidth,
-                commandBuffer
-            );
-
-            // NOTE : bbox is the Yolo bounds
-            if (roiTensor != null)
-            {
-                processedDetections.Add(new YoloRoiTensor(roiTensor, frame, bbox));
-            }
+            continue;
         }
+
+        if (texture == null)
+        {
+            continue;
+        }
+
+        if (!TextureCropper.CropBoundingBox(bbox, texture, croppedROI, cropMaterial))
+        {
+            continue;
+        }
+
+        /*
+        ============================== DELETE ==============================
+        Graphics.Blit(croppedROI, debugPreviewRT);
+        viewCroppedImage.Show(debugPreviewRT);
+        ===================================================================
+        */
+
+        Tensor<float> roiTensor = ConvertToTensor.convert(
+            croppedROI,
+            convertRenderTexture,
+            tensorTargetHeight,
+            tensorTargetWidth,
+            commandBuffer
+        );
+
+        if (roiTensor == null)
+        {
+            continue;
+        }
+
+        DetectionData data = new DetectionData
+        {
+            bboxNormalized = bbox,
+            bboxMinMaxNormalized = new Vector4(bbox.xMin, bbox.yMin, bbox.xMax, bbox.yMax),
+            bboxPixels = ConvertToPixelCoordinates(bbox, frame.currentResolution),
+            confidence = confidence,
+            frame = frame,
+            RoiTensor = roiTensor,
+        };
+
+        processedDetectionData.Add(data);
+
+        // Keep current downstream event logic unchanged
+        processedDetections.Add(data);
     }
+
+    return processedDetectionData;
+}
 
     /*
         Non-Maximum Suppression (NMS):
@@ -227,49 +253,53 @@ public class YOLOPostProcessor_uml : MonoBehaviour
         - Keep the strongest box.
         - Suppress later boxes whose IOU exceeds the threshold.
     */
-    private List<DetectionData> ApplyNMS(List<DetectionData> detections)
+private List<(Rect boundingBox, float confidence, FrameData frame)> ApplyNMS(
+    List<(Rect boundingBox, float confidence, FrameData frame)> detections
+)
+{
+    if (detections.Count == 0)
     {
-        if (detections.Count == 0)
+        return new List<(Rect boundingBox, float confidence, FrameData frame)>();
+    }
+
+    detections.Sort((a, b) => b.confidence.CompareTo(a.confidence));
+
+    List<(Rect boundingBox, float confidence, FrameData frame)> results =
+        new List<(Rect boundingBox, float confidence, FrameData frame)>();
+
+    bool[] suppressed = new bool[detections.Count];
+
+    for (int i = 0; i < detections.Count; i++)
+    {
+        if (suppressed[i])
         {
-            return new List<DetectionData>();
+            continue;
         }
 
-        detections.Sort((a, b) => b.confidence.CompareTo(a.confidence));
+        results.Add(detections[i]);
 
-        List<DetectionData> results = new List<DetectionData>();
-        bool[] suppressed = new bool[detections.Count];
-
-        for (int i = 0; i < detections.Count; i++)
+        for (int j = i + 1; j < detections.Count; j++)
         {
-            if (suppressed[i])
+            if (suppressed[j])
             {
                 continue;
             }
 
-            results.Add(detections[i]);
+            float iou = CalculateIOU(
+                detections[i].boundingBox,
+                detections[j].boundingBox
+            );
 
-            for (int j = i + 1; j < detections.Count; j++)
+            if (iou > iouThreshold)
             {
-                if (suppressed[j])
-                {
-                    continue;
-                }
-
-                float iou = CalculateIOU(
-                    detections[i].bboxNormalized,
-                    detections[j].bboxNormalized
-                );
-
-                if (iou > iouThreshold)
-                {
-                    suppressed[j] = true;
-                }
+                suppressed[j] = true;
             }
         }
-
-        Debug.Log($"NMS: {detections.Count} detections → {results.Count} after suppression");
-        return results;
     }
+
+    Debug.Log($"NMS: {detections.Count} detections → {results.Count} after suppression");
+    return results;
+}
 
     private float CalculateIOU(Rect a, Rect b)
     {
@@ -329,16 +359,6 @@ public class YOLOPostProcessor_uml : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (processedDetections != null)
-        {
-            foreach (var item in processedDetections)
-            {
-                item.Tensor?.Dispose();
-            }
-
-            processedDetections.Clear();
-        }
-
         if (commandBuffer != null)
         {
             commandBuffer.Release();
