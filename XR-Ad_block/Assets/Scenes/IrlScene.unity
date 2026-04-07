@@ -146,9 +146,13 @@ PrefabInstance:
       propertyPath: cameraAccess
       value: 
       objectReference: {fileID: 7600718220393324320}
+    - target: {fileID: 2314891262884951342, guid: 0eb47617a29cedd449a682eb6e0b77c3, type: 3}
+      propertyPath: inferenceManager
+      value: 
+      objectReference: {fileID: 7794939882676572735}
     - target: {fileID: 4380864974070896181, guid: 0eb47617a29cedd449a682eb6e0b77c3, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -4.24698
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4380864974070896181, guid: 0eb47617a29cedd449a682eb6e0b77c3, type: 3}
       propertyPath: m_LocalPosition.y
@@ -156,7 +160,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4380864974070896181, guid: 0eb47617a29cedd449a682eb6e0b77c3, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 15.89897
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4380864974070896181, guid: 0eb47617a29cedd449a682eb6e0b77c3, type: 3}
       propertyPath: m_LocalRotation.w
@@ -213,7 +217,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4745025405048073781, guid: 6e8425543190ce0439543036cc21989a, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -3.52039
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4745025405048073781, guid: 6e8425543190ce0439543036cc21989a, type: 3}
       propertyPath: m_LocalPosition.y
@@ -221,7 +225,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4745025405048073781, guid: 6e8425543190ce0439543036cc21989a, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 3.58036
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4745025405048073781, guid: 6e8425543190ce0439543036cc21989a, type: 3}
       propertyPath: m_LocalRotation.w
@@ -282,6 +286,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df9f338034892c44ebb62d97894772f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &7794939882676572735 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6002490814255617288, guid: 6e8425543190ce0439543036cc21989a, type: 3}
+  m_PrefabInstance: {fileID: 5024973278134454222}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d66707d704ab544a985c754b4ce33cf2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SentisInferenceManager
 --- !u!4 &8220221065473917200 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4998404793713682837, guid: 6e8425543190ce0439543036cc21989a, type: 3}

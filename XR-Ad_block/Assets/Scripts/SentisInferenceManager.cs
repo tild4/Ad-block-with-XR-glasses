@@ -92,6 +92,9 @@ public class SentisInferenceManager : MonoBehaviour
             yield break;
         }
 
+        // --- START PROFILING ---
+        PipelineProfiler.begin("3. AI Inference Total");
+
         // Snapshot the FrameData so it stays consistent even if a new tensor arrives during inference
         FrameData frame = latestFrame;
 
@@ -112,6 +115,9 @@ public class SentisInferenceManager : MonoBehaviour
         // Retrieve the output tensor (shape: 1, 5, 8400)
         using var output = outputAwaiter.GetResult();
 
+        // --- END PROFILING (Själva AI-körningen är klar här) ---
+        PipelineProfiler.end("3. AI Inference Total");
+
         // If readback failed, skip this frame
         if (output == null)
         {
@@ -125,6 +131,9 @@ public class SentisInferenceManager : MonoBehaviour
         // 640/32 = 20x20 =  400 anchors (detects large objects)
         //                 = 8400 total
         // For each anchor: [centerX, centerY, width, height, confidence]
+
+        // Börja mäta hur lång tid det tar att loopa igenom alla 8400 boxar (Post-processing)
+        PipelineProfiler.begin("4. Post-Processing (Boxes)");
 
         // Clear detections from the previous inference run
         detections.Clear();
@@ -161,6 +170,11 @@ public class SentisInferenceManager : MonoBehaviour
                 (new Rect(x1, y1, normalizedWidth, normalizedHeight), confidence, frame)
             );
         }
+
+        PipelineProfiler.set("Detections", detections.Count);
+        PipelineProfiler.set("Conf Threshold", confidenceThreshold);
+
+        PipelineProfiler.end("4. Post-Processing (Boxes)");
 
         // Log results for debugging (visible via ADB logcat or Meta Quest Developer Hub)
         if (detections.Count > 0)
