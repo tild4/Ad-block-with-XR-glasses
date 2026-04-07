@@ -17,20 +17,21 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
-using UnityEngine;  
 using Unity.InferenceEngine;
+using UnityEngine;
 
 public class TextDecoder
 {
     private Dictionary<int, char> indexToChar;
 
-    public TextDecoder(TextAsset file) 
+    public TextDecoder(TextAsset file)
     {
         this.indexToChar = parseYml(file);
     }
 
     // Check size for debug purposes, remove later
     public int DictionarySize => indexToChar.Count;
+
     public string decode(Tensor<float> tensor)
     {
         // The output tensor shape is (1, sequence_length, num_classes)
@@ -82,7 +83,6 @@ public class TextDecoder
 
         return decodedString.ToString();
     }
-
 
     // Parses the inference.yml character_dict section.
     // Each entry is a YAML list item like "  - A" or "  - '!'"

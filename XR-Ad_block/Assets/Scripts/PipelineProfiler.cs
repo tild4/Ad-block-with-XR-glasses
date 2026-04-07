@@ -136,7 +136,10 @@ public static class PipelineProfiler
         {
             if (completed.TryGetValue(step, out double ms))
             {
-                sb.AppendLine($"{Tag}  {step, -22}: {ms, 8:F1} ms");
+                //sb.AppendLine($"{Tag}  {step, -22}: {ms, 8:F1} ms");
+                string label = step.PadRight(22);
+                string value = ms.ToString("F1").PadLeft(8);
+                sb.AppendLine($"{Tag}  {label}: {value} ms");
             }
         }
 
@@ -145,14 +148,19 @@ public static class PipelineProfiler
         // Extra values (detection count, etc.)
         foreach (var kv in values)
         {
-            sb.AppendLine($"{Tag}  {kv.Key, -22}: {kv.Value, 8}");
+            string label = kv.Key.PadRight(22);
+            string value = kv.Value.PadLeft(8);
+            sb.AppendLine($"{Tag}  {label}: {value}");
+            //sb.AppendLine($"{Tag}  {kv.Key, -22}: {kv.Value, 8}");
         }
 
         // Memory stats from Unity Profiler API
         long monoMB = Profiler.GetMonoUsedSizeLong() / (1024 * 1024);
         long totalMB = Profiler.GetTotalAllocatedMemoryLong() / (1024 * 1024);
-        sb.AppendLine($"{Tag}  {"Mono Heap", -22}: {monoMB, 5} MB");
-        sb.AppendLine($"{Tag}  {"Total Alloc", -22}: {totalMB, 5} MB");
+        //sb.AppendLine($"{Tag}  {"Mono Heap", -22}: {monoMB, 5} MB");
+        //sb.AppendLine($"{Tag}  {"Total Alloc", -22}: {totalMB, 5} MB");
+        sb.AppendLine($"{Tag}  {"Mono Heap".PadRight(22)}: {monoMB.ToString().PadLeft(5)} MB");
+        sb.AppendLine($"{Tag}  {"Total Alloc".PadRight(22)}: {totalMB.ToString().PadLeft(5)} MB");
 
         sb.AppendLine($"{Tag} ================================");
 

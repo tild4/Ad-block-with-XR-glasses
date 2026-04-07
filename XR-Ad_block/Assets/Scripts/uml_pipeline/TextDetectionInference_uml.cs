@@ -21,13 +21,14 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.InferenceEngine;
 using UnityEngine;
+
 public class TextDetectionInference_uml : MonoBehaviour
 {
     [SerializeField]
     private ModelAsset modelAsset;
 
     [SerializeField]
-    private YOLOPostProcessor_uml yoloPostProcessor;
+    private OCRPipelineManager_uml ocrPipelineManager;
 
     private bool isProcessing = false;
 
@@ -35,10 +36,9 @@ public class TextDetectionInference_uml : MonoBehaviour
 
     public event Action<DetectionsPerAd> findTextRegions;
 
-
     private void Awake()
     {
-        if (modelAsset == null || yoloPostProcessor == null)
+        if (modelAsset == null || ocrPipelineManager == null)
         {
             Debug.Log("Missing asset");
             return;
@@ -50,20 +50,50 @@ public class TextDetectionInference_uml : MonoBehaviour
 
     private void OnEnable()
     {
-        if (yoloPostProcessor != null)
+        if (ocrPipelineManager != null)
         {
-            yoloPostProcessor.onProcessedDetections += HandleNewTrackedObject;
+            ocrPipelineManager.onReadyForOCR += HandleNewTrackedObject;
         }
     }
 
     private void OnDisable()
     {
-        if (yoloPostProcessor != null)
+        if (ocrPipelineManager != null)
         {
-            yoloPostProcessor.onProcessedDetections -= HandleNewTrackedObject;
+            ocrPipelineManager.onReadyForOCR -= HandleNewTrackedObject;
         }
     }
 
+    // Allows external managers to ensure this component is subscribed to an OCR pipeline manager.
+    // This makes wiring resilient if inspector fields weren't set in the scene.
+    public void EnsureSubscribedTo(OCRPipelineManager_uml mgr)
+    {
+        if (mgr == null)
+            return;
+
+        if (ocrPipelineManager == mgr)
+            return;
+
+        if (ocrPipelineManager != null)
+        {
+            ocrPipelineManager.onReadyForOCR -= HandleNewTrackedObject;
+        }
+
+        ocrPipelineManager = mgr;
+        ocrPipelineManager.onReadyForOCR += HandleNewTrackedObject;
+    }
+
+    public void UnregisterFrom(OCRPipelineManager_uml mgr)
+    {
+        if (mgr == null)
+            return;
+
+        if (ocrPipelineManager == mgr)
+        {
+            ocrPipelineManager.onReadyForOCR -= HandleNewTrackedObject;
+            ocrPipelineManager = null;
+        }
+    }
 
     private void HandleNewTrackedObject(TrackedObject advertisement)
     {
@@ -71,11 +101,7 @@ public class TextDetectionInference_uml : MonoBehaviour
         {
             return;
         }
-
-        if(!isProcessing)
-        {
-            StartCoroutine(RunOCRDetection(advertisement));   
-        }
+        StartCoroutine(RunOCRDetection(advertisement));
     }
 
     private IEnumerator RunOCRDetection(TrackedObject advertisement)
@@ -124,9 +150,12 @@ public class TextDetectionInference_uml : MonoBehaviour
 
         //advertisement.findTextTensor = outputTensor;
 
-        DetectionsPerAd findDetections = new DetectionsPerAd(advertisement,outputTensor);
+        DetectionsPerAd findDetections = new DetectionsPerAd(advertisement, outputTensor);
 
         findTextRegions?.Invoke(findDetections);
+        Debug.Log(
+            $"[TextDetect] Heatmap generated for Object {advertisement.id}. Sending to ProcessOCRDetection."
+        );
     }
 
     private void OnDestroy()

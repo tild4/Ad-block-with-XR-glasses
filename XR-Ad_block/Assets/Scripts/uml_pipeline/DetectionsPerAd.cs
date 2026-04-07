@@ -1,10 +1,15 @@
-/*using UnityEngine;
 using Unity.InferenceEngine;
+using UnityEngine;
 
 [System.Serializable]
-public class DetectionsPerAd
+public readonly struct DetectionsPerAd
 {
-    public TrackedObject trackedObject;
-    public Tensor<float> findTextTensor;
+    public readonly TrackedObject trackedObject;
+    public readonly Tensor<float> findTextTensor;
+
+    public DetectionsPerAd(TrackedObject ad, Tensor<float> tensor)
+    {
+        trackedObject = ad;
+        findTextTensor = tensor;
+    }
 }
-*/

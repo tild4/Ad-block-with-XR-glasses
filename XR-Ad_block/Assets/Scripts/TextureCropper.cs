@@ -1,11 +1,15 @@
 using UnityEngine;
 
-public static class TextureCropper 
+public static class TextureCropper
 {
-    //crops the region corresponding to a bounding box 
-    public static bool CropBoundingBox(Rect boundingBox, Texture source, RenderTexture target, Material cropMaterial)
+    //crops the region corresponding to a bounding box
+    public static bool CropBoundingBox(
+        Rect boundingBox,
+        Texture source,
+        RenderTexture target,
+        Material cropMaterial
+    )
     {
-
         if (source == null)
         {
             Debug.LogWarning("TextureCropper: source texture is null.");
@@ -24,10 +28,12 @@ public static class TextureCropper
             return false;
         }
 
-        cropMaterial.SetVector("_Crop", new Vector4(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height));
+        cropMaterial.SetVector(
+            "_Crop",
+            new Vector4(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height)
+        );
         Graphics.Blit(source, target, cropMaterial);
 
         return true;
     }
-
 }

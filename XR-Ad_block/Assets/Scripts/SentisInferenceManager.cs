@@ -63,8 +63,7 @@ public class SentisInferenceManager : MonoBehaviour
 
     private void Awake()
     {
-
-        if(modelAsset == null || captureCameraFrame == null)
+        if (modelAsset == null || captureCameraFrame == null)
         {
             Debug.Log("missing asset");
             return;
@@ -119,6 +118,7 @@ public class SentisInferenceManager : MonoBehaviour
         }
 
         // Convert frame texture → tensor on GPU (this class owns the tensor)
+        PipelineProfiler.set("TensorContext", "Sentis");
         latestTensor = ConvertToTensor.convert(
             frame.currentTexture,
             renderTexture,
@@ -146,7 +146,7 @@ public class SentisInferenceManager : MonoBehaviour
         1. Transfer tensor ownership from latestTensor to local variable
         2. Run GPU inference
         3. Await async readback
-        4. Dispose input tensor 
+        4. Dispose input tensor
         5. Parse detections
     */
     private IEnumerator runInference()
@@ -166,7 +166,8 @@ public class SentisInferenceManager : MonoBehaviour
         latestTensor = null;
 
         // Feed the tensor into the YOLO model
-        PipelineProfiler.begin("YOLO Inference");
+        PipelineProfiler.begin("3. AI Inference");
+        PipelineProfiler.set("Model Input", $"{inputSize.x}x{inputSize.y}");
         worker.Schedule(inputTensor);
 
         // Start async readback of the output tensor to avoid blocking the main thread
@@ -180,7 +181,7 @@ public class SentisInferenceManager : MonoBehaviour
             yield return null;
         }
 
-        PipelineProfiler.end("YOLO Inference");
+        PipelineProfiler.end("3. AI Inference");
 
         // Dispose input tensor after inference (consumer responsibility)
         inputTensor.Dispose();
@@ -203,7 +204,7 @@ public class SentisInferenceManager : MonoBehaviour
         // For each anchor: [centerX, centerY, width, height, confidence]
 
         // Clear detections from the previous inference run
-        PipelineProfiler.begin("YOLO Parse");
+        PipelineProfiler.begin("4. Post-Processing (Boxes)");
         detections.Clear();
 
         // Total number of anchor predictions in the output
@@ -239,7 +240,7 @@ public class SentisInferenceManager : MonoBehaviour
             );
         }
 
-        PipelineProfiler.end("YOLO Parse");
+        PipelineProfiler.end("4. Post-Processing (Boxes)");
         PipelineProfiler.set("Detections", detections.Count);
 
         // Log results for debugging (visible via ADB logcat or Meta Quest Developer Hub)
@@ -249,7 +250,9 @@ public class SentisInferenceManager : MonoBehaviour
                 $"[Sentis] Detected {detections.Count} ads. Top confidence: {detections[0].confidence:0.00}"
             );
 
-            var sendDetections = new List<(Rect boundingBox, float confidence, FrameData frame)>(detections);
+            var sendDetections = new List<(Rect boundingBox, float confidence, FrameData frame)>(
+                detections
+            );
             onDetectionsReady?.Invoke(sendDetections);
             Debug.Log("sent event!");
         }

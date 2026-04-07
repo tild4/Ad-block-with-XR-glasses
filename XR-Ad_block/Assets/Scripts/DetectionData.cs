@@ -18,13 +18,14 @@
     This is memory-efficient for high-frequency updates (e.g., 30-60 AI detections per second).
 */
 
-using UnityEngine;
 using Unity.InferenceEngine;
+using UnityEngine;
 
 [System.Serializable]
 public struct DetectionData
 {
     public Rect bboxNormalized; // 0-1 normalized coordinates
+
     // Bounding box as (x1, y1, x2, y2) in the same normalized YOLO coordinate space as bboxNormalized.
     // NOTE: YOLO uses top-left origin; converting to Unity viewport requires flipping Y.
     public Vector4 bboxMinMaxNormalized;
