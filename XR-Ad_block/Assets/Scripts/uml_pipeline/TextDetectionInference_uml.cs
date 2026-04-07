@@ -31,20 +31,10 @@ public class TextDetectionInference_uml : MonoBehaviour
 
     private bool isProcessing = false;
 
-    [SerializeField]
-    private float processingInterval = 0.3f;
-
-    private float lastProcessTime = 0f;
-
     private Worker worker;
 
-    // New incoming work waits here until the queue coroutine picks it up.
-    private List<YoloRoiTensor> pendingBatch;
+    public event Action<DetectionsPerAd> findTextRegions;
 
-    // Each entry is 1 ad including "heat map" tensor
-    private readonly List<YoloRoiTensor> detectionTensorBatch = new List<YoloRoiTensor>();
-
-    public event Action<List<YoloRoiTensor>> decodeDetectionTensors;
 
     private void Awake()
     {
@@ -62,7 +52,7 @@ public class TextDetectionInference_uml : MonoBehaviour
     {
         if (yoloPostProcessor != null)
         {
-            yoloPostProcessor.onProcessedDetections += HandleNewDetectionBatch;
+            yoloPostProcessor.onProcessedDetections += HandleNewTrackedObject;
         }
     }
 
@@ -70,143 +60,38 @@ public class TextDetectionInference_uml : MonoBehaviour
     {
         if (yoloPostProcessor != null)
         {
-            yoloPostProcessor.onProcessedDetections -= HandleNewDetectionBatch;
+            yoloPostProcessor.onProcessedDetections -= HandleNewTrackedObject;
         }
     }
 
-    /*
-        Receives a new ROI tensor batch from YOLO post-processing.
 
-        FLOW:
-        1. Filter invalid tensors.
-        2. Keep only the newest pending batch.
-        3. Start the processing coroutine if needed.
-    */
-    private void HandleNewDetectionBatch(List<YoloRoiTensor> detectionBatch)
+    private void HandleNewTrackedObject(TrackedObject advertisement)
     {
-        if (detectionBatch == null || detectionBatch.Count == 0)
+        if (advertisement == null || advertisement.lastDetection.RoiTensor == null)
         {
             return;
         }
 
-        List<YoloRoiTensor> filteredBatch = FilterValidDetections(detectionBatch);
-
-        if (filteredBatch.Count == 0)
+        if(!isProcessing)
         {
-            return;
-        }
-
-        ReplacePendingBatch(filteredBatch);
-
-        if (!isProcessing)
-        {
-            StartCoroutine(ProcessQueue());
+            StartCoroutine(RunOCRDetection(advertisement));   
         }
     }
 
-    /*
-    For each YoloRoiTensor in the recieved batch:
-    1. Iterate through tensors to check if null
-    2. Add non-null tensors to new batch
-    */ 
-    private List<YoloRoiTensor> FilterValidDetections(List<YoloRoiTensor> detectionBatch)
-    {
-        List<YoloRoiTensor> batch = new List<YoloRoiTensor>();
-
-        foreach (var item in detectionBatch)
-        {
-            if (item.Tensor != null)
-            {
-                batch.Add(item);
-            }
-        }
-
-        return batch;
-    }
-
-    /*
-    If pending batch is not null -> it is old -> should be replaced
-    Dispose tensors safely from the batch
-    Replace pending batch with this one
-    */
-    private void ReplacePendingBatch(List<YoloRoiTensor> latestBatch)
-    {
-        if (pendingBatch != null)
-        {
-            DisposeTensorBatch(pendingBatch);
-        }
-
-        pendingBatch = latestBatch;
-    }
-
-    /*
-        Processes pending batches sequentially.
-
-        POLICY:
-        - Current batch finishes.
-        - Any newer incoming batch replaces the next pending one.
-    */
-    private IEnumerator ProcessQueue()
+    private IEnumerator RunOCRDetection(TrackedObject advertisement)
     {
         // Prevents nested coroutines
         isProcessing = true;
 
-        // Loop is alive as long as there is work
-        while (pendingBatch != null)
-        {
-            // Delay
-            // NOTE : pending batch can still be replaced at this point
-            yield return WaitForProcessingInterval();
-            lastProcessTime = Time.time;
-
-            // Save latest batch
-            List<YoloRoiTensor> batch = pendingBatch;
-            pendingBatch = null;
-
-            Debug.Log("Nr of items in ocr batch : " + batch.Count);
-
-            // Run inference on each tensor
-            foreach (var item in batch)
-            {
-                if (item.Tensor != null)
-                {
-                    yield return RunInference(item);
-                }
-            }
-
-            // Safe copy batch for emission
-            var sendBatch = new List<YoloRoiTensor>(detectionTensorBatch);
-            decodeDetectionTensors?.Invoke(sendBatch);
-            detectionTensorBatch.Clear();
-        }
+        yield return RunInference(advertisement);
 
         isProcessing = false;
     }
 
-    private IEnumerator WaitForProcessingInterval()
+    private IEnumerator RunInference(TrackedObject advertisement)
     {
-        float timeSinceLastProcess = Time.time - lastProcessTime;
-
-        if (timeSinceLastProcess < processingInterval)
-        {
-            yield return new WaitForSeconds(processingInterval - timeSinceLastProcess);
-        }
-    }
-
-    /*
-        Runs OCR text-detection inference for one ROI tensor.
-
-        FLOW:
-        1. Schedule inference.
-        2. Wait for async readback.
-        3. Dispose input tensor.
-        4. Store output tensor for batch emission.
-    */
-    private IEnumerator RunInference(YoloRoiTensor roiInput)
-    {
-        Tensor<float> inputTensor = roiInput.Tensor;
-        FrameData frame = roiInput.Frame;
-        Rect bounds = roiInput.Bounds;
+        Tensor<float> inputTensor = advertisement.lastDetection.RoiTensor;
+        Rect bounds = advertisement.lastDetection.bboxNormalized;
 
         if (inputTensor == null || worker == null)
         {
@@ -228,7 +113,7 @@ public class TextDetectionInference_uml : MonoBehaviour
 
         PipelineProfiler.end("OCR TextDetect");
 
-        inputTensor.Dispose();
+        //inputTensor.Dispose();
 
         Tensor<float> outputTensor = outputAwaiter.GetResult();
 
@@ -237,37 +122,15 @@ public class TextDetectionInference_uml : MonoBehaviour
             yield break;
         }
 
-        // Add heat map tensor, frame and Yolo bounds to emitted batch
-        detectionTensorBatch.Add(new YoloRoiTensor(outputTensor, frame, bounds));
-    }
+        //advertisement.findTextTensor = outputTensor;
 
-    private void DisposeTensorBatch(List<YoloRoiTensor> batch)
-    {
-        if (batch == null)
-        {
-            return;
-        }
+        DetectionsPerAd findDetections = new DetectionsPerAd(advertisement,outputTensor);
 
-        foreach (var item in batch)
-        {
-            item.Tensor?.Dispose();
-        }
+        findTextRegions?.Invoke(findDetections);
     }
 
     private void OnDestroy()
     {
         worker?.Dispose();
-
-        if (pendingBatch != null)
-        {
-            DisposeTensorBatch(pendingBatch);
-            pendingBatch = null;
-        }
-
-        if (detectionTensorBatch != null)
-        {
-            DisposeTensorBatch(detectionTensorBatch);
-            detectionTensorBatch.Clear();
-        }
     }
 }

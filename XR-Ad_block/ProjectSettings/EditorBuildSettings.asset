@@ -23,8 +23,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/mvp 1.5 + ui.unity
     guid: ec1676edd082d4de3838c7a7134a6cc2
-    path: Assets/Scenes/TrackingManager_test.unity
-    guid: 45ad35bd8845f4bbca32f9986243c779
   - enabled: 1
     path: Assets/Scenes/TildaTrackingManager.unity
     guid: 9988f6661018f4dcaa74e26465ac08b6

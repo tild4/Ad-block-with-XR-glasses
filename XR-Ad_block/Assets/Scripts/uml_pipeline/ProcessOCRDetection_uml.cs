@@ -80,16 +80,9 @@ public class ProcessOCRDetection_uml : MonoBehaviour
     private RenderTexture convertRenderTexture;
     private RenderTexture croppedROI;
     private CommandBuffer commandBuffer;
-
-    // New incoming work waits here until the queue coroutine picks it up.
-    private List<YoloRoiTensor> pendingBatch;
-
     private bool isProcessing = false;
 
-    // Each entry is 1 ad including all text tensors inside of it
-    private readonly List<FrameRoiBatch> processedRoiBatch = new List<FrameRoiBatch>();
-
-    public event Action<List<FrameRoiBatch>> sendCroppedROIText;
+    public event Action<TextTensorsPerAd> sendCroppedROIText;
 
     private void Awake()
     {
@@ -137,7 +130,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
     {
         if (textDetectionInference != null)
         {
-            textDetectionInference.decodeDetectionTensors += HandleNewDetectionBatch;
+            textDetectionInference.findTextRegions += HandleNewTrackedObject;
         }
     }
 
@@ -145,7 +138,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
     {
         if (textDetectionInference != null)
         {
-            textDetectionInference.decodeDetectionTensors -= HandleNewDetectionBatch;
+            textDetectionInference.findTextRegions -= HandleNewTrackedObject;
         }
     }
 
@@ -157,37 +150,19 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         2. Keep only the newest pending batch.
         3. Start processing if needed.
     */
-    private void HandleNewDetectionBatch(List<YoloRoiTensor> detections)
+    private void HandleNewTrackedObject(DetectionsPerAd advertisment)
     {
-        if (detections == null || detections.Count == 0)
+        if (advertisment.trackedObject == null || advertisment.findTextTensor == null)
         {
             return;
         }
 
-        // Create safe copy
-        List<YoloRoiTensor> latestBatch = new List<YoloRoiTensor>(detections);
-        ReplacePendingBatch(latestBatch);
-
         if (!isProcessing)
         {
-            StartCoroutine(ProcessQueue());
+            StartCoroutine(ProcessDPA(advertisment));
         }
     }
 
-    /*
-    If pending batch is not null -> it is old -> should be replaced
-    Dispose tensors safely from the batch
-    Replace pending batch with this one
-    */
-    private void ReplacePendingBatch(List<YoloRoiTensor> latestBatch)
-    {
-        if (pendingBatch != null)
-        {
-            DisposeTensorBatch(pendingBatch);
-        }
-
-        pendingBatch = latestBatch;
-    }
 
     /*
         Processes batches sequentially.
@@ -196,34 +171,12 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         - Finish the current batch.
         - Then process the newest pending batch, if one exists.
     */
-    private IEnumerator ProcessQueue()
+    private IEnumerator ProcessDPA(DetectionsPerAd advertisement)
     {
         // Prevents nested coroutines
         isProcessing = true;
 
-        // Loop is alive as long as there is work
-        while (pendingBatch != null)
-        {   
-            // Save latest batch
-            List<YoloRoiTensor> batch = pendingBatch;
-            pendingBatch = null;
-
-            processedRoiBatch.Clear();
-
-            foreach (var detection in batch)
-            {
-                yield return ProcessOneDetection(detection);
-                yield return null;
-            }
-
-            if (processedRoiBatch.Count > 0)
-            {
-                // Safe copy
-                var sendBatch = new List<FrameRoiBatch>(processedRoiBatch);
-                sendCroppedROIText?.Invoke(sendBatch);
-                processedRoiBatch.Clear();
-            }
-        }
+        yield return ProcessDetectionOCR(advertisement);
 
         isProcessing = false;
     }
@@ -238,11 +191,12 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         4. Crop each text ROI and convert it to a recognition tensor.
         5. Store the frame batch for recognition.
     */
-    private IEnumerator ProcessOneDetection(YoloRoiTensor detection)
+    private IEnumerator ProcessDetectionOCR(DetectionsPerAd advertisement)
     {
-        Tensor<float> tensor = detection.Tensor;
-        FrameData frame = detection.Frame;
-        Rect parentYoloBounds = detection.Bounds;
+        Tensor<float> tensor = advertisement.findTextTensor;
+        Rect parentYoloBounds = advertisement.trackedObject.lastDetection.bboxNormalized;
+        Texture parentTexture = advertisement.trackedObject.lastDetection.frame.currentTexture;
+
 
         if (tensor == null)
         {
@@ -253,8 +207,8 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         From "heat map" tensor:
         1. Build text region bounding boxes
         2. Save all boundning boxes
-
         */
+
         PipelineProfiler.begin("OCR ProcessBFS");
         yield return BuildMaskFromTensor(tensor);
 
@@ -265,10 +219,11 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         tensor.Dispose();
         
         // Takes the list of bounds and crops the text regions
-        List<CroppedTextRoi> croppedRois = BuildCroppedRecognitionRois(boundingBoxes, frame, parentYoloBounds);
+        List<TextTensor> croppedRois = BuildCroppedRecognitionRois(boundingBoxes, parentYoloBounds, parentTexture);
 
-        // Sends text tensor + relative bounds with frame
-        processedRoiBatch.Add(new FrameRoiBatch(croppedRois, frame));
+        TextTensorsPerAd advertisementWithTensors = new TextTensorsPerAd(advertisement.trackedObject, croppedRois);
+        sendCroppedROIText?.Invoke(advertisementWithTensors);
+
     }
 
     private IEnumerator BuildMaskFromTensor(Tensor<float> tensor)
@@ -293,13 +248,10 @@ public class ProcessOCRDetection_uml : MonoBehaviour
     Therefore the coordinates need to be converted to be relative
     to the full frame
     */
-    private List<CroppedTextRoi> BuildCroppedRecognitionRois(
-        List<Rect> boundingBoxes,
-        FrameData frame,
-        Rect parentYoloBounds
-    )
+    private List<TextTensor> BuildCroppedRecognitionRois(List<Rect> boundingBoxes, Rect parentYoloBounds, Texture parentTexture)
     {
-        List<CroppedTextRoi> croppedRois = new List<CroppedTextRoi>();
+
+        List<TextTensor> croppedRois = new List<TextTensor>();
 
         /*
         For each detected text region in the ad:
@@ -312,6 +264,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
 
         foreach (Rect bounds in boundingBoxes)
         {
+
             Rect normalizedLocal = new Rect(
                 bounds.x / MaskSize,
                 bounds.y / MaskSize,
@@ -321,7 +274,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
 
             Rect normalizedFullFrame = ConvertLocalToFullFrameBounds(normalizedLocal, parentYoloBounds);
 
-            if (!TextureCropper.CropBoundingBox(normalizedFullFrame, frame.currentTexture, croppedROI, cropMaterial))
+            if (!TextureCropper.CropBoundingBox(normalizedFullFrame, parentTexture, croppedROI, cropMaterial))
             {
                 continue;
             }
@@ -333,7 +286,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
             ===================================================================
             */
 
-            // CONVERT WITH ASPECT PAD HER
+            // CONVERT WITH ASPECT PAD HERE
             Tensor<float> roiTensor = ConvertToTensor.convert(
                 croppedROI,
                 convertRenderTexture,
@@ -344,7 +297,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
 
             if (roiTensor != null)
             {
-                croppedRois.Add(new CroppedTextRoi(roiTensor, normalizedFullFrame));
+                croppedRois.Add(new TextTensor(roiTensor, normalizedFullFrame));
             }
         }
 
@@ -474,24 +427,6 @@ public class ProcessOCRDetection_uml : MonoBehaviour
 
     private void OnDestroy()
     {
-        foreach (var frameBatch in processedRoiBatch)
-        {
-            List<CroppedTextRoi> roiEntries = frameBatch.Rois;
-
-            if (roiEntries == null)
-            {
-                continue;
-            }
-
-            foreach (var roiEntry in roiEntries)
-            {
-                roiEntry.Tensor?.Dispose();
-            }
-
-            roiEntries.Clear();
-        }
-
-        processedRoiBatch.Clear();
 
         if (commandBuffer != null)
         {
@@ -512,13 +447,6 @@ public class ProcessOCRDetection_uml : MonoBehaviour
             Destroy(croppedROI);
             croppedROI = null;
         }
-
-        if (pendingBatch != null)
-        {
-            DisposeTensorBatch(pendingBatch);
-            pendingBatch = null;
-        }
-
         /*
         ============================== UI ==============================
         if (debugPreviewRT != null)
