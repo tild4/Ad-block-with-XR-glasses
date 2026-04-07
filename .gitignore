@@ -41,6 +41,11 @@ XR-Ad_block/.vscode/
 XR-Ad_block/.idea/
 !XR-Ad_block/.config/
 !XR-Ad_block/.config/dotnet-tools.json
+
+*.ninja_log
+*.ninja_deps
+*.cmake
+CMakeCache.txt
 # =====================================================
 # AI-core (Python / ML)
 # =====================================================
