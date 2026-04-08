@@ -34,6 +34,9 @@ public class ProcessOCRDetection_uml : MonoBehaviour
     private const int MinBoxHeight = 10;
     private const int PaddingX = 4;
     private const int PaddingY = 2;
+    private const float MergeVerticalOverlap = 0.5f;
+    private const float MergeHorizontalGapFactor = 2.0f;
+    private const float MaxMergedAspectRatio = 6.0f;
 
     /*
     ============================== UI ==============================
@@ -207,7 +210,10 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         PipelineProfiler.end("OCR ProcessBFS");
 
         tensor.Dispose();
-        
+
+        // Merge nearby boxes on the same text line into full words/sentences
+        boundingBoxes = MergeBoxesOnSameLine(boundingBoxes);
+
         // Takes the list of bounds and crops the text regions
         List<TextTensor> croppedRois = BuildCroppedRecognitionRois(boundingBoxes, parentYoloBounds, parentTexture);
 
@@ -310,6 +316,84 @@ public class ProcessOCRDetection_uml : MonoBehaviour
             normalizedLocal.width * parentYoloBounds.width,
             normalizedLocal.height * parentYoloBounds.height
         );
+    }
+
+    /*
+        Merges bounding boxes that sit on the same horizontal text line.
+        Two boxes merge when they overlap vertically by at least
+        MergeVerticalOverlap of the shorter box AND the horizontal
+        gap between them is less than MergeHorizontalGapFactor × average height.
+        Repeats until no more merges occur.
+    */
+    private List<Rect> MergeBoxesOnSameLine(List<Rect> boxes)
+    {
+        if (boxes == null || boxes.Count <= 1)
+        {
+            return boxes;
+        }
+
+        bool merged = true;
+        while (merged)
+        {
+            merged = false;
+            for (int i = 0; i < boxes.Count; i++)
+            {
+                for (int j = i + 1; j < boxes.Count; j++)
+                {
+                    if (!ShouldMerge(boxes[i], boxes[j]))
+                    {
+                        continue;
+                    }
+
+                    // Union of both boxes
+                    float minX = Mathf.Min(boxes[i].xMin, boxes[j].xMin);
+                    float minY = Mathf.Min(boxes[i].yMin, boxes[j].yMin);
+                    float maxX = Mathf.Max(boxes[i].xMax, boxes[j].xMax);
+                    float maxY = Mathf.Max(boxes[i].yMax, boxes[j].yMax);
+
+                    float unionWidth = maxX - minX;
+                    float unionHeight = maxY - minY;
+
+                    // Skip merge if result would be too wide for recognition
+                    if (unionHeight > 0 && unionWidth / unionHeight > MaxMergedAspectRatio)
+                    {
+                        continue;
+                    }
+
+                    boxes[i] = new Rect(minX, minY, unionWidth, unionHeight);
+                    boxes.RemoveAt(j);
+                    merged = true;
+                    j--;
+                }
+            }
+        }
+
+        return boxes;
+    }
+
+    private bool ShouldMerge(Rect a, Rect b)
+    {
+        // Vertical overlap check
+        float overlapTop = Mathf.Max(a.yMin, b.yMin);
+        float overlapBottom = Mathf.Min(a.yMax, b.yMax);
+        float overlapHeight = overlapBottom - overlapTop;
+
+        if (overlapHeight <= 0)
+        {
+            return false;
+        }
+
+        float shorterHeight = Mathf.Min(a.height, b.height);
+        if (overlapHeight / shorterHeight < MergeVerticalOverlap)
+        {
+            return false;
+        }
+
+        // Horizontal gap check
+        float gap = Mathf.Max(0, Mathf.Max(a.xMin - b.xMax, b.xMin - a.xMax));
+        float avgHeight = (a.height + b.height) * 0.5f;
+
+        return gap < avgHeight * MergeHorizontalGapFactor;
     }
 
     /*
