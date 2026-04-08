@@ -9,7 +9,7 @@
     CURRENT FLOW:
     SentisInferenceManager -> THIS -> TextDetectionInference
 
-    NOTE: 
+    NOTE:
     Emitted tensor is the cropped ROI of the ad
 */
 
@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
+
 public class YOLOPostProcessor : MonoBehaviour
 {
     [Header("Dependencies")]
@@ -35,7 +36,6 @@ public class YOLOPostProcessor : MonoBehaviour
     private Material cropMaterial;
 
     [Header("Post-Processing Settings")]
-
     [SerializeField, Range(0f, 1f)]
     private float iouThreshold = 0.4f;
 
@@ -169,14 +169,13 @@ public class YOLOPostProcessor : MonoBehaviour
         return detectionDataList;
     }
 
-
-        /*
-        For each detected ad in the batch:
-        1. Clamp Yolo bounds for safety
-        2. Crop the region in the original frame using Yolo bounds
-        3. Convert the cropped ROI to a tensor
-        4. Add it to sending batch
-        */
+    /*
+    For each detected ad in the batch:
+    1. Clamp Yolo bounds for safety
+    2. Crop the region in the original frame using Yolo bounds
+    3. Convert the cropped ROI to a tensor
+    4. Add it to sending batch
+    */
 
     private void BuildProcessedDetectionBatch(List<DetectionData> nmsResults)
     {
@@ -191,7 +190,6 @@ public class YOLOPostProcessor : MonoBehaviour
             {
                 continue;
             }
-
 
             if (!TextureCropper.CropBoundingBox(bbox, texture, croppedROI, cropMaterial))
             {

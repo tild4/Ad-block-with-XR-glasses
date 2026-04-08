@@ -26,6 +26,7 @@ using System.Diagnostics;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
+
 public class ProcessOCRDetection_uml : MonoBehaviour
 {
     private const int MaskSize = 640;
@@ -74,7 +75,6 @@ public class ProcessOCRDetection_uml : MonoBehaviour
     [SerializeField]
     private int cropTargetWidth = 512;
     */
-    
 
     [SerializeField]
     private Material cropMaterial;
@@ -156,7 +156,6 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         }
     }
 
-
     /*
         Processes batches sequentially.
 
@@ -190,7 +189,6 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         Rect parentYoloBounds = advertisement.trackedObject.lastDetection.bboxNormalized;
         Texture parentTexture = advertisement.trackedObject.lastDetection.frame.currentTexture;
 
-
         if (tensor == null)
         {
             yield break;
@@ -203,6 +201,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         */
 
         PipelineProfiler.begin("OCR ProcessBFS");
+        Debug.Log($"[OCR] findTextTensor shape: {tensor.shape}");
         yield return BuildMaskFromTensor(tensor);
 
         List<Rect> boundingBoxes = null;
@@ -215,11 +214,17 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         boundingBoxes = MergeBoxesOnSameLine(boundingBoxes);
 
         // Takes the list of bounds and crops the text regions
-        List<TextTensor> croppedRois = BuildCroppedRecognitionRois(boundingBoxes, parentYoloBounds, parentTexture);
+        List<TextTensor> croppedRois = BuildCroppedRecognitionRois(
+            boundingBoxes,
+            parentYoloBounds,
+            parentTexture
+        );
 
-        TextTensorsPerAd advertisementWithTensors = new TextTensorsPerAd(advertisement.trackedObject, croppedRois);
+        TextTensorsPerAd advertisementWithTensors = new TextTensorsPerAd(
+            advertisement.trackedObject,
+            croppedRois
+        );
         sendCroppedROIText?.Invoke(advertisementWithTensors);
-
     }
 
     private IEnumerator BuildMaskFromTensor(Tensor<float> tensor)
@@ -242,14 +247,17 @@ public class ProcessOCRDetection_uml : MonoBehaviour
     }
 
     /*
-    NOTE : 
+    NOTE :
     These bounding boxes are relative to the ad region from YOLO
     Therefore the coordinates need to be converted to be relative
     to the full frame
     */
-    private List<TextTensor> BuildCroppedRecognitionRois(List<Rect> boundingBoxes, Rect parentYoloBounds, Texture parentTexture)
+    private List<TextTensor> BuildCroppedRecognitionRois(
+        List<Rect> boundingBoxes,
+        Rect parentYoloBounds,
+        Texture parentTexture
+    )
     {
-
         List<TextTensor> croppedRois = new List<TextTensor>();
 
         /*
@@ -263,7 +271,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
 
         foreach (Rect bounds in boundingBoxes)
         {
-
+            Debug.Log($"[OCR CropSize] Crop size: {bounds.width}x{bounds.height} pixels");
             Rect normalizedLocal = new Rect(
                 bounds.x / MaskSize,
                 bounds.y / MaskSize,
@@ -271,7 +279,10 @@ public class ProcessOCRDetection_uml : MonoBehaviour
                 bounds.height / MaskSize
             );
 
-            Rect normalizedFullFrame = ConvertLocalToFullFrameBounds(normalizedLocal, parentYoloBounds);
+            Rect normalizedFullFrame = ConvertLocalToFullFrameBounds(
+                normalizedLocal,
+                parentYoloBounds
+            );
 
             // Crop at natural resolution to preserve aspect ratio
             int cropW = Mathf.Max(1, Mathf.RoundToInt(normalizedFullFrame.width * parentTexture.width));
@@ -308,6 +319,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
             }
         }
 
+        Debug.Log($"[OCR Crop] Successfully cropped {croppedRois.Count} word regions from the ad.");
         return croppedRois;
     }
 
@@ -456,10 +468,14 @@ public class ProcessOCRDetection_uml : MonoBehaviour
                         visited[ny, nx] = true;
                         queue.Enqueue(new Vector2Int(nx, ny));
 
-                        if (nx < minX) minX = nx;
-                        if (nx > maxX) maxX = nx;
-                        if (ny < minY) minY = ny;
-                        if (ny > maxY) maxY = ny;
+                        if (nx < minX)
+                            minX = nx;
+                        if (nx > maxX)
+                            maxX = nx;
+                        if (ny < minY)
+                            minY = ny;
+                        if (ny > maxY)
+                            maxY = ny;
                     }
 
                     if (sw.ElapsedMilliseconds >= FrameBudgetMs)
@@ -479,12 +495,14 @@ public class ProcessOCRDetection_uml : MonoBehaviour
                     int paddedMaxX = Mathf.Min(w - 1, maxX + PaddingX);
                     int paddedMaxY = Mathf.Min(h - 1, maxY + PaddingY);
 
-                    boxes.Add(new Rect(
-                        paddedMinX,
-                        paddedMinY,
-                        paddedMaxX - paddedMinX + 1,
-                        paddedMaxY - paddedMinY + 1
-                    ));
+                    boxes.Add(
+                        new Rect(
+                            paddedMinX,
+                            paddedMinY,
+                            paddedMaxX - paddedMinX + 1,
+                            paddedMaxY - paddedMinY + 1
+                        )
+                    );
                 }
             }
 
@@ -498,22 +516,8 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         onComplete?.Invoke(boxes);
     }
 
-    private void DisposeTensorBatch(List<YoloRoiTensor> batch)
-    {
-        if (batch == null)
-        {
-            return;
-        }
-
-        foreach (var item in batch)
-        {
-            item.Tensor?.Dispose();
-        }
-    }
-
     private void OnDestroy()
     {
-
         if (commandBuffer != null)
         {
             commandBuffer.Release();

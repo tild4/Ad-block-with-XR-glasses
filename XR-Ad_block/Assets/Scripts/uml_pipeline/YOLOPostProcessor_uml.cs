@@ -9,7 +9,7 @@
     CURRENT FLOW:
     SentisInferenceManager -> THIS -> TextDetectionInference
 
-    NOTE: 
+    NOTE:
     Emitted tensor is the cropped ROI of the ad
 */
 
@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
+
 public class YOLOPostProcessor_uml : MonoBehaviour
 {
     [Header("Dependencies")]
@@ -35,18 +36,24 @@ public class YOLOPostProcessor_uml : MonoBehaviour
     private Material cropMaterial;
 
     [Header("Post-Processing Settings")]
+    [SerializeField, Range(0f, 1f)]
+    private float confidenceThreshold = 0.5f;
 
     [SerializeField, Range(0f, 1f)]
     private float iouThreshold = 0.4f;
 
+    [Header("OCR Tensor Settings")]
     [SerializeField]
     private int tensorTargetHeight = 640;
 
     [SerializeField]
     private int tensorTargetWidth = 640;
 
-    // Each entry is a tensor of 1 ad
-    private readonly List<DetectionData> processedDetections = new List<DetectionData>();
+    // List of processed detections
+    private List<DetectionData> processedDetections = new List<DetectionData>();
+
+    // Reusable buffer to avoid per-frame allocations when building detection list
+    private List<DetectionData> detectionDataBuffer;
 
     // Reused GPU resources for crop + tensor conversion.
     private RenderTexture croppedROI;
@@ -82,6 +89,8 @@ public class YOLOPostProcessor_uml : MonoBehaviour
         croppedROI.Create();
 
         commandBuffer = new CommandBuffer();
+        processedDetections = new List<DetectionData>();
+        detectionDataBuffer = new List<DetectionData>();
 
         /*
         ============================== UI ==============================
@@ -130,6 +139,7 @@ public class YOLOPostProcessor_uml : MonoBehaviour
 
         if (rawDetections == null || rawDetections.Count == 0)
         {
+            onProcessedDetections?.Invoke(processedDetections);
             return;
         }
 
@@ -141,12 +151,7 @@ public class YOLOPostProcessor_uml : MonoBehaviour
             $"Post-processed {rawDetections.Count} raw detections → {processedDetectionData.Count} final detections"
         );
 
-        if (processedDetectionData.Count == 0)
-        {
-            return;
-        }
-
-        // Keep current downstream logic the same
+        // Send a copy of the DetectionData list (with RoiTensor set)
         var sendDetections = new List<DetectionData>(processedDetections);
         onProcessedDetections?.Invoke(sendDetections);
     }
@@ -155,32 +160,34 @@ public class YOLOPostProcessor_uml : MonoBehaviour
         List<(Rect boundingBox, float confidence, FrameData frame)> rawDetections
     )
     {
-        List<DetectionData> detectionDataList = new List<DetectionData>();
+        detectionDataBuffer.Clear();
 
         foreach (var (bbox, conf, frame) in rawDetections)
         {
+            if (conf < confidenceThreshold)
+                continue;
             DetectionData data = new DetectionData
             {
                 bboxNormalized = bbox,
+                bboxMinMaxNormalized = new Vector4(bbox.xMin, bbox.yMin, bbox.xMax, bbox.yMax),
                 bboxPixels = ConvertToPixelCoordinates(bbox, frame.currentResolution),
                 confidence = conf,
                 frame = frame,
             };
 
-            detectionDataList.Add(data);
+            detectionDataBuffer.Add(data);
         }
 
-        return detectionDataList;
+        return detectionDataBuffer;
     }
 
-
-        /*
-        For each detected ad in the batch:
-        1. Clamp Yolo bounds for safety
-        2. Crop the region in the original frame using Yolo bounds
-        3. Convert the cropped ROI to a tensor
-        4. Add it to sending batch
-        */
+    /*
+    For each detected ad in the batch:
+    1. Clamp Yolo bounds for safety
+    2. Crop the region in the original frame using Yolo bounds
+    3. Convert the cropped ROI to a tensor
+    4. Add it to sending batch
+    */
 
 private List<DetectionData> BuildProcessedDetectionBatch(
     List<(Rect boundingBox, float confidence, FrameData frame)> nmsResults
@@ -190,42 +197,48 @@ private List<DetectionData> BuildProcessedDetectionBatch(
 
     foreach (var (rawBbox, confidence, frame) in nmsResults)
     {
-        Rect bbox = ClampNormalizedRect(rawBbox);
-        Texture texture = frame.currentTexture;
+        Debug.Log("Number of items to be processed : " + nmsResults.Count);
 
-        if (bbox.width <= 0f || bbox.height <= 0f)
+        for (int i = 0; i < nmsResults.Count; i++)
         {
-            continue;
-        }
+            // Work on a copy (struct), then assign tensor and add to processedDetections
+            var result = nmsResults[i];
+
+            Rect bbox = ClampNormalizedRect(result.bboxNormalized);
+            Texture texture = result.frame.currentTexture;
+            FrameData frame = result.frame;
 
         if (texture == null)
         {
             continue;
         }
 
-        if (!TextureCropper.CropBoundingBox(bbox, texture, croppedROI, cropMaterial))
-        {
-            continue;
-        }
+            if (!TextureCropper.CropBoundingBox(bbox, texture, croppedROI, cropMaterial))
+            {
+                continue;
+            }
 
-        /*
-        ============================== DELETE ==============================
-        Graphics.Blit(croppedROI, debugPreviewRT);
-        viewCroppedImage.Show(debugPreviewRT);
-        ===================================================================
-        */
+            PipelineProfiler.set("TensorContext", "YOLOPost");
+            Tensor<float> roiTensor = ConvertToTensor.convert(
+                croppedROI,
+                convertRenderTexture,
+                tensorTargetHeight,
+                tensorTargetWidth,
+                commandBuffer
+            );
 
-        Tensor<float> roiTensor = ConvertToTensor.convert(
-            croppedROI,
-            convertRenderTexture,
-            tensorTargetHeight,
-            tensorTargetWidth,
-            commandBuffer
-        );
-
-        if (roiTensor == null)
-        {
-            continue;
+            if (roiTensor != null)
+            {
+                result.RoiTensor = roiTensor;
+                // update min/max normalized in case ClampNormalizedRect adjusted values
+                result.bboxMinMaxNormalized = new Vector4(
+                    bbox.xMin,
+                    bbox.yMin,
+                    bbox.xMax,
+                    bbox.yMax
+                );
+                processedDetections.Add(result);
+            }
         }
 
         DetectionData data = new DetectionData
@@ -307,16 +320,8 @@ private List<(Rect boundingBox, float confidence, FrameData frame)> ApplyNMS(
         float yOverlap = Mathf.Max(0, Mathf.Min(a.yMax, b.yMax) - Mathf.Max(a.yMin, b.yMin));
         float intersectionArea = xOverlap * yOverlap;
 
-        float aArea = a.width * a.height;
-        float bArea = b.width * b.height;
-        float unionArea = aArea + bArea - intersectionArea;
-
-        if (unionArea == 0)
-        {
-            return 0f;
-        }
-
-        return intersectionArea / unionArea;
+        float unionArea = (a.width * a.height) + (b.width * b.height) - intersectionArea;
+        return unionArea == 0 ? 0f : intersectionArea / unionArea;
     }
 
     private Rect ConvertToPixelCoordinates(Rect normalized, Vector2Int resolution)
@@ -359,6 +364,16 @@ private List<(Rect boundingBox, float confidence, FrameData frame)> ApplyNMS(
 
     private void OnDestroy()
     {
+        if (processedDetections != null)
+        {
+            foreach (var item in processedDetections)
+            {
+                item.RoiTensor?.Dispose();
+            }
+
+            processedDetections.Clear();
+        }
+
         if (commandBuffer != null)
         {
             commandBuffer.Release();

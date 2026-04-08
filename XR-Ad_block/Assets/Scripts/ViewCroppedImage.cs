@@ -1,12 +1,14 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 public class ViewCroppedImage : MonoBehaviour
 {
-    [SerializeField] private RawImage debugImage;
+    [SerializeField]
+    private RawImage debugImage;
 
-    [SerializeField] private TextMeshProUGUI wordText;
+    [SerializeField]
+    private TextMeshProUGUI wordText;
 
     public void Show(Texture texture)
     {

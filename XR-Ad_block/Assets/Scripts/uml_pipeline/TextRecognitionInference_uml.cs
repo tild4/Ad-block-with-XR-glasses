@@ -17,7 +17,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.AppUI.UI;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -55,7 +54,7 @@ public class TextRecognitionInference_uml : MonoBehaviour
     [SerializeField]
     private int previewCropWidth = 512;
     */
-    
+
     [SerializeField]
     private Material cropMaterial;
 
@@ -103,7 +102,6 @@ public class TextRecognitionInference_uml : MonoBehaviour
         );
         croppedROI.Create();
         */
-
     }
 
     private void OnEnable()
@@ -149,15 +147,14 @@ public class TextRecognitionInference_uml : MonoBehaviour
         isProcessing = true;
 
         List<string> texts = new List<string>();
-        
+
         // For every list of text regions per detected ad
         foreach (var textROI in advertisement.textRegions)
         {
-                if (textROI.textRegion != null)
-                {
-                    yield return RunInference(textROI, texts);
-                }
-            
+            if (textROI.textRegion != null)
+            {
+                yield return RunInference(textROI, texts);
+            }
         }
 
         TextsPerAd adWithTexts = new TextsPerAd(advertisement.trackedObject, texts);
@@ -214,7 +211,7 @@ public class TextRecognitionInference_uml : MonoBehaviour
         PipelineProfiler.end("Text decoder");
 
         outputTensor.Dispose();
-        Debug.Log($"Detected word is: {output}");
+        Debug.Log($"[RECOGNITION] Object {textROI} recognized word: '{output}'");
 
         texts.Add(output);
         /*

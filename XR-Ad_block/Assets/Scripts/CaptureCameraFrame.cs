@@ -66,7 +66,7 @@ public class CaptureCameraFrame : MonoBehaviour
         //PassthroughCameraAccess.CameraIntrinsics intrinsics = cameraAccess.Intrinsics; *vet ej om detta behövs*
 
         // Contruct frame
-        PipelineProfiler.begin("Capture");
+        PipelineProfiler.begin("1. Capture Camera Data");
 
         FrameData frame = new FrameData
         {
@@ -77,7 +77,9 @@ public class CaptureCameraFrame : MonoBehaviour
             currentTimestamp = cameraAccess.Timestamp,
         };
 
-        PipelineProfiler.end("Capture");
+        PipelineProfiler.set("Cam Res", $"{frame.currentResolution.x}x{frame.currentResolution.y}");
+
+        PipelineProfiler.end("1. Capture Camera Data");
 
         // Invokes event -> new frame ready to be utilized
 

@@ -21,6 +21,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.InferenceEngine;
 using UnityEngine;
+
 public class TextDetectionInference : MonoBehaviour
 {
     [SerializeField]
@@ -107,7 +108,7 @@ public class TextDetectionInference : MonoBehaviour
     For each YoloRoiTensor in the recieved batch:
     1. Iterate through tensors to check if null
     2. Add non-null tensors to new batch
-    */ 
+    */
     private List<YoloRoiTensor> FilterValidDetections(List<YoloRoiTensor> detectionBatch)
     {
         List<YoloRoiTensor> batch = new List<YoloRoiTensor>();
