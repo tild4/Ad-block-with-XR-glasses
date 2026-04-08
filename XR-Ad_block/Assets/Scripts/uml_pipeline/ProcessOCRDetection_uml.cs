@@ -22,14 +22,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
 public class ProcessOCRDetection_uml : MonoBehaviour
 {
     private const int MaskSize = 640;
-    private const int MaskYieldStride = 32;
-    private const int BfsYieldStride = 5000;
+    private const long FrameBudgetMs = 3;
     private const int MinBoxWidth = 10;
     private const int MinBoxHeight = 10;
     private const int PaddingX = 4;
@@ -224,6 +224,8 @@ public class ProcessOCRDetection_uml : MonoBehaviour
 
     private IEnumerator BuildMaskFromTensor(Tensor<float> tensor)
     {
+        var sw = Stopwatch.StartNew();
+
         for (int y = 0; y < MaskSize; y++)
         {
             for (int x = 0; x < MaskSize; x++)
@@ -231,9 +233,10 @@ public class ProcessOCRDetection_uml : MonoBehaviour
                 mask[y, x] = tensor[0, 0, y, x] > maskThreshold;
             }
 
-            if (y % MaskYieldStride == 0)
+            if (sw.ElapsedMilliseconds >= FrameBudgetMs)
             {
-                yield return null; // tror detta kan skapa lång latens eftersom ~20 yield-points = 20 Unity-frames = 200ms vid 100fps (och ännu längre ifall lägre fps) bara för att bygga masken
+                yield return null;
+                sw.Restart();
             }
         }
     }
@@ -400,7 +403,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         Connected-component search over the threshold mask.
         Yields periodically so one large mask does not block the main thread.
     */
-    private IEnumerator FindTextBoxesCoroutine(bool[,] inputMask, Action<List<Rect>> onComplete) // för att undvika splittrade ord behövs nog en kontroll av boxar som ligger på samma Y-nivå
+    private IEnumerator FindTextBoxesCoroutine(bool[,] inputMask, Action<List<Rect>> onComplete) 
     {
         int h = inputMask.GetLength(0);
         int w = inputMask.GetLength(1);
@@ -411,7 +414,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         int[] dx = { -1, 0, 1, -1, 1, -1, 0, 1 };
         int[] dy = { -1, -1, -1, 0, 0, 1, 1, 1 };
 
-        int workCounter = 0;
+        var sw = Stopwatch.StartNew();
 
         for (int y = 0; y < h; y++)
         {
@@ -434,7 +437,6 @@ public class ProcessOCRDetection_uml : MonoBehaviour
                 while (queue.Count > 0)
                 {
                     Vector2Int p = queue.Dequeue();
-                    workCounter++;
 
                     for (int i = 0; i < 8; i++)
                     {
@@ -460,9 +462,10 @@ public class ProcessOCRDetection_uml : MonoBehaviour
                         if (ny > maxY) maxY = ny;
                     }
 
-                    if (workCounter % BfsYieldStride == 0)
+                    if (sw.ElapsedMilliseconds >= FrameBudgetMs)
                     {
                         yield return null;
+                        sw.Restart();
                     }
                 }
 
@@ -485,9 +488,10 @@ public class ProcessOCRDetection_uml : MonoBehaviour
                 }
             }
 
-            if (y % MaskYieldStride == 0)
+            if (sw.ElapsedMilliseconds >= FrameBudgetMs)
             {
                 yield return null;
+                sw.Restart();
             }
         }
 
