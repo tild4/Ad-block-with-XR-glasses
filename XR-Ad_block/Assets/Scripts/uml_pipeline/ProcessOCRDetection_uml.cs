@@ -78,7 +78,6 @@ public class ProcessOCRDetection_uml : MonoBehaviour
 
     // Reusable GPU resources
     private RenderTexture convertRenderTexture;
-    private RenderTexture croppedROI;
     private CommandBuffer commandBuffer;
     private bool isProcessing = false;
 
@@ -99,15 +98,6 @@ public class ProcessOCRDetection_uml : MonoBehaviour
             RenderTextureFormat.ARGB32
         );
 
-        // CHANGE MAYBE
-        croppedROI = new RenderTexture(
-            tensorTargetWidth, 
-            tensorTargetHeight, 
-            0,
-            RenderTextureFormat.ARGB32
-        );
-
-        croppedROI.Create();
         convertRenderTexture.Create();
 
         commandBuffer = new CommandBuffer();
@@ -237,7 +227,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
 
             if (y % MaskYieldStride == 0)
             {
-                yield return null;
+                yield return null; // tror detta kan skapa lång latens eftersom ~20 yield-points = 20 Unity-frames = 200ms vid 100fps (och ännu längre ifall lägre fps) bara för att bygga masken
             }
         }
     }
@@ -274,26 +264,34 @@ public class ProcessOCRDetection_uml : MonoBehaviour
 
             Rect normalizedFullFrame = ConvertLocalToFullFrameBounds(normalizedLocal, parentYoloBounds);
 
-            if (!TextureCropper.CropBoundingBox(normalizedFullFrame, parentTexture, croppedROI, cropMaterial))
+            // Crop at natural resolution to preserve aspect ratio
+            int cropW = Mathf.Max(1, Mathf.RoundToInt(normalizedFullFrame.width * parentTexture.width));
+            int cropH = Mathf.Max(1, Mathf.RoundToInt(normalizedFullFrame.height * parentTexture.height));
+            RenderTexture tempCrop = RenderTexture.GetTemporary(cropW, cropH, 0, RenderTextureFormat.ARGB32);
+
+            if (!TextureCropper.CropBoundingBox(normalizedFullFrame, parentTexture, tempCrop, cropMaterial))
             {
+                RenderTexture.ReleaseTemporary(tempCrop);
                 continue;
             }
 
             /*
             ============================== UI ==============================
-            Graphics.Blit(croppedROI, debugPreviewRT);
+            Graphics.Blit(tempCrop, debugPreviewRT);
             viewCroppedImage.Show(debugPreviewRT);
             ===================================================================
             */
 
-            // CONVERT WITH ASPECT PAD HERE
-            Tensor<float> roiTensor = ConvertToTensor.convert(
-                croppedROI,
+            // Scale uniformly into 48×320 with black padding to preserve aspect ratio
+            Tensor<float> roiTensor = ConvertToTensor.convertWithAspectPad(
+                tempCrop,
                 convertRenderTexture,
                 tensorTargetHeight,
                 tensorTargetWidth,
                 commandBuffer
             );
+
+            RenderTexture.ReleaseTemporary(tempCrop);
 
             if (roiTensor != null)
             {
@@ -318,7 +316,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
         Connected-component search over the threshold mask.
         Yields periodically so one large mask does not block the main thread.
     */
-    private IEnumerator FindTextBoxesCoroutine(bool[,] inputMask, Action<List<Rect>> onComplete)
+    private IEnumerator FindTextBoxesCoroutine(bool[,] inputMask, Action<List<Rect>> onComplete) // för att undvika splittrade ord behövs nog en kontroll av boxar som ligger på samma Y-nivå
     {
         int h = inputMask.GetLength(0);
         int w = inputMask.GetLength(1);
@@ -441,12 +439,6 @@ public class ProcessOCRDetection_uml : MonoBehaviour
             convertRenderTexture = null;
         }
 
-        if (croppedROI != null)
-        {
-            croppedROI.Release();
-            Destroy(croppedROI);
-            croppedROI = null;
-        }
         /*
         ============================== UI ==============================
         if (debugPreviewRT != null)
