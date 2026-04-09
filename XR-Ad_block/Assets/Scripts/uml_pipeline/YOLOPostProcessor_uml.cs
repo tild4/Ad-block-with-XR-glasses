@@ -143,12 +143,12 @@ public class YOLOPostProcessor_uml : MonoBehaviour
             return;
         }
 
-        List<(Rect boundingBox, float confidence, FrameData frame)> nmsResults = ApplyNMS(rawDetections);
-
-        List<DetectionData> processedDetectionData = BuildProcessedDetectionBatch(nmsResults);
+        List<DetectionData> detectionDataList = BuildDetectionDataList(rawDetections);
+        List<DetectionData> nmsResults = ApplyNMS(detectionDataList);
+        BuildProcessedDetectionBatch(nmsResults);
 
         Debug.Log(
-            $"Post-processed {rawDetections.Count} raw detections → {processedDetectionData.Count} final detections"
+            $"Post-processed {rawDetections.Count} raw detections → {processedDetections.Count} final detections"
         );
 
         // Send a copy of the DetectionData list (with RoiTensor set)
@@ -189,13 +189,7 @@ public class YOLOPostProcessor_uml : MonoBehaviour
     4. Add it to sending batch
     */
 
-private List<DetectionData> BuildProcessedDetectionBatch(
-    List<(Rect boundingBox, float confidence, FrameData frame)> nmsResults
-)
-{
-    List<DetectionData> processedDetectionData = new List<DetectionData>();
-
-    foreach (var (rawBbox, confidence, frame) in nmsResults)
+    private void BuildProcessedDetectionBatch(List<DetectionData> nmsResults)
     {
         Debug.Log("Number of items to be processed : " + nmsResults.Count);
 
@@ -208,10 +202,10 @@ private List<DetectionData> BuildProcessedDetectionBatch(
             Texture texture = result.frame.currentTexture;
             FrameData frame = result.frame;
 
-        if (texture == null)
-        {
-            continue;
-        }
+            if (bbox.width <= 0f || bbox.height <= 0f)
+            {
+                continue;
+            }
 
             if (!TextureCropper.CropBoundingBox(bbox, texture, croppedROI, cropMaterial))
             {
@@ -240,25 +234,7 @@ private List<DetectionData> BuildProcessedDetectionBatch(
                 processedDetections.Add(result);
             }
         }
-
-        DetectionData data = new DetectionData
-        {
-            bboxNormalized = bbox,
-            bboxMinMaxNormalized = new Vector4(bbox.xMin, bbox.yMin, bbox.xMax, bbox.yMax),
-            bboxPixels = ConvertToPixelCoordinates(bbox, frame.currentResolution),
-            confidence = confidence,
-            frame = frame,
-            RoiTensor = roiTensor,
-        };
-
-        processedDetectionData.Add(data);
-
-        // Keep current downstream event logic unchanged
-        processedDetections.Add(data);
     }
-
-    return processedDetectionData;
-}
 
     /*
         Non-Maximum Suppression (NMS):
@@ -266,53 +242,49 @@ private List<DetectionData> BuildProcessedDetectionBatch(
         - Keep the strongest box.
         - Suppress later boxes whose IOU exceeds the threshold.
     */
-private List<(Rect boundingBox, float confidence, FrameData frame)> ApplyNMS(
-    List<(Rect boundingBox, float confidence, FrameData frame)> detections
-)
-{
-    if (detections.Count == 0)
+    private List<DetectionData> ApplyNMS(List<DetectionData> detections)
     {
-        return new List<(Rect boundingBox, float confidence, FrameData frame)>();
-    }
-
-    detections.Sort((a, b) => b.confidence.CompareTo(a.confidence));
-
-    List<(Rect boundingBox, float confidence, FrameData frame)> results =
-        new List<(Rect boundingBox, float confidence, FrameData frame)>();
-
-    bool[] suppressed = new bool[detections.Count];
-
-    for (int i = 0; i < detections.Count; i++)
-    {
-        if (suppressed[i])
+        if (detections.Count == 0)
         {
-            continue;
+            return new List<DetectionData>();
         }
 
-        results.Add(detections[i]);
+        detections.Sort((a, b) => b.confidence.CompareTo(a.confidence));
 
-        for (int j = i + 1; j < detections.Count; j++)
+        List<DetectionData> results = new List<DetectionData>();
+        bool[] suppressed = new bool[detections.Count];
+
+        for (int i = 0; i < detections.Count; i++)
         {
-            if (suppressed[j])
+            if (suppressed[i])
             {
                 continue;
             }
 
-            float iou = CalculateIOU(
-                detections[i].boundingBox,
-                detections[j].boundingBox
-            );
+            results.Add(detections[i]);
 
-            if (iou > iouThreshold)
+            for (int j = i + 1; j < detections.Count; j++)
             {
-                suppressed[j] = true;
+                if (suppressed[j])
+                {
+                    continue;
+                }
+
+                float iou = CalculateIOU(
+                    detections[i].bboxNormalized,
+                    detections[j].bboxNormalized
+                );
+
+                if (iou > iouThreshold)
+                {
+                    suppressed[j] = true;
+                }
             }
         }
-    }
 
-    Debug.Log($"NMS: {detections.Count} detections → {results.Count} after suppression");
-    return results;
-}
+        Debug.Log($"NMS: {detections.Count} detections → {results.Count} after suppression");
+        return results;
+    }
 
     private float CalculateIOU(Rect a, Rect b)
     {
