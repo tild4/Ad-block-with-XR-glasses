@@ -36,6 +36,7 @@ public class DecisionManager : MonoBehaviour
     // Handle texts produced by TextRecognitionInference pipeline
     public void HandleTexts(TextsPerAd textsPerAd)
     {
+        Debug.Log($"[Decision] HandleTexts called for object {textsPerAd.trackedObject?.id}");
         if (textsPerAd.trackedObject == null)
             return;
 

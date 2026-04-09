@@ -241,7 +241,7 @@ public class TrackingManager_uml : MonoBehaviour
             timeToLive = timeToLive,
             isAnalyzed = false,
             text = string.Empty,
-            shouldBlock = true, // For testing we set it to true to trigger blocking immediately
+            shouldBlock = detection.confidence >= 0.8f
         };
 
         trackedObjects.Add(newObj);
@@ -372,6 +372,7 @@ public class TrackingManager_uml : MonoBehaviour
             );
 
             // Notify subscribers
+            Debug.Log($"[Tracking] Firing onTrackedObjectsUpdated, subscribers: {onTrackedObjectsUpdated?.GetInvocationList()?.Length ?? 0}"); // Pontus Debugging
             onTrackedObjectsUpdated?.Invoke(trackedObjects);
         }
         else

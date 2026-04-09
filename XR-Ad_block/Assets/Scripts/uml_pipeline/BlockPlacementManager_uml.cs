@@ -50,6 +50,8 @@ public class BlockPlacementManager_uml : MonoBehaviour
     */
     private void OnEnable()
     {
+        Debug.Log($"[Block] Subscribed to trackingManager: {trackingManager != null}");
+
         if (trackingManager != null)
         {
             trackingManager.onTrackedObjectsUpdated += SyncBlocksWithTracking;
@@ -196,6 +198,7 @@ public class BlockPlacementManager_uml : MonoBehaviour
     */
     private void PlaceOrUpdateBlock(TrackedObject obj)
     {
+        Debug.Log($"[Block] Attempting placement for object {obj.id}, shouldBlock={obj.shouldBlock}");
         // If the object should not be blocked but we have an active block, remove it
         if (!obj.shouldBlock && activeBlocks.ContainsKey(obj.id))
         {
