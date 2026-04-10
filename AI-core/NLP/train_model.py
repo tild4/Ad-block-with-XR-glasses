@@ -34,6 +34,14 @@ def encode_label(example):
     return example
 
 
+def tokenize(batch, tokenizer):
+    return tokenizer(                                                                                                                                        
+        batch["text"],                                                                                                                                     
+        truncation=True,                                                                                                                                   
+        max_length=64,                                                                                                                                       
+    )    
+
+
 def main():                                    
     # 1. Load dataset from jsonl                                                                                                                             
     print(f"Loading dataset from {TRAIN_FILE}")                                                                                                              
@@ -42,9 +50,22 @@ def main():
                                                                                                                                                             
     # 2. Convert string labels to integer ids                                                                                                                
     dataset = dataset.map(encode_label)                                                                                                                    
-    print(f"  After label encoding: {dataset[0]}")                                                                                                           
+    print(f"  After label encoding: {dataset[0]}")   
+
+    # 3. Load tokenizer                                                                                                                                      
+    print(f"Loading tokenizer: {MODEL_NAME}")                                                                                                              
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)                                                                                                    
                                                                                                                                                             
-                                                                                                                                                            
+    # 4. Tokenize the entire dataset                                                                                                                         
+    dataset = dataset.map(                                                                                                                                   
+        lambda batch: tokenize(batch, tokenizer),                                                                                                          
+        batched=True,                                                                                                                                        
+    )
+    print(f"  After tokenization: columns = {dataset.column_names}")                                                                                         
+    print(f"  Example 0 input_ids length: {len(dataset[0]['input_ids'])}")                                                                                                                                                                                                                                                    
+
+
+
 if __name__ == "__main__":
     main() 
 
