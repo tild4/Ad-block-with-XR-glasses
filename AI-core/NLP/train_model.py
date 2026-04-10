@@ -65,6 +65,14 @@ def main():
     print(f"  Example 0 input_ids length: {len(dataset[0]['input_ids'])}")                                                                                                                                                                                                                                                    
 
 
+    # 5. Load model with a classification head 
+    print(f"Loading model: {MODEL_NAME}")                                                                                                                    
+    model = AutoModelForSequenceClassification.from_pretrained(                                                                                              
+        MODEL_NAME,                                                                                                                                          
+        num_labels=len(LABELS),                                                                                                                              
+        label2id=label2id,                                                                                                                                   
+        id2label=id2label,                                                                                                                                 
+    ) 
 
 if __name__ == "__main__":
     main() 
