@@ -74,6 +74,42 @@ def main():
         id2label=id2label,                                                                                                                                 
     ) 
 
+    # 6. Training configuration
+    args = TrainingArguments(
+        output_dir = str(RESULTS_DIR),
+        num_train_epochs=3,
+        per_device_train_batch_size=16,
+        learning_rate=2e-5,
+        weight_decay=0.01,
+        logging_steps=10,
+        save_strategy="epoch",
+        save_total_limit=2,
+        report_to="none"
+    )
+
+    # 7. Data collator to handle dynamic padding                                                                          
+    data_collator = DataCollatorWithPadding(tokenizer=tokenizer)                                                                                         
+                                                                                                                                                        
+    # 8. Initialize the automatic Trainer class                                                                                         
+    trainer = Trainer(                                                                                                                                   
+        model=model,                                                                                                                                     
+        args=args,                                                                                                                                     
+        train_dataset=dataset,
+        tokenizer=tokenizer,
+        data_collator=data_collator,                                                                                                                     
+    )
+
+    # 9. Start training
+    print("Starting training...")                                                                                                                      
+    trainer.train()                                                                                                                                      
+    print("Training complete.") 
+
+    # 10. Save the fine-tuned model and tokenizer                                                                                  
+    print(f"Saving final model to {SAVED_MODEL_DIR}")                                                                                                    
+    trainer.save_model(str(SAVED_MODEL_DIR))                                                                                                             
+    print("Done.")  
+
+
 if __name__ == "__main__":
     main() 
 
