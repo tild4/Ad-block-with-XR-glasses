@@ -50,7 +50,7 @@ public class BlockPlacementManager_uml : MonoBehaviour
     */
     private void OnEnable()
     {
-        Debug.Log($"[Block] Subscribed to trackingManager: {trackingManager != null}");
+        Debug.Log($"[Block] Subscribed to trackingManager: {trackingManager != null}"); // Pontus Debugging
 
         if (trackingManager != null)
         {
@@ -198,93 +198,101 @@ public class BlockPlacementManager_uml : MonoBehaviour
     */
     private void PlaceOrUpdateBlock(TrackedObject obj)
     {
-        Debug.Log($"[Block] Attempting placement for object {obj.id}, shouldBlock={obj.shouldBlock}");
-        // If the object should not be blocked but we have an active block, remove it
-        if (!obj.shouldBlock && activeBlocks.ContainsKey(obj.id))
+        try
         {
-            RemoveBlock(obj.id);
-            return;
-        }
-
-        // If the object should not be blocked and we don't have an active block, do nothing
-        if (!obj.shouldBlock)
-        {
-            return;
-        }
-
-        if (Camera.main == null && (cameraAccess == null || !cameraAccess.enabled))
-        {
-            Debug.LogError("No camera available for ViewportPointToRay.");
-            return;
-        }
-
-        Rect yoloRect = obj.lastDetection.bboxNormalized;
-        Pose cameraPose = obj.lastDetection.frame.currentPose;
-        Rect viewportRect = ToViewportRect(yoloRect);
-
-        bool usingPassthroughRay =
-            cameraAccess != null && cameraAccess.enabled && cameraAccess.IsPlaying;
-        Vector3 referenceCameraPosition = usingPassthroughRay
-            ? cameraPose.position
-            : Camera.main.transform.position;
-
-        Ray ray;
-        if (usingPassthroughRay)
-        {
-            ray = cameraAccess.ViewportPointToRay(viewportRect.center, cameraPose);
-        }
-        else
-        {
-            ray = Camera.main.ViewportPointToRay(
-                new Vector3(viewportRect.center.x, viewportRect.center.y, 0f)
-            );
-        }
-
-        if (!TryRaycastEnvironment(ray, out EnvironmentRaycastHit hit))
-        {
-            if (logRaycastMisses)
+            Debug.Log($"[Block] Attempting placement for object {obj.id}, shouldBlock={obj.shouldBlock}");
+            // If the object should not be blocked but we have an active block, remove it
+            if (!obj.shouldBlock && activeBlocks.ContainsKey(obj.id))
             {
-                Debug.LogWarning($"Raycast failed for object {obj.id}");
+                RemoveBlock(obj.id);
+                return;
             }
-            return;
-        }
 
-        Vector3 position;
-        Quaternion rotation;
+            // If the object should not be blocked and we don't have an active block, do nothing
+            if (!obj.shouldBlock)
+            {
+                return;
+            }
 
-        if (
-            useCameraPlanePlacement
-            && TryComputeCameraPlanePlacement(
-                yoloRect,
-                cameraPose,
-                hit.point,
-                out position,
-                out rotation
+            if (Camera.main == null && (cameraAccess == null || !cameraAccess.enabled))
+            {
+                Debug.LogError("No camera available for ViewportPointToRay.");
+                return;
+            }
+
+            Rect yoloRect = obj.lastDetection.bboxNormalized;
+            Pose cameraPose = obj.lastDetection.frame.currentPose;
+            Rect viewportRect = ToViewportRect(yoloRect);
+            Debug.Log("About to raycast..."); // Pontus Debugging
+
+            bool usingPassthroughRay =
+                cameraAccess != null && cameraAccess.enabled && cameraAccess.IsPlaying;
+            Vector3 referenceCameraPosition = usingPassthroughRay
+                ? cameraPose.position
+                : Camera.main.transform.position;
+
+            Ray ray;
+            if (usingPassthroughRay)
+            {
+                ray = cameraAccess.ViewportPointToRay(viewportRect.center, cameraPose);
+            }
+            else
+            {
+                ray = Camera.main.ViewportPointToRay(
+                    new Vector3(viewportRect.center.x, viewportRect.center.y, 0f)
+                );
+            }
+
+            if (!TryRaycastEnvironment(ray, out EnvironmentRaycastHit hit))
+            {
+                if (logRaycastMisses)
+                {
+                    Debug.LogWarning($"Raycast failed for object {obj.id}");
+                }
+                return;
+            }
+
+            Vector3 position;
+            Quaternion rotation;
+
+            if (
+                useCameraPlanePlacement
+                && TryComputeCameraPlanePlacement(
+                    yoloRect,
+                    cameraPose,
+                    hit.point,
+                    out position,
+                    out rotation
+                )
             )
-        )
-        {
-            // Use plane placement.
-        }
-        else
-        {
-            // Simple fallback: place at hit point, face camera.
-            position = hit.point;
-            Vector3 towardCamera = referenceCameraPosition - position;
-            if (towardCamera.sqrMagnitude < 1e-6f)
             {
-                // Ray points from camera -> world; invert to get world -> camera.
-                towardCamera = -ray.direction;
+                // Use plane placement.
             }
-            rotation = Quaternion.LookRotation(towardCamera.normalized, Vector3.up);
-        }
+            else
+            {
+                // Simple fallback: place at hit point, face camera.
+                position = hit.point;
+                Vector3 towardCamera = referenceCameraPosition - position;
+                if (towardCamera.sqrMagnitude < 1e-6f)
+                {
+                    // Ray points from camera -> world; invert to get world -> camera.
+                    towardCamera = -ray.direction;
+                }
+                rotation = Quaternion.LookRotation(towardCamera.normalized, Vector3.up);
+            }
 
-        if (!activeBlocks.ContainsKey(obj.id))
-        {
-            CreateBlockWithAnchor(obj, position, rotation);
+            if (!activeBlocks.ContainsKey(obj.id))
+            {
+                CreateBlockWithAnchor(obj, position, rotation);
+            }
+            else
+            {
+                UpdateBlock(obj, position, rotation);
+            }
         }
-        else
+        catch (System.Exception e)
         {
-            UpdateBlock(obj, position, rotation);
+            Debug.LogError($"[Block] Exception in PlaceOrUpdateBlock: {e.Message}\n{e.StackTrace}");
         }
     }
 

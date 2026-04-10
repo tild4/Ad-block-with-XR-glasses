@@ -1206,7 +1206,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TrackingManager_uml
   yoloPostProcessor: {fileID: 917801592}
   decisionManager: {fileID: 1318934550}
-  timeToLive: 5
+  timeToLive: 2
   iouThreshold: 0.5
   logAssociationMisses: 0
   maxTrackedObjects: 5
