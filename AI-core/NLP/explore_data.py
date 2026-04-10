@@ -7,7 +7,7 @@ from pathlib import Path
 from datasets import load_dataset
 
 NLP_DIR = Path(__file__).resolve().parent
-TRAIN_FILE = NLP_DIR / "dataset" / "train_large.jsonl"
+TRAIN_FILE = NLP_DIR / "dataset" / "test_large.jsonl"
 
 print(TRAIN_FILE)
 print("exists:", TRAIN_FILE.exists())
