@@ -48,12 +48,16 @@
   "extra_special_tokens": {},
   "keep_accents": true,
   "mask_token": "[MASK]",
+  "max_length": 64,
   "model_max_length": 1000000000000000019884624838656,
   "never_split": null,
   "pad_token": "[PAD]",
   "sep_token": "[SEP]",
+  "stride": 0,
   "strip_accents": false,
   "tokenize_chinese_chars": true,
   "tokenizer_class": "ElectraTokenizer",
+  "truncation_side": "right",
+  "truncation_strategy": "longest_first",
   "unk_token": "[UNK]"
 }
