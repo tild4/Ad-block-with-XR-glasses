@@ -1088,7 +1088,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Oculus.VR::OVRManager
   _monoscopic: 0
   _sharpenType: 0
-  _enableDynamicResolution: 0
+  _enableDynamicResolution: 1
   minDynamicResolutionScale: 1
   maxDynamicResolutionScale: 1
   quest2MinDynamicResolutionScale: 0.7
@@ -1207,7 +1207,7 @@ MonoBehaviour:
   yoloPostProcessor: {fileID: 917801592}
   decisionManager: {fileID: 1318934550}
   timeToLive: 2
-  iouThreshold: 0.5
+  iouThreshold: 0.65
   logAssociationMisses: 0
   maxTrackedObjects: 5
 --- !u!4 &1776983034
