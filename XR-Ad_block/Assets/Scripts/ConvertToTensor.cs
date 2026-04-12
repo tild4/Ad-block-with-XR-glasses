@@ -42,6 +42,7 @@ public static class ConvertToTensor
         CommandBuffer commandBuffer
     )
     {
+        PipelineProfiler.begin("Tensor conversion");
         if (texture == null)
         {
             return null;
@@ -75,6 +76,8 @@ public static class ConvertToTensor
 
         Debug.Log("New tensor created!");
 
+        PipelineProfiler.end("Tensor conversion");
+
         return tensor;
     }
 
@@ -104,4 +107,79 @@ public static class ConvertToTensor
 
         return tensor;
     }
+
+    /*
+    Converts a texture into a tensor while preserving aspect ratio.
+    The source is resized to fit inside the target size, then padded.
+
+    Best for OCR recognition, where character distortion hurts accuracy.
+
+    PARAMETERS:
+    - texture: input GPU texture
+    - renderTexture: preallocated target RT with final model size
+    - targetHeight / targetWidth: model input size
+    - commandBuffer: reusable GPU command buffer
+
+    RETURNS:
+    - Tensor<float> in NCHW format (1, 3, H, W)
+    */
+public static Tensor<float> convertWithAspectPad(
+    Texture texture,
+    RenderTexture renderTexture,
+    int targetHeight,
+    int targetWidth,
+    CommandBuffer commandBuffer
+)
+{
+    PipelineProfiler.begin("Tensor conversion");
+
+    if (texture == null)
+    {
+        return null;
+    }
+
+    Tensor<float> tensor = new Tensor<float>(
+        new TensorShape(1, 3, targetHeight, targetWidth)
+    );
+
+    float srcWidth = texture.width;
+    float srcHeight = texture.height;
+
+    if (srcWidth <= 0 || srcHeight <= 0)
+    {
+        tensor.Dispose();
+        return null;
+    }
+
+    // Scale source to fit inside target while preserving aspect ratio
+    float scale = Mathf.Min(targetWidth / srcWidth, targetHeight / srcHeight);
+
+    float scaledWidth = srcWidth * scale;
+    float scaledHeight = srcHeight * scale;
+
+    // Center the resized image inside the target
+    float offsetX = (targetWidth - scaledWidth) * 0.5f;
+    float offsetY = (targetHeight - scaledHeight) * 0.5f;
+
+    commandBuffer.Clear();
+
+    // Clear target to black so remaining area becomes padding
+    commandBuffer.SetRenderTarget(renderTexture);
+    commandBuffer.ClearRenderTarget(true, true, Color.black);
+
+    // Draw source texture into centered padded rect
+    Rect pixelRect = new Rect(offsetX, offsetY, scaledWidth, scaledHeight);
+    commandBuffer.SetViewport(pixelRect);
+    commandBuffer.Blit(texture, renderTexture);
+
+    // Restore full viewport before tensor conversion
+    commandBuffer.SetViewport(new Rect(0, 0, targetWidth, targetHeight));
+
+    commandBuffer.ToTensor(renderTexture, tensor);
+    Graphics.ExecuteCommandBuffer(commandBuffer);
+
+    PipelineProfiler.end("Tensor conversion");
+
+    return tensor;
+}
 }

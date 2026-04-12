@@ -3,7 +3,7 @@
  // from yolo model and OCR 
 
 using System.Collections.Generic;
-using System.Diagnostics;
+//using System.Diagnostics;
 using Meta.XR;
 using UnityEngine;
 
@@ -33,7 +33,7 @@ public class DecisionManager : MonoBehaviour
         //if yolo confidence good enough, block
         if (yoloConfidence > upperThreshold)
         {
-            Debug.log($"Confidence high: YOLO = {yoloConfidence}, should block = true");
+            Debug.Log($"Confidence high: YOLO = {yoloConfidence}, should block = true");
             return (true, yoloConfidence);
         }
 
@@ -41,14 +41,14 @@ public class DecisionManager : MonoBehaviour
         else if (yoloConfidence > lowerThreshold && yoloConfidence < upperThreshold)
         {
             shouldBlock = confidence > fusionThreshold;
-            Debug.log($"Intermediate confidence: fusion confidence = {confidence}, should block:{shouldBlock}");
+            Debug.Log($"Intermediate confidence: fusion confidence = {confidence}, should block:{shouldBlock}");
             return (shouldBlock, confidence);
         }
 
         // if yolo confidence low, do not block
         else
         {
-            Debug.log($"Confidence low: YOLO = {yoloConfidence}, should block = false" );
+            Debug.Log($"Confidence low: YOLO = {yoloConfidence}, should block = false" );
             return (false, yoloConfidence);
         }
     }
