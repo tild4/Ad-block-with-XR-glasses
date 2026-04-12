@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Meta.XR;
 using UnityEngine;
 
-public class BlockPlacementManager_uml : MonoBehaviour
+public class BlockPlacementManager_MVP2 : MonoBehaviour
 {
     [Header("Dependencies")]
     [SerializeField]
@@ -19,7 +19,7 @@ public class BlockPlacementManager_uml : MonoBehaviour
     private OVRCameraRig cameraRig;
 
     [SerializeField]
-    private TrackingManager_uml trackingManager;
+    private TrackingManager_MVP2 trackingManager;
 
     [Header("Prefab")]
     [SerializeField]

@@ -21,7 +21,7 @@ using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class TextRecognitionInference_uml : MonoBehaviour
+public class TextRecognitionInference_MVP2 : MonoBehaviour
 {
     /* UI code
     [SerializeField]
@@ -39,7 +39,7 @@ public class TextRecognitionInference_uml : MonoBehaviour
     Batch remains 1 per ROI.
     */
     [SerializeField]
-    private ProcessOCRDetection_uml getROIText;
+    private ProcessOCRDetection_MVP2 getROIText;
 
     [SerializeField]
     private int tensorTargetHeight = 48;

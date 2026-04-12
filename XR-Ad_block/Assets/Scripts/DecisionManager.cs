@@ -12,7 +12,7 @@ using UnityEngine;
 public class DecisionManager : MonoBehaviour
 {
     [SerializeField]
-    private TextRecognitionInference_uml textRecognitionInference;
+    private TextRecognitionInference_MVP2 textRecognitionInference;
 
     // Event invoked when a decision is made for a tracked object: (obj, concatenatedText, shouldBlock)
     public event Action<TrackedObject, string, bool> onDecisionMade;

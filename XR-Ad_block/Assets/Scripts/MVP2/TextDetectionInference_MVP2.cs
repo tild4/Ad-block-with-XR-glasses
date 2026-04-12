@@ -22,13 +22,13 @@ using System.Collections.Generic;
 using Unity.InferenceEngine;
 using UnityEngine;
 
-public class TextDetectionInference_uml : MonoBehaviour
+public class TextDetectionInference_MVP2 : MonoBehaviour
 {
     [SerializeField]
     private ModelAsset modelAsset;
 
     [SerializeField]
-    private OCRPipelineManager_uml ocrPipelineManager;
+    private OCRPipelineManager_MVP2 ocrPipelineManager;
 
     private bool isProcessing = false;
 
@@ -66,7 +66,7 @@ public class TextDetectionInference_uml : MonoBehaviour
 
     // Allows external managers to ensure this component is subscribed to an OCR pipeline manager.
     // This makes wiring resilient if inspector fields weren't set in the scene.
-    public void EnsureSubscribedTo(OCRPipelineManager_uml mgr)
+    public void EnsureSubscribedTo(OCRPipelineManager_MVP2 mgr)
     {
         if (mgr == null)
             return;
@@ -83,7 +83,7 @@ public class TextDetectionInference_uml : MonoBehaviour
         ocrPipelineManager.onReadyForOCR += HandleNewTrackedObject;
     }
 
-    public void UnregisterFrom(OCRPipelineManager_uml mgr)
+    public void UnregisterFrom(OCRPipelineManager_MVP2 mgr)
     {
         if (mgr == null)
             return;

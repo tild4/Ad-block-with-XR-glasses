@@ -19,7 +19,7 @@ using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class YOLOPostProcessor_uml : MonoBehaviour
+public class YOLOPostProcessor_MVP2 : MonoBehaviour
 {
     [Header("Dependencies")]
     [SerializeField]

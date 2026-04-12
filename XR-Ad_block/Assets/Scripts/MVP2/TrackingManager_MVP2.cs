@@ -35,11 +35,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TrackingManager_uml : MonoBehaviour
+public class TrackingManager_MVP2 : MonoBehaviour
 {
     [Header("Dependencies")]
     [SerializeField]
-    private YOLOPostProcessor_uml yoloPostProcessor;
+    private YOLOPostProcessor_MVP2 yoloPostProcessor;
 
     [SerializeField]
     private DecisionManager decisionManager;

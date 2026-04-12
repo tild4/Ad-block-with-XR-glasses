@@ -26,7 +26,7 @@ using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class ProcessOCRDetection_uml : MonoBehaviour
+public class ProcessOCRDetection_MVP2 : MonoBehaviour
 {
     private const int MaskSize = 640;
     private const int MaskYieldStride = 32;
@@ -44,7 +44,7 @@ public class ProcessOCRDetection_uml : MonoBehaviour
     */
 
     [SerializeField]
-    private TextDetectionInference_uml textDetectionInference;
+    private TextDetectionInference_MVP2 textDetectionInference;
 
     // Reused threshold mask for OCR text-detection output.
     private readonly bool[,] mask = new bool[MaskSize, MaskSize];

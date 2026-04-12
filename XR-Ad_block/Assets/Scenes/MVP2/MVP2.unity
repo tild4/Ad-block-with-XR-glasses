@@ -826,7 +826,7 @@ MonoBehaviour:
   useSpatialAnchors: 0
   useCameraPlanePlacement: 1
   placementPlaneOffsetMeters: 0.01
-  logRaycastMisses: 1
+  logRaycastMisses: 0
 --- !u!4 &1318934553
 Transform:
   m_ObjectHideFlags: 0
@@ -1207,7 +1207,7 @@ MonoBehaviour:
   yoloPostProcessor: {fileID: 917801592}
   decisionManager: {fileID: 1318934550}
   timeToLive: 2
-  iouThreshold: 0.3
+  iouThreshold: 0.5
   logAssociationMisses: 0
   maxTrackedObjects: 5
 --- !u!4 &1776983034

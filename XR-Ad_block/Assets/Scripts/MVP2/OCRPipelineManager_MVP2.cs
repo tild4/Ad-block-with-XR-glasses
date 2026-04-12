@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class OCRPipelineManager_uml : MonoBehaviour
+public class OCRPipelineManager_MVP2 : MonoBehaviour
 {
     [Header("Dependencies")]
     [SerializeField]
-    private TrackingManager_uml trackingManager;
+    private TrackingManager_MVP2 trackingManager;
 
     [SerializeField]
-    private TextDetectionInference_uml textDetectionInference;
+    private TextDetectionInference_MVP2 textDetectionInference;
 
     private Queue<TrackedObject> ocrQueue = new Queue<TrackedObject>();
     private bool isProcessing = false;
