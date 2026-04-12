@@ -822,7 +822,7 @@ MonoBehaviour:
   mockRaycastManager: {fileID: 0}
   cameraRig: {fileID: 1766474091}
   trackingManager: {fileID: 1776983033}
-  blockPrefab: {fileID: 8439789976323026695, guid: f3841313d53e04bfb8d988bb2413481f, type: 3}
+  blockPrefab: {fileID: 8066889808755201971, guid: 67ba73da31dcae949aeafd7f45ddcb8f, type: 3}
   useSpatialAnchors: 0
   useCameraPlanePlacement: 1
   placementPlaneOffsetMeters: 0.01
@@ -1207,7 +1207,7 @@ MonoBehaviour:
   yoloPostProcessor: {fileID: 917801592}
   decisionManager: {fileID: 1318934550}
   timeToLive: 2
-  iouThreshold: 0.65
+  iouThreshold: 0.3
   logAssociationMisses: 0
   maxTrackedObjects: 5
 --- !u!4 &1776983034

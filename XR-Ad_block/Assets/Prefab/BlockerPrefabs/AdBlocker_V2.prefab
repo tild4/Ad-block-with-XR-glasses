@@ -127,6 +127,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockVisualization
   idText: {fileID: 1662068595828597347}
+  labelTransform: {fileID: 0}
+  popInDuration: 0.15
 --- !u!1 &8850685176020695140
 GameObject:
   m_ObjectHideFlags: 0

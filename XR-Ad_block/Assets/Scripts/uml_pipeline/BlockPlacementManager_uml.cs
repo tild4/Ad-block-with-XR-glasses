@@ -192,6 +192,21 @@ public class BlockPlacementManager_uml : MonoBehaviour
     }
 
     /*
+     * Helper method to compute the world size of the block based on the YOLO bounding box and the camera's field of view at the given depth.
+    */
+    private Vector2 ComputeWorldSize(Rect yoloRect, Pose cameraPose, float depth)
+    {
+        float halfFovRad = Mathf.Deg2Rad * (Camera.main.fieldOfView / 2f);
+        float viewportWidthAtDepth = 2f * depth * Mathf.Tan(halfFovRad);
+        float viewportHeightAtDepth = viewportWidthAtDepth * ((float)cameraAccess.CurrentResolution.y / cameraAccess.CurrentResolution.x);
+
+        return new Vector2(
+            yoloRect.width * viewportWidthAtDepth,
+            yoloRect.height * viewportHeightAtDepth
+        );
+    }
+
+    /*
         Handles the logic for placing a new block or updating an existing one based on the tracked object's state.
         - If the object should not be blocked and a block exists, it removes the block.
         - If the object should be blocked, it performs a raycast to find the correct position in the environment and either creates a new block or updates the existing one.
@@ -223,10 +238,16 @@ public class BlockPlacementManager_uml : MonoBehaviour
             Rect yoloRect = obj.lastDetection.bboxNormalized;
             Pose cameraPose = obj.lastDetection.frame.currentPose;
             Rect viewportRect = ToViewportRect(yoloRect);
-            Debug.Log("About to raycast..."); // Pontus Debugging
 
             bool usingPassthroughRay =
                 cameraAccess != null && cameraAccess.enabled && cameraAccess.IsPlaying;
+
+            Ray ray = usingPassthroughRay
+                ? cameraAccess.ViewportPointToRay(viewportRect.center, cameraPose)
+                : Camera.main.ViewportPointToRay(
+                    new Vector3(viewportRect.center.x, viewportRect.center.y, 0f)
+                );
+            /* -------------OLD VERSION------------------------
             Vector3 referenceCameraPosition = usingPassthroughRay
                 ? cameraPose.position
                 : Camera.main.transform.position;
@@ -242,6 +263,7 @@ public class BlockPlacementManager_uml : MonoBehaviour
                     new Vector3(viewportRect.center.x, viewportRect.center.y, 0f)
                 );
             }
+            */
 
             if (!TryRaycastEnvironment(ray, out EnvironmentRaycastHit hit))
             {
@@ -270,6 +292,7 @@ public class BlockPlacementManager_uml : MonoBehaviour
             }
             else
             {
+                /*---------------------OLD VERSION------------------------
                 // Simple fallback: place at hit point, face camera.
                 position = hit.point;
                 Vector3 towardCamera = referenceCameraPosition - position;
@@ -279,15 +302,30 @@ public class BlockPlacementManager_uml : MonoBehaviour
                     towardCamera = -ray.direction;
                 }
                 rotation = Quaternion.LookRotation(towardCamera.normalized, Vector3.up);
+                */
+
+                position = hit.point;
+                Vector3 towardCamera = (usingPassthroughRay
+                    ? cameraPose.position
+                    : Camera.main.transform.position) - position;
+                if (towardCamera.sqrMagnitude < 1e-6f)
+                {
+                    // Ray points from camera -> world; invert to get world -> camera.
+                    towardCamera = -ray.direction;
+                }
+                rotation = Quaternion.LookRotation(towardCamera.normalized, Vector3.up);
             }
+
+            float depth = Vector3.Distance(cameraPose.position, hit.point);
+            Vector2 worldSize = ComputeWorldSize(yoloRect, cameraPose, depth);
 
             if (!activeBlocks.ContainsKey(obj.id))
             {
-                CreateBlockWithAnchor(obj, position, rotation);
-            }
+                CreateBlockWithAnchor(obj, position, rotation, worldSize);
+            }   
             else
             {
-                UpdateBlock(obj, position, rotation);
+                UpdateBlock(obj, position, rotation, worldSize);
             }
         }
         catch (System.Exception e)
@@ -303,18 +341,25 @@ public class BlockPlacementManager_uml : MonoBehaviour
         - Parents the block to the camera rig's tracking space to maintain relative positioning in the room.
         - If spatial anchors are enabled, it creates an OVRSpatialAnchor component, saves it, and stores it in the activeSpatialAnchors dictionary for later management.
     */
-    private void CreateBlockWithAnchor(TrackedObject obj, Vector3 position, Quaternion rotation)
+    private void CreateBlockWithAnchor(TrackedObject obj, Vector3 position, Quaternion rotation, Vector2 size)
     {
         GameObject block = Instantiate(blockPrefab);
         block.name = $"Block_{obj.id}";
+        Vector3 worldScale = new Vector3(size.x, size.y, 0.01f);
+
 
         BlockVisualization vis = block.GetComponent<BlockVisualization>();
         if (vis != null)
         {
             vis.SetBlockData(obj.id);
+            vis.UpdateTargetScale(worldScale);
+        }
+        else
+        {
+            block.transform.localScale = worldScale;
         }
 
-        block.transform.position = position;
+            block.transform.position = position;
         block.transform.rotation = rotation;
 
         if (cameraRig != null)
@@ -347,11 +392,22 @@ public class BlockPlacementManager_uml : MonoBehaviour
         - Retrieves the block GameObject from the activeBlocks dictionary using the tracked object's ID.
         - Updates the block's position to the new hit point and rotates it to align with the hit normal.
     */
-    private void UpdateBlock(TrackedObject obj, Vector3 position, Quaternion rotation)
+    private void UpdateBlock(TrackedObject obj, Vector3 position, Quaternion rotation, Vector2 size)
     {
         GameObject block = activeBlocks[obj.id];
         block.transform.position = position;
         block.transform.rotation = rotation;
+
+        Vector3 worldScale = new Vector3(size.x, size.y, 0.01f);
+        BlockVisualization vis = block.GetComponent<BlockVisualization>();
+        if (vis != null)
+        {
+            vis.UpdateTargetScale(worldScale);
+        }
+        else
+        {
+            block.transform.localScale = worldScale;
+        }
     }
 
     /*
