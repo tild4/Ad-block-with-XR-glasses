@@ -11,3 +11,4 @@ XR-Ad_block/**/*.mov filter=lfs diff=lfs merge=lfs -text
 
 AI-core/dataset/** filter=lfs diff=lfs merge=lfs -text
 AI-core/models/** filter=lfs diff=lfs merge=lfs -text
+AI-core/NLP/models/** filter=lfs diff=lfs merge=lfs -text
