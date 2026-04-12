@@ -31,10 +31,17 @@ public class BlockVisualization : MonoBehaviour
     [SerializeField]
     private float popInDuration = 0.15f;
 
+    [Header("Smoothing")]
+    [SerializeField]
+    private float positionSmoothSpeed = 4f;
+    private float scaleSmooothSpeed = 3f;
+
     private Transform _cameraTransform;
     private Vector3 _targetScale;
     private float _popInTimer = 0f;
     private bool _isPopping = true;
+    private Vector3 _targetPosition;
+    private bool _initialized = false;
 
     private void Awake()
     {
@@ -60,8 +67,27 @@ public class BlockVisualization : MonoBehaviour
                 _isPopping = false; // Animation complete
             }
         }
+        else
+        {
+            // Smooth scale after pop-in
+            transform.localScale = Vector3.Lerp(
+                transform.localScale, _targetScale,
+                Time.deltaTime * scaleSmooothSpeed);
+        }
+
+        if (_initialized)
+        {
+            // Smooth position update
+            transform.position = Vector3.Lerp(
+                transform.position, _targetPosition,
+                Time.deltaTime * positionSmoothSpeed);
+        }
         if (labelTransform != null && _cameraTransform != null)
         {
+            // Position above top edge of box in local space
+            float topEdge = 0.5f; // quad goes from -0.5 to +0.5 in local Y
+            labelTransform.localPosition = new Vector3(0f, topEdge + 0.08f, -0.02f);
+
             labelTransform.LookAt(_cameraTransform);
             labelTransform.Rotate(0f, 180f, 0f); // Flip to face the camera
         }
@@ -85,5 +111,18 @@ public class BlockVisualization : MonoBehaviour
         {
             transform.localScale = _targetScale; // Instantly update if not popping
         }
+    }
+
+    public void SetTargetTransform(Vector3 position, Quaternion rotation, Vector3 scale)
+    {
+        if (!_initialized)
+        {
+            transform.position = position;
+            transform.rotation = rotation;
+            transform.localScale = Vector3.zero; //Let pop-in handle first frame
+            _initialized = true;
+        }
+        _targetPosition = position;
+        _targetScale = scale;
     }
 }

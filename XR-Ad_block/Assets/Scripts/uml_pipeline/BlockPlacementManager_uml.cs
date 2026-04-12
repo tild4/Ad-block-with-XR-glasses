@@ -200,9 +200,10 @@ public class BlockPlacementManager_uml : MonoBehaviour
         float viewportWidthAtDepth = 2f * depth * Mathf.Tan(halfFovRad);
         float viewportHeightAtDepth = viewportWidthAtDepth * ((float)cameraAccess.CurrentResolution.y / cameraAccess.CurrentResolution.x);
 
+        float padding = 0.7f; // Optional padding to make blocks slightly smaller than the bounding box
         return new Vector2(
-            yoloRect.width * viewportWidthAtDepth,
-            yoloRect.height * viewportHeightAtDepth
+            yoloRect.width * viewportWidthAtDepth * padding,
+            yoloRect.height * viewportHeightAtDepth * padding
         );
     }
 
@@ -352,15 +353,14 @@ public class BlockPlacementManager_uml : MonoBehaviour
         if (vis != null)
         {
             vis.SetBlockData(obj.id);
-            vis.UpdateTargetScale(worldScale);
+            vis.SetTargetTransform(position, rotation, worldScale);
         }
         else
         {
+            block.transform.position = position;
+            block.transform.rotation = rotation;
             block.transform.localScale = worldScale;
         }
-
-            block.transform.position = position;
-        block.transform.rotation = rotation;
 
         if (cameraRig != null)
         {
@@ -402,10 +402,12 @@ public class BlockPlacementManager_uml : MonoBehaviour
         BlockVisualization vis = block.GetComponent<BlockVisualization>();
         if (vis != null)
         {
-            vis.UpdateTargetScale(worldScale);
+            vis.SetTargetTransform(position, rotation, worldScale);
         }
         else
         {
+            block.transform.position = position;
+            block.transform.rotation = rotation;
             block.transform.localScale = worldScale;
         }
     }
