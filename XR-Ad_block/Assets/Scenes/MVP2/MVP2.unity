@@ -372,7 +372,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a64f7b353cba34f098cb91920c0d5f37, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::YOLOPostProcessor_uml
+  m_EditorClassIdentifier: Assembly-CSharp::YOLOPostProcessor_MVP2
   sentisInferenceManager: {fileID: 917801593}
   cropMaterial: {fileID: 2100000, guid: ac1ddba664915451b8b511e4a3544091, type: 2}
   confidenceThreshold: 0.5
@@ -818,7 +818,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6912c4172565c4fb1b42595a43fbf90d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BlockPlacementManager_uml
+  m_EditorClassIdentifier: Assembly-CSharp::BlockPlacementManager_MVP2
   cameraAccess: {fileID: 1766474089}
   realRaycastManager: {fileID: 1318934551}
   mockRaycastManager: {fileID: 0}
@@ -1145,7 +1145,7 @@ MonoBehaviour:
   requestBodyTrackingPermissionOnStartup: 0
   requestFaceTrackingPermissionOnStartup: 0
   requestEyeTrackingPermissionOnStartup: 0
-  requestScenePermissionOnStartup: 0
+  requestScenePermissionOnStartup: 1
   requestRecordAudioPermissionOnStartup: 0
   requestPassthroughCameraAccessPermissionOnStartup: 1
   _localDimming: 1
@@ -1191,7 +1191,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5ec03f23d721d48c79eb74d9e1d9c124, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::OCRPipelineManager_uml
+  m_EditorClassIdentifier: Assembly-CSharp::OCRPipelineManager_MVP2
   trackingManager: {fileID: 1776983033}
   textDetectionInference: {fileID: 2015934786}
 --- !u!114 &1776983033
@@ -1205,7 +1205,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 38a1621b9886041f89352e46a9cd27dc, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TrackingManager_uml
+  m_EditorClassIdentifier: Assembly-CSharp::TrackingManager_MVP2
   yoloPostProcessor: {fileID: 917801592}
   decisionManager: {fileID: 1318934550}
   timeToLive: 2
@@ -1352,7 +1352,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a216096a3c14dbda7a11c7827f78de, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TextRecognitionInference_uml
+  m_EditorClassIdentifier: Assembly-CSharp::TextRecognitionInference_MVP2
   getROIText: {fileID: 2015934785}
   tensorTargetHeight: 48
   tensorTargetWidth: 320
@@ -1370,7 +1370,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 48dd46d9bbb9c4a72910e3ac234663a0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProcessOCRDetection_uml
+  m_EditorClassIdentifier: Assembly-CSharp::ProcessOCRDetection_MVP2
   viewCroppedImage: {fileID: 0}
   textDetectionInference: {fileID: 2015934786}
   maskThreshold: 0.05
@@ -1388,7 +1388,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 58d448df9893c482da21ecf510edb901, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TextDetectionInference_uml
+  m_EditorClassIdentifier: Assembly-CSharp::TextDetectionInference_MVP2
   modelAsset: {fileID: 5022602860645237092, guid: 01e4f6ce9063d4fdcb2e8ec1e3e46d8d, type: 3}
   ocrPipelineManager: {fileID: 1776983032}
 --- !u!4 &2015934787
