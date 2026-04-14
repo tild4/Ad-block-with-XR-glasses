@@ -23,13 +23,8 @@ using UnityEngine.Rendering;
 
 public class TextRecognitionInference_MVP2 : MonoBehaviour
 {
-    /* UI code
     [SerializeField]
     private ViewCroppedImage viewCroppedImage;
-
-    private RenderTexture debugPreviewRT;
-    private RenderTexture croppedROI;
-    */
 
     /*
     OCR recognition input:
@@ -46,14 +41,6 @@ public class TextRecognitionInference_MVP2 : MonoBehaviour
 
     [SerializeField]
     private int tensorTargetWidth = 320;
-
-    /*
-    [SerializeField]
-    private int previewCropHeight = 128;
-
-    [SerializeField]
-    private int previewCropWidth = 512;
-    */
 
     [SerializeField]
     private Material cropMaterial;
@@ -82,26 +69,6 @@ public class TextRecognitionInference_MVP2 : MonoBehaviour
 
         textDecoder = new TextDecoder(ymlFile);
         worker = new Worker(ocrModel, BackendType.CPU);
-
-        /*
-        // CHANGE MAYBE
-        debugPreviewRT = new RenderTexture(
-            tensorTargetWidth,
-            tensorTargetHeight,
-            0,
-            RenderTextureFormat.ARGB32
-        );
-        debugPreviewRT.Create();
-
-        // CHANGE MAYBE
-        croppedROI = new RenderTexture(
-            tensorTargetWidth,
-            tensorTargetHeight,
-            0,
-            RenderTextureFormat.ARGB32
-        );
-        croppedROI.Create();
-        */
     }
 
     private void OnEnable()
@@ -214,39 +181,12 @@ public class TextRecognitionInference_MVP2 : MonoBehaviour
         Debug.Log($"[RECOGNITION] Object {textROI} recognized word: '{output}'");
 
         texts.Add(output);
-        /*
-        // UI code
-        TextureCropper.CropBoundingBox(roiBounds, frame.currentTexture, croppedROI, cropMaterial);
-        Graphics.Blit(croppedROI, debugPreviewRT);
-        viewCroppedImage.Show(debugPreviewRT);
-        viewCroppedImage.SetDetectedWord(output);
-        */
+
+        viewCroppedImage?.SetDetectedWord(output);
     }
 
     private void OnDestroy()
     {
         worker?.Dispose();
-        /*
-
-        if (debugPreviewRT != null)
-        {
-            debugPreviewRT.Release();
-            Destroy(debugPreviewRT);
-            debugPreviewRT = null;
-        }
-
-        if (commandBuffer != null)
-        {
-            commandBuffer.Release();
-            commandBuffer = null;
-        }
-
-        if (croppedROI != null)
-        {
-            croppedROI.Release();
-            Destroy(croppedROI);
-            croppedROI = null;
-        }
-        */
     }
 }
