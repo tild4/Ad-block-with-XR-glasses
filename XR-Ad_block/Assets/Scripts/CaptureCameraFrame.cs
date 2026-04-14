@@ -54,22 +54,19 @@ public class CaptureCameraFrame : MonoBehaviour
             return;
         }
 
-        // --- START PROFILING ---
-        PipelineProfiler.begin("1. Capture Camera Data");
-
         lastProcessTime = Time.time;
 
         // Guard rail
         if (cameraAccess == null || !cameraAccess.enabled || !cameraAccess.IsPlaying)
         {
             Debug.Log("failed frame");
-            PipelineProfiler.end("1. Capture Camera Data");
             return;
         }
 
         //PassthroughCameraAccess.CameraIntrinsics intrinsics = cameraAccess.Intrinsics; *vet ej om detta behövs*
 
         // Contruct frame
+        PipelineProfiler.begin("1. Capture Camera Data");
 
         FrameData frame = new FrameData
         {
@@ -82,11 +79,11 @@ public class CaptureCameraFrame : MonoBehaviour
 
         PipelineProfiler.set("Cam Res", $"{frame.currentResolution.x}x{frame.currentResolution.y}");
 
-        // Invokes event -> new frame ready to be utilized
-        newFrame?.Invoke(frame);
-
-        // --- END PROFILING ---
         PipelineProfiler.end("1. Capture Camera Data");
+
+        // Invokes event -> new frame ready to be utilized
+
+        newFrame?.Invoke(frame);
 
         Debug.Log("frame invoked");
     }

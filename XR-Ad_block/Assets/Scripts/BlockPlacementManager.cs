@@ -55,21 +55,10 @@ public class BlockPlacementManager : MonoBehaviour
         }
     }
 
-    void Awake()
+    /*
+    void OnEnable()
     {
-        if (inferenceManager == null)
-        {
-            inferenceManager = FindObjectOfType<SentisInferenceManager>();
-        }
-
-        if (inferenceManager == null)
-        {
-            Debug.LogError("NO SentisInferenceManager FOUND IN SCENE");
-            return;
-        }
-
-        Debug.Log("Found Sentis: " + inferenceManager.GetInstanceID());
-
+        // Subscribe to the detection event from SentisInferenceManager
         inferenceManager.onDetectionsReady += HandleDetections;
     }
 
@@ -78,25 +67,24 @@ public class BlockPlacementManager : MonoBehaviour
         // Unsubscribe to prevent memory leaks
         inferenceManager.onDetectionsReady -= HandleDetections;
     }
+    */
 
     // Handle the list of detections from SentisInferenceManager, pick the best one, and process it.
     private void HandleDetections(
         List<(Rect boundingBox, float confidence, FrameData frame)> detections
     )
     {
+        PipelineProfiler.begin("BlockPlacement");
+
         if (detections.Count == 0)
         {
+            PipelineProfiler.end("BlockPlacement");
             return;
         }
 
-        // --- START PROFILING ---
-        PipelineProfiler.begin("5. Block Placement (3D)");
-
         var best = detections.OrderByDescending(d => d.confidence).First();
         ProcessDetection(best.boundingBox, best.confidence, best.frame);
-
-        // --- END PROFILING ---
-        PipelineProfiler.end("5. Block Placement (3D)");
+        PipelineProfiler.end("BlockPlacement");
     }
 
     // Take in detection result from YOLO, chekc confidence and raycast blocker into world.
@@ -136,8 +124,6 @@ public class BlockPlacementManager : MonoBehaviour
         // Raycast return true if it hits real-world geometry (like walls, furniture) and provides hit info (point, normal)
         if (raycastManager.Raycast(ray, out var hit))
         {
-            PipelineProfiler.set("World Hit", "True");
-            
             // Update the last detection time to keep the block visible
             lastDetectionTime = Time.time;
             Debug.Log("RAYCAST HIT AT: " + hit.point);
@@ -170,7 +156,6 @@ public class BlockPlacementManager : MonoBehaviour
         }
         else
         {
-            PipelineProfiler.set("World Hit", "False");
             Debug.Log("RAYCAST MISSED");
         }
     }

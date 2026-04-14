@@ -5,15 +5,33 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/MVP2/MVP2.unity
+    guid: a438e641d32fed34ab7bd4a1024c39d5
   - enabled: 0
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 0
     path: Assets/Scenes/TestSceneMeta.unity
     guid: a862d1bf7ceac7247ad40a7aaa27606a
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/IrlScene.unity
     guid: c0b8505c2124a47e68e8cb4661479772
+  - enabled: 0
+    path: Assets/Scenes/TextDetection.unity
+    guid: e8d2d71169ec24fba88972a8b9582e3f
+  - enabled: 0
+    path: Assets/Scenes/Sentis+Crop.unity
+    guid: 2ffdc23774817428a887ce93a25c5a1e
+  - enabled: 0
+    path: Assets/Scenes/mvp 1.5 + ui.unity
+    guid: ec1676edd082d4de3838c7a7134a6cc2
+  - enabled: 0
+    path: Assets/Scenes/TildaTrackingManager.unity
+    guid: 9988f6661018f4dcaa74e26465ac08b6
+  - enabled: 0
+    path: Assets/Scenes/Prototype2.unity
+    guid: 97819c6257f8947ffaed6d84600b434a
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
