@@ -52,15 +52,40 @@ CMakeCache.txt
 
 # Python cache
 AI-core/__pycache__/
+AI-core/**/__pycache__/
 AI-core/**/*.pyc
 AI-core/**/*.pyo
 
-# Virtual environments
+# Virtual environments (any depth, any name)
 AI-core/venv/
 AI-core/.venv/
+AI-core/**/venv/
+AI-core/**/.venv/
+AI-core/**/env/
 
 # Training outputs
 AI-core/runs/
+
+# =====================================================
+# AI-core/NLP — HuggingFace / PyTorch training artifacts
+# =====================================================
+
+# HuggingFace Trainer outputs (checkpoints, logs, optimizer state)
+AI-core/NLP/**/results/
+AI-core/NLP/**/checkpoint-*/
+AI-core/NLP/**/runs/
+AI-core/NLP/**/logs/
+
+# Intermediate saved models (we only commit the final ONNX export under models/)
+AI-core/NLP/**/saved_model/
+AI-core/NLP/**/*.safetensors
+AI-core/NLP/**/*.bin
+AI-core/NLP/**/*.pt
+AI-core/NLP/**/*.pth
+
+# HuggingFace cache (if it ends up inside the repo)
+AI-core/NLP/**/.cache/
+AI-core/NLP/**/hf_cache/
 
 # OS junk
 .DS_Store

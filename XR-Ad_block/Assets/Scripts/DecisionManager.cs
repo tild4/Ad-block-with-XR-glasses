@@ -14,6 +14,12 @@ public class DecisionManager : MonoBehaviour
     [SerializeField]
     private TextRecognitionInference_MVP2 textRecognitionInference;
 
+    [SerializeField]
+    private NLPClassifier_MVP2 nlpClassifier;
+
+    [SerializeField]
+    private bool useNLPClassifier = true; // Set to true to enable NLP classification in the decision process]
+
     // Event invoked when a decision is made for a tracked object: (obj, concatenatedText, shouldBlock)
     public event Action<TrackedObject, string, bool> onDecisionMade;
 
@@ -40,25 +46,47 @@ public class DecisionManager : MonoBehaviour
         if (textsPerAd.trackedObject == null)
             return;
 
-        // Simple OCR confidence heuristic: presence of any non-empty text -> high confidence
-        float ocrConfidence = 0f;
-        if (textsPerAd.texts != null && textsPerAd.texts.Count > 0)
-        {
-            int nonEmpty = textsPerAd.texts.Count(t => !string.IsNullOrWhiteSpace(t));
-            ocrConfidence = nonEmpty > 0 ? 0.9f : 0f;
-        }
+        string combined = 
+        textsPerAd.texts != null ? string.Join(" ", textsPerAd.texts) : string.Empty;
 
         float yoloConfidence = textsPerAd.trackedObject.lastDetection.confidence;
 
-        var decision = DecisionResult(yoloConfidence, ocrConfidence);
+        // NLP path: replace heuristic with classifier
+        if (useNLPClassifier && nlpClassifier != null && !string.IsNullOrWhiteSpace(combined))
+        {
+            nlpClassifier.Classify(combined, (label, probs) =>
+            {
+                // ocrConfidence = P(reklam) + P(skadlig) + P(samhällsnyttig)
+                float ocrConfidence = probs[1] + probs[2] + probs[3];
 
-        // Notify subscribers (e.g., TrackingManager) about the decision and provide text
-        string combined =
-            textsPerAd.texts != null ? string.Join(" ", textsPerAd.texts) : string.Empty;
-        onDecisionMade?.Invoke(textsPerAd.trackedObject, combined, decision.shouldBlock);
-        Debug.Log(
-            $"[Decision] Object {textsPerAd.trackedObject.id} - Final Text: '{combined}', Should Block: {decision.shouldBlock}"
-        );
+                var decision = DecisionResult(yoloConfidence, ocrConfidence);
+                onDecisionMade?.Invoke(textsPerAd.trackedObject, combined, decision.shouldBlock);
+
+                Debug.Log(
+                    $"[Decision] Object {textsPerAd.trackedObject.id}: NLP='{label}', "
+                    + $"ocrConf={ocrConfidence:F2}, shouldBlock={decision.shouldBlock}"
+                );
+            });
+        } 
+        else
+        {
+            // If not using NLP, fall back to heuristic decision based on YOLO confidence and OCR confidence
+            float ocrConfidence = 0f;
+            if (textsPerAd.texts != null && textsPerAd.texts.Count > 0)
+            {
+                int nonEmpty = textsPerAd.texts.Count(t => !string.IsNullOrWhiteSpace(t));
+                ocrConfidence = nonEmpty > 0 ? 0.9f : 0f;
+            }
+
+            var decision = DecisionResult(yoloConfidence, ocrConfidence);
+            onDecisionMade?.Invoke(textsPerAd.trackedObject, combined, decision.shouldBlock);
+
+            Debug.Log(
+                $"[Decision] Object {textsPerAd.trackedObject.id}: Heuristic decision, "
+                + $"ocrConf={ocrConfidence:F2}, shouldBlock={decision.shouldBlock}"
+            );
+        }
+
     }
 
     private (bool shouldBlock, float confidence) DecisionResult(
