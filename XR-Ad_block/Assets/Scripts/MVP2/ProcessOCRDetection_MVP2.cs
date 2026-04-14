@@ -22,6 +22,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -29,19 +30,17 @@ using UnityEngine.Rendering;
 public class ProcessOCRDetection_MVP2 : MonoBehaviour
 {
     private const int MaskSize = 640;
-    private const int MaskYieldStride = 32;
-    private const int BfsYieldStride = 5000;
-    private const int MinBoxWidth = 3;
-    private const int MinBoxHeight = 3;
-    private const int PaddingX = 20;
-    private const int PaddingY = 10;
+    private const long FrameBudgetMs = 3;
+    private const int MinBoxWidth = 10;
+    private const int MinBoxHeight = 10;
+    private const int PaddingX = 4;
+    private const int PaddingY = 2;
+    private const float MergeVerticalOverlap = 0.5f;
+    private const float MergeHorizontalGapFactor = 2.0f;
+    private const float MaxMergedAspectRatio = 6.0f;
 
-    /*
-    ============================== UI ==============================
     [SerializeField] private ViewCroppedImage viewCroppedImage;
     private RenderTexture debugPreviewRT;
-    ===================================================================
-    */
 
     [SerializeField]
     private TextDetectionInference_MVP2 textDetectionInference;
@@ -78,7 +77,6 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
     // Reusable GPU resources
     private RenderTexture convertRenderTexture;
-    private RenderTexture croppedROI;
     private CommandBuffer commandBuffer;
     private bool isProcessing = false;
 
@@ -88,7 +86,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
     {
         if (textDetectionInference == null || cropMaterial == null)
         {
-            Debug.Log("Missing asset");
+            UnityEngine.Debug.Log("Missing asset");
             return;
         }
 
@@ -99,31 +97,17 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
             RenderTextureFormat.ARGB32
         );
 
-        // CHANGE MAYBE
-        croppedROI = new RenderTexture(
-            tensorTargetWidth,
-            tensorTargetHeight,
-            0,
-            RenderTextureFormat.ARGB32
-        );
-
-        croppedROI.Create();
         convertRenderTexture.Create();
 
         commandBuffer = new CommandBuffer();
 
-        /*
-        ============================== UI ==============================
         debugPreviewRT = new RenderTexture(
             tensorTargetWidth,
             tensorTargetHeight,
             0,
             RenderTextureFormat.ARGB32
         );
-
         debugPreviewRT.Create();
-        ===================================================================
-        */
     }
 
     private void OnEnable()
@@ -208,7 +192,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         */
 
         PipelineProfiler.begin("OCR ProcessBFS");
-        Debug.Log($"[OCR] findTextTensor shape: {tensor.shape}");
+        UnityEngine.Debug.Log($"[OCR] findTextTensor shape: {tensor.shape}");
         yield return BuildMaskFromTensor(tensor);
 
         List<Rect> boundingBoxes = null;
@@ -216,6 +200,9 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         PipelineProfiler.end("OCR ProcessBFS");
 
         tensor.Dispose();
+
+        // Merge nearby boxes on the same text line into full words/sentences
+        boundingBoxes = MergeBoxesOnSameLine(boundingBoxes);
 
         // Takes the list of bounds and crops the text regions
         List<TextTensor> croppedRois = BuildCroppedRecognitionRois(
@@ -233,18 +220,29 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
     private IEnumerator BuildMaskFromTensor(Tensor<float> tensor)
     {
+        var sw = Stopwatch.StartNew();
+        float maxVal = 0f;
+        int aboveCount = 0;
+
         for (int y = 0; y < MaskSize; y++)
         {
             for (int x = 0; x < MaskSize; x++)
             {
-                mask[y, x] = tensor[0, 0, y, x] > maskThreshold;
+                float v = tensor[0, 0, y, x];
+                if (v > maxVal) maxVal = v;
+                bool above = v > maskThreshold;
+                if (above) aboveCount++;
+                mask[y, x] = above;
             }
 
-            if (y % MaskYieldStride == 0)
+            if (sw.ElapsedMilliseconds >= FrameBudgetMs)
             {
                 yield return null;
+                sw.Restart();
             }
         }
+
+        UnityEngine.Debug.Log($"[OCR Mask] maxVal={maxVal:F4}, aboveThreshold={aboveCount}/{MaskSize * MaskSize}, threshold={maskThreshold}");
     }
 
     /*
@@ -272,7 +270,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
         foreach (Rect bounds in boundingBoxes)
         {
-            Debug.Log($"[OCR CropSize] Crop size: {bounds.width}x{bounds.height} pixels");
+            UnityEngine.Debug.Log($"[OCR CropSize] Crop size: {bounds.width}x{bounds.height} pixels");
             Rect normalizedLocal = new Rect(
                 bounds.x / MaskSize,
                 bounds.y / MaskSize,
@@ -285,34 +283,38 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                 parentYoloBounds
             );
 
+            // Crop at natural resolution to preserve aspect ratio
+            int cropW = Mathf.Max(1, Mathf.RoundToInt(normalizedFullFrame.width * parentTexture.width));
+            int cropH = Mathf.Max(1, Mathf.RoundToInt(normalizedFullFrame.height * parentTexture.height));
+            RenderTexture tempCrop = RenderTexture.GetTemporary(cropW, cropH, 0, RenderTextureFormat.ARGB32);
+
             if (
                 !TextureCropper.CropBoundingBox(
                     normalizedFullFrame,
                     parentTexture,
-                    croppedROI,
+                    tempCrop,
                     cropMaterial
                 )
             )
             {
+                RenderTexture.ReleaseTemporary(tempCrop);
                 continue;
             }
 
-            /*
-            ============================== UI ==============================
-            Graphics.Blit(croppedROI, debugPreviewRT);
-            viewCroppedImage.Show(debugPreviewRT);
-            ===================================================================
-            */
+            Graphics.Blit(tempCrop, debugPreviewRT);
+            viewCroppedImage?.Show(debugPreviewRT);
 
-            // CONVERT WITH ASPECT PAD HERE (preserve aspect ratio, pad black)
+            // Scale uniformly into 48×320 with black padding to preserve aspect ratio
             PipelineProfiler.set("TensorContext", "OCR");
             Tensor<float> roiTensor = ConvertToTensor.convertWithAspectPad(
-                croppedROI,
+                tempCrop,
                 convertRenderTexture,
                 tensorTargetHeight,
                 tensorTargetWidth,
                 commandBuffer
             );
+
+            RenderTexture.ReleaseTemporary(tempCrop);
 
             if (roiTensor != null)
             {
@@ -320,7 +322,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
             }
         }
 
-        Debug.Log($"[OCR Crop] Successfully cropped {croppedRois.Count} word regions from the ad.");
+        UnityEngine.Debug.Log($"[OCR Crop] Successfully cropped {croppedRois.Count} word regions from the ad.");
         return croppedRois;
     }
 
@@ -332,6 +334,80 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
             normalizedLocal.width * parentYoloBounds.width,
             normalizedLocal.height * parentYoloBounds.height
         );
+    }
+
+    /*
+        Merges bounding boxes that sit on the same horizontal text line.
+        Two boxes merge when they overlap vertically by at least
+        MergeVerticalOverlap of the shorter box AND the horizontal
+        gap between them is less than MergeHorizontalGapFactor × average height.
+        Repeats until no more merges occur.
+    */
+    private List<Rect> MergeBoxesOnSameLine(List<Rect> boxes)
+    {
+        if (boxes == null || boxes.Count <= 1)
+        {
+            return boxes;
+        }
+
+        bool merged = true;
+        while (merged)
+        {
+            merged = false;
+            for (int i = 0; i < boxes.Count; i++)
+            {
+                for (int j = i + 1; j < boxes.Count; j++)
+                {
+                    if (!ShouldMerge(boxes[i], boxes[j]))
+                    {
+                        continue;
+                    }
+
+                    float minX = Mathf.Min(boxes[i].xMin, boxes[j].xMin);
+                    float minY = Mathf.Min(boxes[i].yMin, boxes[j].yMin);
+                    float maxX = Mathf.Max(boxes[i].xMax, boxes[j].xMax);
+                    float maxY = Mathf.Max(boxes[i].yMax, boxes[j].yMax);
+
+                    float unionWidth = maxX - minX;
+                    float unionHeight = maxY - minY;
+
+                    if (unionHeight > 0 && unionWidth / unionHeight > MaxMergedAspectRatio)
+                    {
+                        continue;
+                    }
+
+                    boxes[i] = new Rect(minX, minY, unionWidth, unionHeight);
+                    boxes.RemoveAt(j);
+                    merged = true;
+                    j--;
+                }
+            }
+        }
+
+        return boxes;
+    }
+
+    private bool ShouldMerge(Rect a, Rect b)
+    {
+        float overlapTop = Mathf.Max(a.yMin, b.yMin);
+        float overlapBottom = Mathf.Min(a.yMax, b.yMax);
+        float overlapHeight = overlapBottom - overlapTop;
+
+        if (overlapHeight <= 0)
+        {
+            return false;
+        }
+
+        float shorterHeight = Mathf.Min(a.height, b.height);
+        if (overlapHeight / shorterHeight < MergeVerticalOverlap)
+        {
+            return false;
+        }
+
+        float gap = Mathf.Max(0, Mathf.Max(a.xMin - b.xMax, b.xMin - a.xMax));
+        float avgHeight = (a.height + b.height) * 0.5f;
+
+        return gap < avgHeight * MergeHorizontalGapFactor;
     }
 
     /*
@@ -349,7 +425,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         int[] dx = { -1, 0, 1, -1, 1, -1, 0, 1 };
         int[] dy = { -1, -1, -1, 0, 0, 1, 1, 1 };
 
-        int workCounter = 0;
+        var sw = Stopwatch.StartNew();
 
         for (int y = 0; y < h; y++)
         {
@@ -372,7 +448,6 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                 while (queue.Count > 0)
                 {
                     Vector2Int p = queue.Dequeue();
-                    workCounter++;
 
                     for (int i = 0; i < 8; i++)
                     {
@@ -402,9 +477,10 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                             maxY = ny;
                     }
 
-                    if (workCounter % BfsYieldStride == 0)
+                    if (sw.ElapsedMilliseconds >= FrameBudgetMs)
                     {
                         yield return null;
+                        sw.Restart();
                     }
                 }
 
@@ -429,9 +505,10 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                 }
             }
 
-            if (y % MaskYieldStride == 0)
+            if (sw.ElapsedMilliseconds >= FrameBudgetMs)
             {
                 yield return null;
+                sw.Restart();
             }
         }
 
@@ -453,21 +530,11 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
             convertRenderTexture = null;
         }
 
-        if (croppedROI != null)
-        {
-            croppedROI.Release();
-            Destroy(croppedROI);
-            croppedROI = null;
-        }
-        /*
-        ============================== UI ==============================
         if (debugPreviewRT != null)
         {
             debugPreviewRT.Release();
             Destroy(debugPreviewRT);
             debugPreviewRT = null;
         }
-        ===================================================================
-        */
     }
 }
