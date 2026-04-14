@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
+
 public class ProcessOCRDetection : MonoBehaviour
 {
     private const int MaskSize = 640;
@@ -71,7 +72,6 @@ public class ProcessOCRDetection : MonoBehaviour
     [SerializeField]
     private int cropTargetWidth = 512;
     */
-    
 
     [SerializeField]
     private Material cropMaterial;
@@ -108,8 +108,8 @@ public class ProcessOCRDetection : MonoBehaviour
 
         // CHANGE MAYBE
         croppedROI = new RenderTexture(
-            tensorTargetWidth, 
-            tensorTargetHeight, 
+            tensorTargetWidth,
+            tensorTargetHeight,
             0,
             RenderTextureFormat.ARGB32
         );
@@ -203,7 +203,7 @@ public class ProcessOCRDetection : MonoBehaviour
 
         // Loop is alive as long as there is work
         while (pendingBatch != null)
-        {   
+        {
             // Save latest batch
             List<YoloRoiTensor> batch = pendingBatch;
             pendingBatch = null;
@@ -263,9 +263,13 @@ public class ProcessOCRDetection : MonoBehaviour
         PipelineProfiler.end("OCR ProcessBFS");
 
         tensor.Dispose();
-        
+
         // Takes the list of bounds and crops the text regions
-        List<CroppedTextRoi> croppedRois = BuildCroppedRecognitionRois(boundingBoxes, frame, parentYoloBounds);
+        List<CroppedTextRoi> croppedRois = BuildCroppedRecognitionRois(
+            boundingBoxes,
+            frame,
+            parentYoloBounds
+        );
 
         // Sends text tensor + relative bounds with frame
         processedRoiBatch.Add(new FrameRoiBatch(croppedRois, frame));
@@ -288,7 +292,7 @@ public class ProcessOCRDetection : MonoBehaviour
     }
 
     /*
-    NOTE : 
+    NOTE :
     These bounding boxes are relative to the ad region from YOLO
     Therefore the coordinates need to be converted to be relative
     to the full frame
@@ -319,9 +323,19 @@ public class ProcessOCRDetection : MonoBehaviour
                 bounds.height / MaskSize
             );
 
-            Rect normalizedFullFrame = ConvertLocalToFullFrameBounds(normalizedLocal, parentYoloBounds);
+            Rect normalizedFullFrame = ConvertLocalToFullFrameBounds(
+                normalizedLocal,
+                parentYoloBounds
+            );
 
-            if (!TextureCropper.CropBoundingBox(normalizedFullFrame, frame.currentTexture, croppedROI, cropMaterial))
+            if (
+                !TextureCropper.CropBoundingBox(
+                    normalizedFullFrame,
+                    frame.currentTexture,
+                    croppedROI,
+                    cropMaterial
+                )
+            )
             {
                 continue;
             }
@@ -419,10 +433,14 @@ public class ProcessOCRDetection : MonoBehaviour
                         visited[ny, nx] = true;
                         queue.Enqueue(new Vector2Int(nx, ny));
 
-                        if (nx < minX) minX = nx;
-                        if (nx > maxX) maxX = nx;
-                        if (ny < minY) minY = ny;
-                        if (ny > maxY) maxY = ny;
+                        if (nx < minX)
+                            minX = nx;
+                        if (nx > maxX)
+                            maxX = nx;
+                        if (ny < minY)
+                            minY = ny;
+                        if (ny > maxY)
+                            maxY = ny;
                     }
 
                     if (workCounter % BfsYieldStride == 0)
@@ -441,12 +459,14 @@ public class ProcessOCRDetection : MonoBehaviour
                     int paddedMaxX = Mathf.Min(w - 1, maxX + PaddingX);
                     int paddedMaxY = Mathf.Min(h - 1, maxY + PaddingY);
 
-                    boxes.Add(new Rect(
-                        paddedMinX,
-                        paddedMinY,
-                        paddedMaxX - paddedMinX + 1,
-                        paddedMaxY - paddedMinY + 1
-                    ));
+                    boxes.Add(
+                        new Rect(
+                            paddedMinX,
+                            paddedMinY,
+                            paddedMaxX - paddedMinX + 1,
+                            paddedMaxY - paddedMinY + 1
+                        )
+                    );
                 }
             }
 

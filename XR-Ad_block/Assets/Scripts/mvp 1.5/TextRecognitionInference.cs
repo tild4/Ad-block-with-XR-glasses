@@ -50,7 +50,6 @@ public class TextRecognitionInference : MonoBehaviour
     [SerializeField]
     private int previewCropWidth = 512;
     */
-    
 
     [SerializeField]
     private Material cropMaterial;
