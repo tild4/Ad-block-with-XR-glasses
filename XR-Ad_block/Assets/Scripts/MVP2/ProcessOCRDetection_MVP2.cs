@@ -30,7 +30,7 @@ using UnityEngine.Rendering;
 public class ProcessOCRDetection_MVP2 : MonoBehaviour
 {
     private const int MaskSize = 640;
-    private const long FrameBudgetMs = 3;
+    // private const long FrameBudgetMs = 3; // Removed: BFS now runs synchronously
     private const int MinBoxWidth = 10;
     private const int MinBoxHeight = 10;
     private const int PaddingX = 4;
@@ -194,10 +194,8 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
         PipelineProfiler.begin("OCR ProcessBFS");
         UnityEngine.Debug.Log($"[OCR] findTextTensor shape: {tensor.shape}");
-        yield return BuildMaskFromTensor(tensor);
-
-        List<Rect> boundingBoxes = null;
-        yield return FindTextBoxesCoroutine(mask, result => boundingBoxes = result);
+        BuildMask(tensor);
+        List<Rect> boundingBoxes = FindTextBoxes(mask);
         PipelineProfiler.end("OCR ProcessBFS");
 
         tensor.Dispose();
@@ -229,7 +227,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         sendCroppedROIText?.Invoke(advertisementWithTensors);
     }
 
-    private IEnumerator BuildMaskFromTensor(Tensor<float> tensor)
+    private void BuildMask(Tensor<float> tensor)
     {
         var sw = Stopwatch.StartNew();
         float maxVal = 0f;
@@ -245,15 +243,9 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                 if (above) aboveCount++;
                 mask[y, x] = above;
             }
-
-            if (sw.ElapsedMilliseconds >= FrameBudgetMs)
-            {
-                yield return null;
-                sw.Restart();
-            }
         }
 
-        UnityEngine.Debug.Log($"[OCR Mask] maxVal={maxVal:F4}, aboveThreshold={aboveCount}/{MaskSize * MaskSize}, threshold={maskThreshold}");
+        UnityEngine.Debug.Log($"[OCR Mask] maxVal={maxVal:F4}, aboveThreshold={aboveCount}/{MaskSize * MaskSize}, threshold={maskThreshold}, time={sw.ElapsedMilliseconds}ms");
     }
 
     /*
@@ -432,10 +424,12 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
     /*
         Connected-component search over the threshold mask.
-        Yields periodically so one large mask does not block the main thread.
+        Runs synchronously — profile via the log to verify timing.
     */
-    private IEnumerator FindTextBoxesCoroutine(bool[,] inputMask, Action<List<Rect>> onComplete)
+    private List<Rect> FindTextBoxes(bool[,] inputMask)
     {
+        var sw = Stopwatch.StartNew();
+
         int h = inputMask.GetLength(0);
         int w = inputMask.GetLength(1);
 
@@ -444,8 +438,6 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
         int[] dx = { -1, 0, 1, -1, 1, -1, 0, 1 };
         int[] dy = { -1, -1, -1, 0, 0, 1, 1, 1 };
-
-        var sw = Stopwatch.StartNew();
 
         for (int y = 0; y < h; y++)
         {
@@ -496,12 +488,6 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                         if (ny > maxY)
                             maxY = ny;
                     }
-
-                    if (sw.ElapsedMilliseconds >= FrameBudgetMs)
-                    {
-                        yield return null;
-                        sw.Restart();
-                    }
                 }
 
                 int width = maxX - minX + 1;
@@ -524,15 +510,10 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                     );
                 }
             }
-
-            if (sw.ElapsedMilliseconds >= FrameBudgetMs)
-            {
-                yield return null;
-                sw.Restart();
-            }
         }
 
-        onComplete?.Invoke(boxes);
+        UnityEngine.Debug.Log($"[OCR BFS] Found {boxes.Count} text boxes, time={sw.ElapsedMilliseconds}ms");
+        return boxes;
     }
 
     private void OnDestroy()
