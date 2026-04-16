@@ -291,7 +291,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
             RenderTexture tempCrop = RenderTexture.GetTemporary(cropW, cropH, 0, RenderTextureFormat.ARGB32);
 
             if (
-                !TextureCropper.CropBoundingBox(
+                !TextureCropper.CropBoundingBoxTopLeft(
                     normalizedLocal,
                     roiSnapshot,
                     tempCrop,

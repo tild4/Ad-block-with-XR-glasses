@@ -201,7 +201,7 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
                 continue;
             }
 
-            if (!TextureCropper.CropBoundingBox(bbox, texture, croppedROI, cropMaterial))
+            if (!TextureCropper.CropBoundingBoxTopLeft(bbox, texture, croppedROI, cropMaterial))
             {
                 continue;
             }
