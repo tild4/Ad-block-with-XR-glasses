@@ -33,4 +33,5 @@ public struct DetectionData
     public float confidence;
     public FrameData frame;
     public Tensor<float> RoiTensor;
+    public RenderTexture RoiSnapshot; // Persistent copy of the YOLO ROI crop for OCR
 }

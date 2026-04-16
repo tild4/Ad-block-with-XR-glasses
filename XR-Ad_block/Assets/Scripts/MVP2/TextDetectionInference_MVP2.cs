@@ -117,10 +117,24 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
     private IEnumerator RunInference(TrackedObject advertisement)
     {
         Tensor<float> inputTensor = advertisement.lastDetection.RoiTensor;
-        Rect bounds = advertisement.lastDetection.bboxNormalized;
+
+        /*
+            Freeze the ROI snapshot and YOLO bounds before any yield.
+            TrackedObject.lastDetection is updated every YOLO frame,
+            so we capture these values now while they still match the RoiTensor.
+            Setting RoiSnapshot to null transfers ownership to the OCR pipeline.
+        */
+        RenderTexture roiSnapshot = advertisement.lastDetection.RoiSnapshot;
+        Rect yoloBounds = advertisement.lastDetection.bboxNormalized;
+        advertisement.lastDetection.RoiSnapshot = null;
 
         if (inputTensor == null || worker == null)
         {
+            if (roiSnapshot != null)
+            {
+                roiSnapshot.Release();
+                Destroy(roiSnapshot);
+            }
             yield return null;
             yield break;
         }
@@ -139,18 +153,21 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
 
         PipelineProfiler.end("OCR TextDetect");
 
-        //inputTensor.Dispose();
-
         Tensor<float> outputTensor = outputAwaiter.GetResult();
 
         if (outputTensor == null)
         {
+            if (roiSnapshot != null)
+            {
+                roiSnapshot.Release();
+                Destroy(roiSnapshot);
+            }
             yield break;
         }
 
-        //advertisement.findTextTensor = outputTensor;
-
-        DetectionsPerAd findDetections = new DetectionsPerAd(advertisement, outputTensor);
+        DetectionsPerAd findDetections = new DetectionsPerAd(
+            advertisement, outputTensor, roiSnapshot, yoloBounds
+        );
 
         findTextRegions?.Invoke(findDetections);
         Debug.Log(

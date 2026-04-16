@@ -25,12 +25,10 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
     [SerializeField]
     private SentisInferenceManager sentisInferenceManager;
 
-    /*
-    ============================== UI ==============================
-    [SerializeField] private ViewCroppedImage viewCroppedImage;
+    [SerializeField]
+    private ViewCroppedImage viewCroppedImage;
+
     private RenderTexture debugPreviewRT;
-    ===================================================================
-    */
 
     [SerializeField]
     private Material cropMaterial;
@@ -92,8 +90,6 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
         processedDetections = new List<DetectionData>();
         detectionDataBuffer = new List<DetectionData>();
 
-        /*
-        ============================== UI ==============================
         debugPreviewRT = new RenderTexture(
             tensorTargetWidth,
             tensorTargetHeight,
@@ -102,8 +98,6 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
         );
 
         debugPreviewRT.Create();
-        ===================================================================
-        */
     }
 
     private void OnEnable()
@@ -212,6 +206,18 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
                 continue;
             }
 
+            Graphics.Blit(croppedROI, debugPreviewRT);
+            viewCroppedImage?.Show(debugPreviewRT);
+            viewCroppedImage?.SetDetectedWord(string.Empty);
+
+            // Save a persistent copy of the ROI crop for OCR.
+            // croppedROI is reused per detection, so each needs its own snapshot.
+            RenderTexture snapshot = new RenderTexture(
+                tensorTargetWidth, tensorTargetHeight, 0, RenderTextureFormat.ARGB32
+            );
+            snapshot.Create();
+            Graphics.Blit(croppedROI, snapshot);
+
             PipelineProfiler.set("TensorContext", "YOLOPost");
             Tensor<float> roiTensor = ConvertToTensor.convert(
                 croppedROI,
@@ -224,6 +230,7 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
             if (roiTensor != null)
             {
                 result.RoiTensor = roiTensor;
+                result.RoiSnapshot = snapshot;
                 // update min/max normalized in case ClampNormalizedRect adjusted values
                 result.bboxMinMaxNormalized = new Vector4(
                     bbox.xMin,
@@ -232,6 +239,11 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
                     bbox.yMax
                 );
                 processedDetections.Add(result);
+            }
+            else
+            {
+                snapshot.Release();
+                Destroy(snapshot);
             }
         }
     }
@@ -341,6 +353,11 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
             foreach (var item in processedDetections)
             {
                 item.RoiTensor?.Dispose();
+                if (item.RoiSnapshot != null)
+                {
+                    item.RoiSnapshot.Release();
+                    Destroy(item.RoiSnapshot);
+                }
             }
 
             processedDetections.Clear();
@@ -366,15 +383,11 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
             croppedROI = null;
         }
 
-        /*
-        ============================== UI ==============================
         if (debugPreviewRT != null)
         {
             debugPreviewRT.Release();
             Destroy(debugPreviewRT);
             debugPreviewRT = null;
         }
-        ===================================================================
-        */
     }
 }

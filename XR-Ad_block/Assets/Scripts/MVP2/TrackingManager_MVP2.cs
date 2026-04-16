@@ -147,9 +147,25 @@ public class TrackingManager_MVP2 : MonoBehaviour
                 catch (Exception) { }
             }
 
+            // Release old ROI snapshot if still present (OCR pipeline didn't claim it)
+            var prevSnapshot = matchedObject.lastDetection.RoiSnapshot;
+            if (prevSnapshot != null && prevSnapshot != detection.RoiSnapshot)
+            {
+                prevSnapshot.Release();
+                Destroy(prevSnapshot);
+            }
+
             // Update the object
             matchedObject.lastDetection = detection;
             matchedObject.timeToLive = timeToLive; // Reset TTL
+
+            // Analyzed objects don't need OCR; release snapshot immediately
+            if (matchedObject.isAnalyzed && matchedObject.lastDetection.RoiSnapshot != null)
+            {
+                matchedObject.lastDetection.RoiSnapshot.Release();
+                Destroy(matchedObject.lastDetection.RoiSnapshot);
+                matchedObject.lastDetection.RoiSnapshot = null;
+            }
 
             // If this is a new object and hasn't been analyzed, send for OCR
             if (!matchedObject.isAnalyzed)
@@ -409,6 +425,12 @@ public class TrackingManager_MVP2 : MonoBehaviour
                 obj.lastDetection.RoiTensor?.Dispose();
             }
             catch (Exception) { }
+
+            if (obj.lastDetection.RoiSnapshot != null)
+            {
+                obj.lastDetection.RoiSnapshot.Release();
+                Destroy(obj.lastDetection.RoiSnapshot);
+            }
         }
 
         trackedObjects.RemoveAll(obj => obj.timeToLive <= 0);
@@ -419,7 +441,7 @@ public class TrackingManager_MVP2 : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Dispose any tensors still held by tracked objects
+        // Dispose any tensors and snapshots still held by tracked objects
         foreach (var obj in trackedObjects)
         {
             try
@@ -427,6 +449,12 @@ public class TrackingManager_MVP2 : MonoBehaviour
                 obj.lastDetection.RoiTensor?.Dispose();
             }
             catch (Exception) { }
+
+            if (obj.lastDetection.RoiSnapshot != null)
+            {
+                obj.lastDetection.RoiSnapshot.Release();
+                Destroy(obj.lastDetection.RoiSnapshot);
+            }
         }
     }
 

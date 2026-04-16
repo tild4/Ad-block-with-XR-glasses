@@ -177,11 +177,12 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
     private IEnumerator ProcessDetectionOCR(DetectionsPerAd advertisement)
     {
         Tensor<float> tensor = advertisement.findTextTensor;
-        Rect parentYoloBounds = advertisement.trackedObject.lastDetection.bboxNormalized;
-        Texture parentTexture = advertisement.trackedObject.lastDetection.frame.currentTexture;
+        RenderTexture roiSnapshot = advertisement.roiSnapshot;
+        Rect yoloBounds = advertisement.yoloBounds;
 
-        if (tensor == null)
+        if (tensor == null || roiSnapshot == null)
         {
+            tensor?.Dispose();
             yield break;
         }
 
@@ -204,12 +205,22 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         // Merge nearby boxes on the same text line into full words/sentences
         boundingBoxes = MergeBoxesOnSameLine(boundingBoxes);
 
-        // Takes the list of bounds and crops the text regions
+        if (boundingBoxes == null || boundingBoxes.Count == 0)
+        {
+            UnityEngine.Debug.Log("[OCR] No text boxes found in current ad crop.");
+            viewCroppedImage?.SetDetectedWord("No text detected");
+        }
+
+        // Takes the list of bounds and crops the text regions from the frozen ROI snapshot
         List<TextTensor> croppedRois = BuildCroppedRecognitionRois(
             boundingBoxes,
-            parentYoloBounds,
-            parentTexture
+            roiSnapshot,
+            yoloBounds
         );
+
+        // Release the snapshot now that all text regions have been cropped
+        roiSnapshot.Release();
+        Destroy(roiSnapshot);
 
         TextTensorsPerAd advertisementWithTensors = new TextTensorsPerAd(
             advertisement.trackedObject,
@@ -247,26 +258,30 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
     /*
     NOTE :
-    These bounding boxes are relative to the ad region from YOLO
-    Therefore the coordinates need to be converted to be relative
-    to the full frame
+    These bounding boxes are relative to the 640×640 ROI from YOLO.
+    We crop directly from the frozen ROI snapshot using local coordinates.
+    Full-frame coordinates are only computed for debug visualization.
     */
     private List<TextTensor> BuildCroppedRecognitionRois(
         List<Rect> boundingBoxes,
-        Rect parentYoloBounds,
-        Texture parentTexture
+        RenderTexture roiSnapshot,
+        Rect yoloBounds
     )
     {
         List<TextTensor> croppedRois = new List<TextTensor>();
 
         /*
         For each detected text region in the ad:
-        1. Normalize cooridinates for TextureCropper
-        2. Convert the coordinates relative to the ad region to coordinates relative to the full frame
-        3. Crop the text region
-        4. Convert it to a tensor
-        5. Include the relative bounds in emission for debuggning purposes / to view cropped text region
+        1. Normalize coordinates for TextureCropper
+        2. Crop from the frozen ROI snapshot (not the live camera frame)
+        3. Convert it to a tensor
+        4. Compute full-frame bounds for debug visualization
         */
+
+        if (boundingBoxes == null || boundingBoxes.Count == 0)
+        {
+            return croppedRois;
+        }
 
         foreach (Rect bounds in boundingBoxes)
         {
@@ -278,20 +293,15 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                 bounds.height / MaskSize
             );
 
-            Rect normalizedFullFrame = ConvertLocalToFullFrameBounds(
-                normalizedLocal,
-                parentYoloBounds
-            );
-
-            // Crop at natural resolution to preserve aspect ratio
-            int cropW = Mathf.Max(1, Mathf.RoundToInt(normalizedFullFrame.width * parentTexture.width));
-            int cropH = Mathf.Max(1, Mathf.RoundToInt(normalizedFullFrame.height * parentTexture.height));
+            // Crop from the frozen ROI snapshot (640×640) instead of the live camera frame
+            int cropW = Mathf.Max(1, Mathf.RoundToInt(normalizedLocal.width * roiSnapshot.width));
+            int cropH = Mathf.Max(1, Mathf.RoundToInt(normalizedLocal.height * roiSnapshot.height));
             RenderTexture tempCrop = RenderTexture.GetTemporary(cropW, cropH, 0, RenderTextureFormat.ARGB32);
 
             if (
                 !TextureCropper.CropBoundingBox(
-                    normalizedFullFrame,
-                    parentTexture,
+                    normalizedLocal,
+                    roiSnapshot,
                     tempCrop,
                     cropMaterial
                 )
@@ -318,11 +328,21 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
             if (roiTensor != null)
             {
+                // Full-frame coordinates for debug visualization
+                Rect normalizedFullFrame = ConvertLocalToFullFrameBounds(
+                    normalizedLocal, yoloBounds
+                );
                 croppedRois.Add(new TextTensor(roiTensor, normalizedFullFrame));
             }
         }
 
         UnityEngine.Debug.Log($"[OCR Crop] Successfully cropped {croppedRois.Count} word regions from the ad.");
+
+        if (croppedRois.Count == 0)
+        {
+            viewCroppedImage?.SetDetectedWord("No text detected");
+        }
+
         return croppedRois;
     }
 
