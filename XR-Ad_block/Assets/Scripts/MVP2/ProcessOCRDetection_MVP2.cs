@@ -51,6 +51,9 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
     [SerializeField]
     private float maskThreshold = 0.3f;
 
+    [SerializeField]
+    private float unclipRatio = 1.5f;
+
     /*
         OCR recognition model input:
         [DynamicDimension.0, 3, 48, DynamicDimension.1] in NCHW format.
@@ -523,25 +526,37 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
                 if (width > MinBoxWidth && height > MinBoxHeight)
                 {
-                    int paddedMinX = Mathf.Max(0, minX - PaddingX);
-                    int paddedMinY = Mathf.Max(0, minY - PaddingY);
-                    int paddedMaxX = Mathf.Min(w - 1, maxX + PaddingX);
-                    int paddedMaxY = Mathf.Min(h - 1, maxY + PaddingY);
-
-                    boxes.Add(
-                        new Rect(
-                            paddedMinX,
-                            paddedMinY,
-                            paddedMaxX - paddedMinX + 1,
-                            paddedMaxY - paddedMinY + 1
-                        )
-                    );
+                    boxes.Add(ExpandRect(minX, minY, maxX, maxY, w, h));
                 }
             }
         }
 
         UnityEngine.Debug.Log($"[OCR BFS] Found {boxes.Count} text boxes, time={sw.ElapsedMilliseconds}ms");
         return boxes;
+    }
+
+    private Rect ExpandRect(int minX, int minY, int maxX, int maxY, int width, int height)
+    {
+        float boxWidth = maxX - minX + 1f;
+        float boxHeight = maxY - minY + 1f;
+        float area = boxWidth * boxHeight;
+        float perimeter = Mathf.Max(1f, 2f * (boxWidth + boxHeight));
+        int dynamicPad = Mathf.CeilToInt((area * Mathf.Max(0f, unclipRatio - 1f)) / perimeter);
+
+        int padX = PaddingX + dynamicPad;
+        int padY = PaddingY + dynamicPad;
+
+        int paddedMinX = Mathf.Max(0, minX - padX);
+        int paddedMinY = Mathf.Max(0, minY - padY);
+        int paddedMaxX = Mathf.Min(width - 1, maxX + padX);
+        int paddedMaxY = Mathf.Min(height - 1, maxY + padY);
+
+        return new Rect(
+            paddedMinX,
+            paddedMinY,
+            paddedMaxX - paddedMinX + 1,
+            paddedMaxY - paddedMinY + 1
+        );
     }
 
     private void OnDestroy()
