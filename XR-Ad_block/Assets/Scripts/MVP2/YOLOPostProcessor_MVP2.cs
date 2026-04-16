@@ -167,6 +167,7 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
                 bboxPixels = ConvertToPixelCoordinates(bbox, frame.currentResolution),
                 confidence = conf,
                 frame = frame,
+                RoiContentRectNormalized = new Rect(0f, 0f, 1f, 1f),
             };
 
             detectionDataBuffer.Add(data);
@@ -216,11 +217,11 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
                 tensorTargetWidth, tensorTargetHeight, 0, RenderTextureFormat.ARGB32
             );
             snapshot.Create();
-            Graphics.Blit(croppedROI, snapshot);
+            Rect contentRect = ConvertToTensor.BlitWithAspectPad(croppedROI, snapshot, commandBuffer);
 
             PipelineProfiler.set("TensorContext", "YOLOPost");
             Tensor<float> roiTensor = ConvertToTensor.convert(
-                croppedROI,
+                snapshot,
                 convertRenderTexture,
                 tensorTargetHeight,
                 tensorTargetWidth,
@@ -229,8 +230,10 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
 
             if (roiTensor != null)
             {
+                result.bboxNormalized = bbox;
                 result.RoiTensor = roiTensor;
                 result.RoiSnapshot = snapshot;
+                result.RoiContentRectNormalized = contentRect;
                 // update min/max normalized in case ClampNormalizedRect adjusted values
                 result.bboxMinMaxNormalized = new Vector4(
                     bbox.xMin,

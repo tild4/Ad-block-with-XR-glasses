@@ -124,6 +124,7 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
             so we capture these values now while they still match the RoiTensor.
             Setting RoiSnapshot to null transfers ownership to the OCR pipeline.
         */
+        Rect roiContentRect = advertisement.lastDetection.RoiContentRectNormalized;
         RenderTexture roiSnapshot = advertisement.lastDetection.RoiSnapshot;
         Rect yoloBounds = advertisement.lastDetection.bboxNormalized;
         advertisement.lastDetection.RoiSnapshot = null;
@@ -166,7 +167,7 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         }
 
         DetectionsPerAd findDetections = new DetectionsPerAd(
-            advertisement, outputTensor, roiSnapshot, yoloBounds
+            advertisement, outputTensor, roiSnapshot, yoloBounds, roiContentRect
         );
 
         findTextRegions?.Invoke(findDetections);

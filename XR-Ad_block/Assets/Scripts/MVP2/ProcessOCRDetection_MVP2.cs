@@ -179,6 +179,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         Tensor<float> tensor = advertisement.findTextTensor;
         RenderTexture roiSnapshot = advertisement.roiSnapshot;
         Rect yoloBounds = advertisement.yoloBounds;
+        Rect roiContentRect = advertisement.roiContentRectNormalized;
 
         if (tensor == null || roiSnapshot == null)
         {
@@ -213,7 +214,8 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         List<TextTensor> croppedRois = BuildCroppedRecognitionRois(
             boundingBoxes,
             roiSnapshot,
-            yoloBounds
+            yoloBounds,
+            roiContentRect
         );
 
         // Release the snapshot now that all text regions have been cropped
@@ -257,7 +259,8 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
     private List<TextTensor> BuildCroppedRecognitionRois(
         List<Rect> boundingBoxes,
         RenderTexture roiSnapshot,
-        Rect yoloBounds
+        Rect yoloBounds,
+        Rect roiContentRectNormalized
     )
     {
         List<TextTensor> croppedRois = new List<TextTensor>();
@@ -321,8 +324,13 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
             if (roiTensor != null)
             {
                 // Full-frame coordinates for debug visualization
+                Rect normalizedContentRect = ConvertModelRectToContentRect(
+                    normalizedLocal,
+                    roiContentRectNormalized
+                );
                 Rect normalizedFullFrame = ConvertLocalToFullFrameBounds(
-                    normalizedLocal, yoloBounds
+                    normalizedContentRect,
+                    yoloBounds
                 );
                 croppedRois.Add(new TextTensor(roiTensor, normalizedFullFrame));
             }
@@ -336,6 +344,26 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         }
 
         return croppedRois;
+    }
+
+    private Rect ConvertModelRectToContentRect(Rect modelRect, Rect contentRect)
+    {
+        if (contentRect.width <= 1e-5f || contentRect.height <= 1e-5f)
+        {
+            return modelRect;
+        }
+
+        float localXMin = Mathf.InverseLerp(contentRect.xMin, contentRect.xMax, modelRect.xMin);
+        float localXMax = Mathf.InverseLerp(contentRect.xMin, contentRect.xMax, modelRect.xMax);
+        float localYMin = Mathf.InverseLerp(contentRect.yMin, contentRect.yMax, modelRect.yMin);
+        float localYMax = Mathf.InverseLerp(contentRect.yMin, contentRect.yMax, modelRect.yMax);
+
+        localXMin = Mathf.Clamp01(localXMin);
+        localXMax = Mathf.Clamp01(localXMax);
+        localYMin = Mathf.Clamp01(localYMin);
+        localYMax = Mathf.Clamp01(localYMax);
+
+        return Rect.MinMaxRect(localXMin, localYMin, localXMax, localYMax);
     }
 
     private Rect ConvertLocalToFullFrameBounds(Rect normalizedLocal, Rect parentYoloBounds)
