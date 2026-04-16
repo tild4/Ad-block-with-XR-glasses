@@ -47,9 +47,13 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
     // Reused threshold mask for OCR text-detection output.
     private readonly bool[,] mask = new bool[MaskSize, MaskSize];
+    private readonly float[,] scoreMap = new float[MaskSize, MaskSize];
 
     [SerializeField]
     private float maskThreshold = 0.3f;
+
+    [SerializeField]
+    private float boxScoreThreshold = 0.6f;
 
     [SerializeField]
     private float unclipRatio = 1.5f;
@@ -199,7 +203,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         PipelineProfiler.begin("OCR ProcessBFS");
         UnityEngine.Debug.Log($"[OCR] findTextTensor shape: {tensor.shape}");
         BuildMask(tensor);
-        List<Rect> boundingBoxes = FindTextBoxes(mask);
+        List<Rect> boundingBoxes = FindTextBoxes(mask, scoreMap);
         PipelineProfiler.end("OCR ProcessBFS");
 
         tensor.Dispose();
@@ -247,6 +251,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                 bool above = v > maskThreshold;
                 if (above) aboveCount++;
                 mask[y, x] = above;
+                scoreMap[y, x] = v;
             }
         }
 
@@ -457,7 +462,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         Connected-component search over the threshold mask.
         Runs synchronously — profile via the log to verify timing.
     */
-    private List<Rect> FindTextBoxes(bool[,] inputMask)
+    private List<Rect> FindTextBoxes(bool[,] inputMask, float[,] inputScores)
     {
         var sw = Stopwatch.StartNew();
 
@@ -487,6 +492,8 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                 int maxX = x;
                 int minY = y;
                 int maxY = y;
+                float scoreSum = inputScores[y, x];
+                int pixelCount = 1;
 
                 while (queue.Count > 0)
                 {
@@ -509,6 +516,8 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
                         visited[ny, nx] = true;
                         queue.Enqueue(new Vector2Int(nx, ny));
+                        scoreSum += inputScores[ny, nx];
+                        pixelCount++;
 
                         if (nx < minX)
                             minX = nx;
@@ -523,8 +532,13 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
                 int width = maxX - minX + 1;
                 int height = maxY - minY + 1;
+                float averageScore = scoreSum / Mathf.Max(1, pixelCount);
 
-                if (width > MinBoxWidth && height > MinBoxHeight)
+                if (
+                    width > MinBoxWidth
+                    && height > MinBoxHeight
+                    && averageScore >= boxScoreThreshold
+                )
                 {
                     boxes.Add(ExpandRect(minX, minY, maxX, maxY, w, h));
                 }
