@@ -202,22 +202,37 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
                 continue;
             }
 
-            if (!TextureCropper.CropBoundingBoxTopLeft(bbox, texture, croppedROI, cropMaterial))
+            // Crop at the ad's natural pixel resolution to preserve aspect ratio.
+            // Previously we cropped into the fixed 640×640 croppedROI, which
+            // stretched non-square ads and distorted the text (making it blurry
+            // and harder for OCR to recognize). Now we crop at native resolution
+            // first, then BlitWithAspectPad pads it into 640×640 with black bars.
+            int naturalW = Mathf.Max(1, Mathf.RoundToInt(bbox.width * texture.width));
+            int naturalH = Mathf.Max(1, Mathf.RoundToInt(bbox.height * texture.height));
+            RenderTexture naturalCrop = RenderTexture.GetTemporary(
+                naturalW, naturalH, 0, RenderTextureFormat.ARGB32
+            );
+
+            if (!TextureCropper.CropBoundingBoxTopLeft(bbox, texture, naturalCrop, cropMaterial))
             {
+                RenderTexture.ReleaseTemporary(naturalCrop);
                 continue;
             }
 
-            Graphics.Blit(croppedROI, debugPreviewRT);
+            Graphics.Blit(naturalCrop, debugPreviewRT);
             //viewCroppedImage?.Show(debugPreviewRT);
             //viewCroppedImage?.SetDetectedWord(string.Empty);
 
             // Save a persistent copy of the ROI crop for OCR.
-            // croppedROI is reused per detection, so each needs its own snapshot.
+            // BlitWithAspectPad scales the
+            // natural-resolution crop to fit inside 640×640 while preserving
+            // aspect ratio, with black padding around the shorter dimension.
             RenderTexture snapshot = new RenderTexture(
                 tensorTargetWidth, tensorTargetHeight, 0, RenderTextureFormat.ARGB32
             );
             snapshot.Create();
-            Rect contentRect = ConvertToTensor.BlitWithAspectPad(croppedROI, snapshot, commandBuffer);
+            Rect contentRect = ConvertToTensor.BlitWithAspectPad(naturalCrop, snapshot, commandBuffer);
+            RenderTexture.ReleaseTemporary(naturalCrop);
 
             PipelineProfiler.set("TensorContext", "YOLOPost");
             Tensor<float> roiTensor = ConvertToTensor.convert(
