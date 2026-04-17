@@ -140,8 +140,14 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
             yield break;
         }
 
+        // PP-OCR expects BGR channel order + ImageNet normalization.
+        // Unity's tensor conversion produces RGB values in [0,1].
+        PipelineProfiler.begin("OCR Preprocess");
+        Tensor<float> normalizedInput = NormalizeForPPOCR(inputTensor);
+        PipelineProfiler.end("OCR Preprocess");
+
         PipelineProfiler.begin("OCR TextDetect");
-        worker.Schedule(inputTensor);
+        worker.Schedule(normalizedInput);
 
         var outputAwaiter = (worker.PeekOutput(0) as Tensor<float>)
             .ReadbackAndCloneAsync()
@@ -153,6 +159,7 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         }
 
         PipelineProfiler.end("OCR TextDetect");
+        normalizedInput.Dispose();
 
         Tensor<float> outputTensor = outputAwaiter.GetResult();
 
@@ -174,6 +181,51 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         Debug.Log(
             $"[TextDetect] Heatmap generated for Object {advertisement.id}. Sending to ProcessOCRDetection."
         );
+    }
+
+    /*
+        Normalizes an RGB [0,1] tensor for PP-OCR text detection.
+        PP-OCR expects BGR channel order + ImageNet normalization:
+        output = (pixel - mean) / std
+    */
+    private Tensor<float> NormalizeForPPOCR(Tensor<float> rgbTensor)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        Tensor<float> cpuTensor = rgbTensor.ReadbackAndClone();
+
+        int height = cpuTensor.shape[2];
+        int width = cpuTensor.shape[3];
+
+        const float meanB = 0.485f;
+        const float meanG = 0.456f;
+        const float meanR = 0.406f;
+        const float stdB = 0.229f;
+        const float stdG = 0.224f;
+        const float stdR = 0.225f;
+
+        Tensor<float> result = new Tensor<float>(new TensorShape(1, 3, height, width));
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float r = cpuTensor[0, 0, y, x];
+                float g = cpuTensor[0, 1, y, x];
+                float b = cpuTensor[0, 2, y, x];
+
+                result[0, 0, y, x] = (b - meanB) / stdB;
+                result[0, 1, y, x] = (g - meanG) / stdG;
+                result[0, 2, y, x] = (r - meanR) / stdR;
+            }
+        }
+
+        cpuTensor.Dispose();
+
+        Debug.Log(
+            $"[OCR Preprocess] Normalized {height}x{width} RGB->BGR tensor in {sw.ElapsedMilliseconds}ms"
+        );
+        return result;
     }
 
     private void OnDestroy()
