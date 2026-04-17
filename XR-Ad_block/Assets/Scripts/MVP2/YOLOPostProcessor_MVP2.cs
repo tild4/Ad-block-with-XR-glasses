@@ -208,8 +208,8 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
             }
 
             Graphics.Blit(croppedROI, debugPreviewRT);
-            viewCroppedImage?.Show(debugPreviewRT);
-            viewCroppedImage?.SetDetectedWord(string.Empty);
+            //viewCroppedImage?.Show(debugPreviewRT);
+            //viewCroppedImage?.SetDetectedWord(string.Empty);
 
             // Save a persistent copy of the ROI crop for OCR.
             // croppedROI is reused per detection, so each needs its own snapshot.
