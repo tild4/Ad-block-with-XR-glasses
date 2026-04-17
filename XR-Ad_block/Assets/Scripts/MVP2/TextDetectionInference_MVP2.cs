@@ -95,10 +95,24 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         }
     }
 
+    /*
+        FIX: Previously this method returned silently when the tensor was null,
+        which meant findTextRegions was never fired. OCRPipelineManager listens
+        to findTextRegions to reset its isProcessing flag — so a silent return
+        here caused a permanent deadlock (the queue kept growing but nothing
+        was ever dequeued again).
+
+        Now we always fire findTextRegions with an empty DetectionsPerAd so the
+        pipeline manager can move on to the next queued item.
+    */
     private void HandleNewTrackedObject(TrackedObject advertisement)
     {
         if (advertisement == null || advertisement.lastDetection.RoiTensor == null)
         {
+            // Signal completion with an empty result so that
+            // OCRPipelineManager.OnOcrFinished resets isProcessing.
+            Debug.LogWarning($"[TextDetect] Skipping null/disposed object, signalling completion.");
+            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero));
             return;
         }
         StartCoroutine(RunOCRDetection(advertisement));
@@ -116,18 +130,35 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
 
     private IEnumerator RunInference(TrackedObject advertisement)
     {
-        Tensor<float> inputTensor = advertisement.lastDetection.RoiTensor;
+        Tensor<float> inputTensor = null;
+        RenderTexture roiSnapshot = null;
+        Rect roiContentRect = Rect.zero;
+        Rect yoloBounds = Rect.zero;
 
-        /*
-            Freeze the ROI snapshot and YOLO bounds before any yield.
-            TrackedObject.lastDetection is updated every YOLO frame,
-            so we capture these values now while they still match the RoiTensor.
-            Setting RoiSnapshot to null transfers ownership to the OCR pipeline.
-        */
-        Rect roiContentRect = advertisement.lastDetection.RoiContentRectNormalized;
-        RenderTexture roiSnapshot = advertisement.lastDetection.RoiSnapshot;
-        Rect yoloBounds = advertisement.lastDetection.bboxNormalized;
-        advertisement.lastDetection.RoiSnapshot = null;
+        // Capture values immediately before any yield.
+        // TrackedObject.lastDetection is updated every YOLO frame (it's a shared
+        // reference), so we freeze snapshot/bounds/tensor NOW while they still
+        // correspond to each other. After a yield, lastDetection may already
+        // point to a newer frame's data.
+        //
+        // FIX: Wrapped in try/catch because TrackedObject may have expired
+        // (TTL) between being dequeued and reaching this point. In that case
+        // its tensor could be disposed, causing an ObjectDisposedException.
+        // Without this catch the coroutine would die silently and
+        // findTextRegions would never fire, deadlocking the pipeline.
+        try
+        {
+            inputTensor = advertisement.lastDetection.RoiTensor;
+            roiContentRect = advertisement.lastDetection.RoiContentRectNormalized;
+            roiSnapshot = advertisement.lastDetection.RoiSnapshot;
+            yoloBounds = advertisement.lastDetection.bboxNormalized;
+            // Setting RoiSnapshot to null transfers ownership to the OCR pipeline.
+            advertisement.lastDetection.RoiSnapshot = null;
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[TextDetect] Failed to capture detection data for Object {advertisement.id}: {e.Message}");
+        }
 
         if (inputTensor == null || worker == null)
         {
@@ -136,15 +167,39 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
                 roiSnapshot.Release();
                 Destroy(roiSnapshot);
             }
-            yield return null;
+            // Always signal completion so OCRPipelineManager.OnOcrFinished
+            // resets isProcessing. Without this the pipeline permanently deadlocks.
+            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero));
             yield break;
         }
 
+        Tensor<float> normalizedInput = null;
+        Tensor<float> outputTensor = null;
+        bool inferenceSucceeded = false;
+
         // PP-OCR expects BGR channel order + ImageNet normalization.
         // Unity's tensor conversion produces RGB values in [0,1].
-        PipelineProfiler.begin("OCR Preprocess");
-        Tensor<float> normalizedInput = NormalizeForPPOCR(inputTensor);
-        PipelineProfiler.end("OCR Preprocess");
+        // FIX: Wrapped in try/catch — if the input tensor was disposed by
+        // TrackingManager between the null-check above and this point
+        // (race with TTL expiry), ReadbackAndClone inside NormalizeForPPOCR
+        // would throw. We catch it and signal completion to keep the pipeline alive.
+        try
+        {
+            PipelineProfiler.begin("OCR Preprocess");
+            normalizedInput = NormalizeForPPOCR(inputTensor);
+            PipelineProfiler.end("OCR Preprocess");
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[TextDetect] Preprocessing failed for Object {advertisement.id}: {e.Message}");
+            if (roiSnapshot != null)
+            {
+                roiSnapshot.Release();
+                Destroy(roiSnapshot);
+            }
+            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero));
+            yield break;
+        }
 
         PipelineProfiler.begin("OCR TextDetect");
         worker.Schedule(normalizedInput);
@@ -161,15 +216,28 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         PipelineProfiler.end("OCR TextDetect");
         normalizedInput.Dispose();
 
-        Tensor<float> outputTensor = outputAwaiter.GetResult();
+        // FIX: Wrapped GetResult in try/catch — the async readback can fail
+        // if the GPU resource was released during the wait (e.g. scene unload).
+        // On failure we signal completion to prevent pipeline deadlock.
+        try
+        {
+            outputTensor = outputAwaiter.GetResult();
+            inferenceSucceeded = outputTensor != null;
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[TextDetect] Inference readback failed for Object {advertisement.id}: {e.Message}");
+        }
 
-        if (outputTensor == null)
+        if (!inferenceSucceeded)
         {
             if (roiSnapshot != null)
             {
                 roiSnapshot.Release();
                 Destroy(roiSnapshot);
             }
+            // Same pattern: always signal completion to unblock the queue.
+            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero));
             yield break;
         }
 
