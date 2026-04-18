@@ -1,16 +1,25 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class StartScreenUI : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [SerializeField] private Button startButton;
+    [SerializeField] private Button optionsButton;
+    [SerializeField] private OptionsUI optionsUI;
+
+    private void Awake()
     {
-        
+        startButton.onClick.AddListener(OnStart);
+        optionsButton.onClick.AddListener(OnOptions);
     }
 
-    // Update is called once per frame
-    void Update()
+    private void OnStart()
     {
-        
+        AppStateManager.Instance.OnStartPressed();
+    }
+
+    private void OnOptions()
+    {
+        optionsUI.gameObject.SetActive(true);
     }
 }
