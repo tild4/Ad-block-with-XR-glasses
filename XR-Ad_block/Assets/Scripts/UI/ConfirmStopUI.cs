@@ -1,16 +1,15 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class ConfirmStopUI : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [SerializeField] private Button yesButton;
+    [SerializeField] private Button noButton;
+
+    private void Awake()
     {
-        
+        yesButton.onClick.AddListener(() => AppStateManager.Instance.OnConfirmYes());
+        noButton.onClick.AddListener(() => AppStateManager.Instance.OnConfirmNo());
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }
