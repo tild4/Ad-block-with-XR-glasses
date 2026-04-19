@@ -36,6 +36,9 @@ public class BlockVisualization : MonoBehaviour
     private float positionSmoothSpeed = 4f;
     private float scaleSmooothSpeed = 3f;
 
+    [Header("Image Override")]
+    [SerializeField] private Renderer quadRenderer;
+
     private Transform _cameraTransform;
     private Vector3 _targetScale;
     private float _popInTimer = 0f;
@@ -101,6 +104,7 @@ public class BlockVisualization : MonoBehaviour
         if (idText != null)
         {
             idText.text = $"ID: {id}";
+            ApplyImageOverride();
         }
     }
 
@@ -124,5 +128,26 @@ public class BlockVisualization : MonoBehaviour
         }
         _targetPosition = position;
         _targetScale = scale;
+    }
+
+    public void ApplyImageOverride()
+    {
+        if (quadRenderer == null) return;
+
+        if (BlockImageSettings.SelectedSprite != null)
+        {
+            // Convert sprite to texture and apply
+            quadRenderer.material.mainTexture = BlockImageSettings.SelectedSprite.texture;
+
+            //Switch to opaque-ish so the image is visible
+            Color c = quadRenderer.material.color;
+            quadRenderer.material.color = new Color(c.r, c.g, c.b, 1f);
+        }
+        else
+        {
+            quadRenderer.material.mainTexture = null;
+            // Restore transparent blue
+            quadRenderer.material.color = new Color(0.1f, 0.4f, 0.9f, 0.6f);
+        }
     }
 }
