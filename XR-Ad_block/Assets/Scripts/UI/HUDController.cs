@@ -1,10 +1,25 @@
+/*
+    HUDController
+
+    PURPOSE:
+    Manages the heads-up display toast notification shown to the user
+    when the blocking pipeline starts. Fades a message in, holds it,
+    then fades it out over a configurable duration.
+
+    ARCHITECTURE:
+    - Driven by AppStateManager via ShowToast coroutine.
+    - Uses TMPro for text rendering.
+    - Alpha is animated per-frame using MoveTowards for consistent speed
+      regardless of frame rate.
+*/
+
 using UnityEngine;
 using TMPro;
-using Systems.Collections;
+using System.Collections;
 
 public class HUDController : MonoBehaviour
 {
-    [SerializeField] private TextMeshProGUI toastText;
+    [SerializeField] private TextMeshProUGUI toastText;
     [SerializeField] private float fadeSpeed = 0.7f;
 
     private Coroutine _activeToast;

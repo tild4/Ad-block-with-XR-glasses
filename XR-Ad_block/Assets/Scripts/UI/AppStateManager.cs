@@ -2,15 +2,20 @@
     AppStateManager
 
     PURPOSE:
-    Controls the overall state of the application,
-    managing transitions between the start screen, running state, and confirm stop screen.
-    It also enables or disables pipeline components based on the current state.
+    Central state machine for the application. Controls transitions between
+    the start screen, active blocking pipeline, and the confirm-stop dialog.
+    Enables and disables pipeline MonoBehaviours based on the current state
+    so no camera or inference work happens when the app is on the start screen.
 
-    CURRENT FLOW:
-    StartScreen → Running → ConfirmStop → StartScreen
-                ↑            ↓
-              Options (overlay on StartScreen only)
+    STATES:
+    - StartScreen : Pipeline disabled. Start/Options UI visible.
+    - Running     : Pipeline active. B button monitored for stop request.
+    - ConfirmStop : Pipeline paused. Stop confirmation dialog visible.
 
+    ARCHITECTURE:
+    - Singleton via Instance property, referenced by all UI scripts.
+    - Pipeline components are toggled via .enabled rather than
+      GameObject.SetActive so their state is preserved between sessions.
 */
 using UnityEngine;
 using System.Collections;

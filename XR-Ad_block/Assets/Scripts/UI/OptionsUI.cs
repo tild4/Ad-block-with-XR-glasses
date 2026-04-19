@@ -1,3 +1,24 @@
+/*
+    OptionsUI
+
+    PURPOSE:
+    Allows the user to select a custom image to display on the blocking
+    quad instead of the default transparent blue material. Images are
+    loaded at runtime from the Resources/BlockerImages folder.
+
+    ARCHITECTURE:
+    - On enable, loads all Sprites from Resources/BlockerImages and
+      instantiates one button per image using imageButtonPrefab.
+    - Selecting an image stores it in the static BlockerImageSettings
+      so BlockVisualization can read it when spawning blocks.
+    - Reset to Default clears the selection, restoring the default material.
+    - Close button hides the panel without changing the selection.
+
+    SETUP:
+    - Place image files inside Assets/Resources/BlockerImages/.
+    - Images must be imported as Sprite (2D and UI) texture type.
+*/
+
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;

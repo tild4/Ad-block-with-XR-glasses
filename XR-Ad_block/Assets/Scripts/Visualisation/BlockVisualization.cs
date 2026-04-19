@@ -134,10 +134,10 @@ public class BlockVisualization : MonoBehaviour
     {
         if (quadRenderer == null) return;
 
-        if (BlockImageSettings.SelectedSprite != null)
+        if (BlockerImageSettings.SelectedSprite != null)
         {
             // Convert sprite to texture and apply
-            quadRenderer.material.mainTexture = BlockImageSettings.SelectedSprite.texture;
+            quadRenderer.material.mainTexture = BlockerImageSettings.SelectedSprite.texture;
 
             //Switch to opaque-ish so the image is visible
             Color c = quadRenderer.material.color;
