@@ -55,6 +55,9 @@ public class OptionsUI : MonoBehaviour
 
         // Load all sprites from Resources/BlockerImages
         Sprite[] sprites = Resources.LoadAll<Sprite>("BlockerImages");
+        Debug.Log($"[Options] Found {sprites.Length} sprites in Resources/BlockerImages");
+        foreach (var s in sprites)
+            Debug.Log($"[Options] Sprite: {s.name}");
         _loadedSprites.AddRange(sprites);
 
         foreach (Sprite sprite in _loadedSprites)
