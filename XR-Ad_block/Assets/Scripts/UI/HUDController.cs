@@ -59,5 +59,6 @@ public class HUDController : MonoBehaviour
         }
 
         toastText.text = "";
+        gameObject.SetActive(false); // hide HUD after toast completes
     }
 }

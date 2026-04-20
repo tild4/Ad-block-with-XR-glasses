@@ -44,6 +44,7 @@ public class AppStateManager : MonoBehaviour
 
     private void Start()
     {
+        Debug.Log("[AppState] Start called, setting StartScreen state");
         SetState(AppState.StartScreen);
     }
 
@@ -61,13 +62,15 @@ public class AppStateManager : MonoBehaviour
 
     public void SetState(AppState newState)
     {
+        Debug.Log($"[AppState] SetState called: {newState}");
         CurrentState = newState;
         
         //Enable pipeline if user has presssed start, app is running.
-        bool piplineActive = newState == AppState.Running;
-        captureCameraFrame.enabled = piplineActive;
-        sentisInferenceManager.enabled = piplineActive;
-        blockPlacementManager.enabled = piplineActive;
+        bool pipelineActive = newState == AppState.Running;
+        Debug.Log($"[AppState] Setting pipeline active: {pipelineActive}");
+        captureCameraFrame.enabled = pipelineActive;
+        sentisInferenceManager.enabled = pipelineActive;
+        blockPlacementManager.enabled = pipelineActive;
 
         //UI
         startScreenUI.gameObject.SetActive(newState == AppState.StartScreen);
@@ -75,6 +78,7 @@ public class AppStateManager : MonoBehaviour
 
         if (newState == AppState.Running)
         {
+            hudController.gameObject.SetActive(true);
             StartCoroutine(hudController.ShowToast("Press B any time to stop blocking", 4f));
         }
     }
