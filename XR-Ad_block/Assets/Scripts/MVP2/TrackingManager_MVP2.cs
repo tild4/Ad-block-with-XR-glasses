@@ -128,7 +128,8 @@ public class TrackingManager_MVP2 : MonoBehaviour
         {
             // Try to match with existing tracked object
             bool allowCreate = !suppressNewObjects && trackedObjects.Count < maxTrackedObjects;
-            TrackedObject matchedObject = MatchOrCreate(detection, allowCreate);
+            bool wasNewlyCreated;
+            TrackedObject matchedObject = MatchOrCreate(detection, allowCreate, out wasNewlyCreated);
 
             if (matchedObject == null)
             {
@@ -147,12 +148,32 @@ public class TrackingManager_MVP2 : MonoBehaviour
                 catch (Exception) { }
             }
 
+            // Release old ROI snapshot if still present (OCR pipeline didn't claim it)
+            var prevSnapshot = matchedObject.lastDetection.RoiSnapshot;
+            if (prevSnapshot != null && prevSnapshot != detection.RoiSnapshot)
+            {
+                prevSnapshot.Release();
+                Destroy(prevSnapshot);
+            }
+
             // Update the object
             matchedObject.lastDetection = detection;
             matchedObject.timeToLive = timeToLive; // Reset TTL
 
-            // If this is a new object and hasn't been analyzed, send for OCR
-            if (!matchedObject.isAnalyzed)
+            // Analyzed objects don't need OCR; release snapshot immediately
+            if (matchedObject.isAnalyzed && matchedObject.lastDetection.RoiSnapshot != null)
+            {
+                matchedObject.lastDetection.RoiSnapshot.Release();
+                Destroy(matchedObject.lastDetection.RoiSnapshot);
+                matchedObject.lastDetection.RoiSnapshot = null;
+            }
+
+            // FIX: Only enqueue for OCR when the TrackedObject is first created.
+            // Previously, onNewOCRCandidate fired for ALL unanalyzed objects on EVERY
+            // YOLO frame. Since YOLO runs at ~5-10 FPS and OCR takes ~1-2 s per item,
+            // the queue grew with hundreds of duplicate entries for the same object,
+            // starving the pipeline and eventually causing a deadlock.
+            if (wasNewlyCreated)
             {
                 onNewOCRCandidate?.Invoke(matchedObject);
             }
@@ -166,8 +187,12 @@ public class TrackingManager_MVP2 : MonoBehaviour
         Tries to match a new detection with existing tracked objects using IOU.
         If a good match is found, returns the matched object; otherwise, creates and returns a new tracked object.
     */
-    private TrackedObject MatchOrCreate(DetectionData detection, bool allowCreate)
+    // out wasNewlyCreated: true only when a brand-new TrackedObject is allocated.
+    // This lets the caller distinguish "matched an existing object" from "created a new one"
+    // so that onNewOCRCandidate fires exactly once per real-world object.
+    private TrackedObject MatchOrCreate(DetectionData detection, bool allowCreate, out bool wasNewlyCreated)
     {
+        wasNewlyCreated = false;
         float bestIouOverall = float.NegativeInfinity;
         TrackedObject bestCandidate = null;
         Camera cam = Camera.main;
@@ -245,6 +270,7 @@ public class TrackingManager_MVP2 : MonoBehaviour
         };
 
         trackedObjects.Add(newObj);
+        wasNewlyCreated = true;
 
         Debug.Log($"Created new TrackedObject with ID: {newObj.id}");
 
@@ -409,6 +435,12 @@ public class TrackingManager_MVP2 : MonoBehaviour
                 obj.lastDetection.RoiTensor?.Dispose();
             }
             catch (Exception) { }
+
+            if (obj.lastDetection.RoiSnapshot != null)
+            {
+                obj.lastDetection.RoiSnapshot.Release();
+                Destroy(obj.lastDetection.RoiSnapshot);
+            }
         }
 
         trackedObjects.RemoveAll(obj => obj.timeToLive <= 0);
@@ -419,7 +451,7 @@ public class TrackingManager_MVP2 : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Dispose any tensors still held by tracked objects
+        // Dispose any tensors and snapshots still held by tracked objects
         foreach (var obj in trackedObjects)
         {
             try
@@ -427,6 +459,12 @@ public class TrackingManager_MVP2 : MonoBehaviour
                 obj.lastDetection.RoiTensor?.Dispose();
             }
             catch (Exception) { }
+
+            if (obj.lastDetection.RoiSnapshot != null)
+            {
+                obj.lastDetection.RoiSnapshot.Release();
+                Destroy(obj.lastDetection.RoiSnapshot);
+            }
         }
     }
 

@@ -22,6 +22,74 @@ using UnityEngine.Rendering;
 
 public static class ConvertToTensor
 {
+    private static Rect RecordAspectPadBlit(
+        Texture texture,
+        RenderTexture renderTexture,
+        CommandBuffer commandBuffer
+    )
+    {
+        Rect pixelRect = CalculateAspectFitRect(
+            texture.width,
+            texture.height,
+            renderTexture.width,
+            renderTexture.height
+        );
+
+        commandBuffer.Clear();
+        commandBuffer.SetRenderTarget(renderTexture);
+        commandBuffer.ClearRenderTarget(true, true, Color.black);
+        commandBuffer.SetViewport(pixelRect);
+        commandBuffer.Blit(texture, renderTexture);
+        commandBuffer.SetViewport(new Rect(0, 0, renderTexture.width, renderTexture.height));
+
+        return pixelRect;
+    }
+
+    public static Rect CalculateAspectFitRect(
+        float srcWidth,
+        float srcHeight,
+        float targetWidth,
+        float targetHeight
+    )
+    {
+        float scale = Mathf.Min(targetWidth / srcWidth, targetHeight / srcHeight);
+        float scaledWidth = srcWidth * scale;
+        float scaledHeight = srcHeight * scale;
+        float offsetX = (targetWidth - scaledWidth) * 0.5f;
+        float offsetY = (targetHeight - scaledHeight) * 0.5f;
+        return new Rect(offsetX, offsetY, scaledWidth, scaledHeight);
+    }
+
+    public static Rect BlitWithAspectPad(
+        Texture texture,
+        RenderTexture renderTexture,
+        CommandBuffer commandBuffer
+    )
+    {
+        if (texture == null || renderTexture == null)
+        {
+            return Rect.zero;
+        }
+
+        float srcWidth = texture.width;
+        float srcHeight = texture.height;
+        if (srcWidth <= 0 || srcHeight <= 0)
+        {
+            return Rect.zero;
+        }
+
+        Rect pixelRect = RecordAspectPadBlit(texture, renderTexture, commandBuffer);
+        Graphics.ExecuteCommandBuffer(commandBuffer);
+        GL.Flush();
+
+        return new Rect(
+            pixelRect.x / renderTexture.width,
+            pixelRect.y / renderTexture.height,
+            pixelRect.width / renderTexture.width,
+            pixelRect.height / renderTexture.height
+        );
+    }
+
     /*
     Converts a texture into a tensor with batch size = 1.
 
@@ -151,33 +219,11 @@ public static class ConvertToTensor
             return null;
         }
 
-        // Scale source to fit inside target while preserving aspect ratio
-        float scale = Mathf.Min(targetWidth / srcWidth, targetHeight / srcHeight);
-
-        float scaledWidth = srcWidth * scale;
-        float scaledHeight = srcHeight * scale;
-
-        // Center the resized image inside the target
-        float offsetX = (targetWidth - scaledWidth) * 0.5f;
-        float offsetY = (targetHeight - scaledHeight) * 0.5f;
-
-        commandBuffer.Clear();
-
-        // Clear target to black so remaining area becomes padding
-        commandBuffer.SetRenderTarget(renderTexture);
-        commandBuffer.ClearRenderTarget(true, true, Color.black);
-
-        // Draw source texture into centered padded rect
-        Rect pixelRect = new Rect(offsetX, offsetY, scaledWidth, scaledHeight);
-        commandBuffer.SetViewport(pixelRect);
-        commandBuffer.Blit(texture, renderTexture);
-
-        // Restore full viewport before tensor conversion
-        commandBuffer.SetViewport(new Rect(0, 0, targetWidth, targetHeight));
+        RecordAspectPadBlit(texture, renderTexture, commandBuffer);
 
         commandBuffer.ToTensor(renderTexture, tensor);
         Graphics.ExecuteCommandBuffer(commandBuffer);
-            GL.Flush();
+        GL.Flush();
 
         PipelineProfiler.end("Texture To Tensor (GPU)");
 

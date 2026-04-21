@@ -25,12 +25,10 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
     [SerializeField]
     private SentisInferenceManager sentisInferenceManager;
 
-    /*
-    ============================== UI ==============================
-    [SerializeField] private ViewCroppedImage viewCroppedImage;
+    [SerializeField]
+    private ViewCroppedImage viewCroppedImage;
+
     private RenderTexture debugPreviewRT;
-    ===================================================================
-    */
 
     [SerializeField]
     private Material cropMaterial;
@@ -92,8 +90,6 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
         processedDetections = new List<DetectionData>();
         detectionDataBuffer = new List<DetectionData>();
 
-        /*
-        ============================== UI ==============================
         debugPreviewRT = new RenderTexture(
             tensorTargetWidth,
             tensorTargetHeight,
@@ -102,8 +98,6 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
         );
 
         debugPreviewRT.Create();
-        ===================================================================
-        */
     }
 
     private void OnEnable()
@@ -173,6 +167,7 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
                 bboxPixels = ConvertToPixelCoordinates(bbox, frame.currentResolution),
                 confidence = conf,
                 frame = frame,
+                RoiContentRectNormalized = new Rect(0f, 0f, 1f, 1f),
             };
 
             detectionDataBuffer.Add(data);
@@ -207,14 +202,41 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
                 continue;
             }
 
-            if (!TextureCropper.CropBoundingBox(bbox, texture, croppedROI, cropMaterial))
+            // Crop at the ad's natural pixel resolution to preserve aspect ratio.
+            // Previously we cropped into the fixed 640×640 croppedROI, which
+            // stretched non-square ads and distorted the text (making it blurry
+            // and harder for OCR to recognize). Now we crop at native resolution
+            // first, then BlitWithAspectPad pads it into 640×640 with black bars.
+            int naturalW = Mathf.Max(1, Mathf.RoundToInt(bbox.width * texture.width));
+            int naturalH = Mathf.Max(1, Mathf.RoundToInt(bbox.height * texture.height));
+            RenderTexture naturalCrop = RenderTexture.GetTemporary(
+                naturalW, naturalH, 0, RenderTextureFormat.ARGB32
+            );
+
+            if (!TextureCropper.CropBoundingBoxTopLeft(bbox, texture, naturalCrop, cropMaterial))
             {
+                RenderTexture.ReleaseTemporary(naturalCrop);
                 continue;
             }
 
+            Graphics.Blit(naturalCrop, debugPreviewRT);
+            //viewCroppedImage?.Show(debugPreviewRT);
+            //viewCroppedImage?.SetDetectedWord(string.Empty);
+
+            // Save a persistent copy of the ROI crop for OCR.
+            // BlitWithAspectPad scales the
+            // natural-resolution crop to fit inside 640×640 while preserving
+            // aspect ratio, with black padding around the shorter dimension.
+            RenderTexture snapshot = new RenderTexture(
+                tensorTargetWidth, tensorTargetHeight, 0, RenderTextureFormat.ARGB32
+            );
+            snapshot.Create();
+            Rect contentRect = ConvertToTensor.BlitWithAspectPad(naturalCrop, snapshot, commandBuffer);
+            RenderTexture.ReleaseTemporary(naturalCrop);
+
             PipelineProfiler.set("TensorContext", "YOLOPost");
             Tensor<float> roiTensor = ConvertToTensor.convert(
-                croppedROI,
+                snapshot,
                 convertRenderTexture,
                 tensorTargetHeight,
                 tensorTargetWidth,
@@ -223,7 +245,10 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
 
             if (roiTensor != null)
             {
+                result.bboxNormalized = bbox;
                 result.RoiTensor = roiTensor;
+                result.RoiSnapshot = snapshot;
+                result.RoiContentRectNormalized = contentRect;
                 // update min/max normalized in case ClampNormalizedRect adjusted values
                 result.bboxMinMaxNormalized = new Vector4(
                     bbox.xMin,
@@ -232,6 +257,11 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
                     bbox.yMax
                 );
                 processedDetections.Add(result);
+            }
+            else
+            {
+                snapshot.Release();
+                Destroy(snapshot);
             }
         }
     }
@@ -341,6 +371,11 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
             foreach (var item in processedDetections)
             {
                 item.RoiTensor?.Dispose();
+                if (item.RoiSnapshot != null)
+                {
+                    item.RoiSnapshot.Release();
+                    Destroy(item.RoiSnapshot);
+                }
             }
 
             processedDetections.Clear();
@@ -366,15 +401,11 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
             croppedROI = null;
         }
 
-        /*
-        ============================== UI ==============================
         if (debugPreviewRT != null)
         {
             debugPreviewRT.Release();
             Destroy(debugPreviewRT);
             debugPreviewRT = null;
         }
-        ===================================================================
-        */
     }
 }

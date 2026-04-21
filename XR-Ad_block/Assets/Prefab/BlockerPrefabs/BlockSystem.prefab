@@ -27,7 +27,7 @@ Transform:
   m_GameObject: {fileID: 7808133812041614520}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4.24698, y: 0, z: 15.89897}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -48,6 +48,7 @@ MonoBehaviour:
   cameraAccess: {fileID: 0}
   raycastManager: {fileID: 6515282892264298947}
   cameraRig: {fileID: 0}
+  inferenceManager: {fileID: 0}
   blockPrefab: {fileID: 3110484428955521754, guid: 84dd6ad79215cf0488d23c9989157aa3, type: 3}
   confidenceThreshold: 0.6
   persistenceDuration: 0.5

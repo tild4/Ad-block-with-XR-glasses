@@ -23,13 +23,8 @@ using UnityEngine.Rendering;
 
 public class TextRecognitionInference_MVP2 : MonoBehaviour
 {
-    /* UI code
     [SerializeField]
     private ViewCroppedImage viewCroppedImage;
-
-    private RenderTexture debugPreviewRT;
-    private RenderTexture croppedROI;
-    */
 
     /*
     OCR recognition input:
@@ -46,14 +41,6 @@ public class TextRecognitionInference_MVP2 : MonoBehaviour
 
     [SerializeField]
     private int tensorTargetWidth = 320;
-
-    /*
-    [SerializeField]
-    private int previewCropHeight = 128;
-
-    [SerializeField]
-    private int previewCropWidth = 512;
-    */
 
     [SerializeField]
     private Material cropMaterial;
@@ -82,26 +69,6 @@ public class TextRecognitionInference_MVP2 : MonoBehaviour
 
         textDecoder = new TextDecoder(ymlFile);
         worker = new Worker(ocrModel, BackendType.CPU);
-
-        /*
-        // CHANGE MAYBE
-        debugPreviewRT = new RenderTexture(
-            tensorTargetWidth,
-            tensorTargetHeight,
-            0,
-            RenderTextureFormat.ARGB32
-        );
-        debugPreviewRT.Create();
-
-        // CHANGE MAYBE
-        croppedROI = new RenderTexture(
-            tensorTargetWidth,
-            tensorTargetHeight,
-            0,
-            RenderTextureFormat.ARGB32
-        );
-        croppedROI.Create();
-        */
     }
 
     private void OnEnable()
@@ -183,8 +150,13 @@ public class TextRecognitionInference_MVP2 : MonoBehaviour
             yield break;
         }
 
+        PipelineProfiler.begin("OCR RecPreprocess");
+        Tensor<float> normalizedInput = NormalizeForPPOCRRecognition(inputTensor);
+        PipelineProfiler.end("OCR RecPreprocess");
+        inputTensor.Dispose();
+
         PipelineProfiler.begin("OCR TextRecog");
-        worker.Schedule(inputTensor);
+        worker.Schedule(normalizedInput);
 
         var outputAwaiter = (worker.PeekOutput(0) as Tensor<float>)
             .ReadbackAndCloneAsync()
@@ -196,8 +168,7 @@ public class TextRecognitionInference_MVP2 : MonoBehaviour
         }
 
         PipelineProfiler.end("OCR TextRecog");
-
-        inputTensor.Dispose();
+        normalizedInput.Dispose();
 
         Tensor<float> outputTensor = outputAwaiter.GetResult();
 
@@ -214,39 +185,42 @@ public class TextRecognitionInference_MVP2 : MonoBehaviour
         Debug.Log($"[RECOGNITION] Object {textROI} recognized word: '{output}'");
 
         texts.Add(output);
-        /*
-        // UI code
-        TextureCropper.CropBoundingBox(roiBounds, frame.currentTexture, croppedROI, cropMaterial);
-        Graphics.Blit(croppedROI, debugPreviewRT);
-        viewCroppedImage.Show(debugPreviewRT);
-        viewCroppedImage.SetDetectedWord(output);
-        */
+
+        viewCroppedImage?.SetDetectedWord(output);
+    }
+
+    /*
+        Normalizes an RGB [0,1] tensor for PP-OCR text recognition.
+        Recognition expects BGR channel order and values scaled to [-1, 1].
+    */
+    private Tensor<float> NormalizeForPPOCRRecognition(Tensor<float> rgbTensor)
+    {
+        Tensor<float> cpuTensor = rgbTensor.ReadbackAndClone();
+        int height = cpuTensor.shape[2];
+        int width = cpuTensor.shape[3];
+
+        Tensor<float> result = new Tensor<float>(new TensorShape(1, 3, height, width));
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float r = cpuTensor[0, 0, y, x];
+                float g = cpuTensor[0, 1, y, x];
+                float b = cpuTensor[0, 2, y, x];
+
+                result[0, 0, y, x] = (b - 0.5f) / 0.5f;
+                result[0, 1, y, x] = (g - 0.5f) / 0.5f;
+                result[0, 2, y, x] = (r - 0.5f) / 0.5f;
+            }
+        }
+
+        cpuTensor.Dispose();
+        return result;
     }
 
     private void OnDestroy()
     {
         worker?.Dispose();
-        /*
-
-        if (debugPreviewRT != null)
-        {
-            debugPreviewRT.Release();
-            Destroy(debugPreviewRT);
-            debugPreviewRT = null;
-        }
-
-        if (commandBuffer != null)
-        {
-            commandBuffer.Release();
-            commandBuffer = null;
-        }
-
-        if (croppedROI != null)
-        {
-            croppedROI.Release();
-            Destroy(croppedROI);
-            croppedROI = null;
-        }
-        */
     }
 }
