@@ -30,6 +30,7 @@ using UnityEngine.Rendering;
 public class ProcessOCRDetection_MVP2 : MonoBehaviour
 {
     private const int MaskSize = 640;
+
     // private const long FrameBudgetMs = 3; // Removed: BFS now runs synchronously
     private const int MinBoxWidth = 10;
     private const int MinBoxHeight = 10;
@@ -39,7 +40,8 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
     private const float MergeHorizontalGapFactor = 2.0f;
     private const float MaxMergedAspectRatio = 6.0f;
 
-    [SerializeField] private ViewCroppedImage viewCroppedImage;
+    [SerializeField]
+    private ViewCroppedImage viewCroppedImage;
     private RenderTexture debugPreviewRT;
 
     [SerializeField]
@@ -145,8 +147,14 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
     {
         if (advertisment.trackedObject == null || advertisment.findTextTensor == null)
         {
+            UnityEngine.Debug.Log(
+                $"[ProcessOCR] Early Exit for ID {advertisment.trackedObject?.id}. Skip OCR."
+            );
             return;
         }
+
+        if (advertisment.trackedObject == null)
+            return;
 
         if (!isProcessing)
         {
@@ -247,15 +255,19 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
             for (int x = 0; x < MaskSize; x++)
             {
                 float v = tensor[0, 0, y, x];
-                if (v > maxVal) maxVal = v;
+                if (v > maxVal)
+                    maxVal = v;
                 bool above = v > maskThreshold;
-                if (above) aboveCount++;
+                if (above)
+                    aboveCount++;
                 mask[y, x] = above;
                 scoreMap[y, x] = v;
             }
         }
 
-        UnityEngine.Debug.Log($"[OCR Mask] maxVal={maxVal:F4}, aboveThreshold={aboveCount}/{MaskSize * MaskSize}, threshold={maskThreshold}, time={sw.ElapsedMilliseconds}ms");
+        UnityEngine.Debug.Log(
+            $"[OCR Mask] maxVal={maxVal:F4}, aboveThreshold={aboveCount}/{MaskSize * MaskSize}, threshold={maskThreshold}, time={sw.ElapsedMilliseconds}ms"
+        );
     }
 
     /*
@@ -288,7 +300,9 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
         foreach (Rect bounds in boundingBoxes)
         {
-            UnityEngine.Debug.Log($"[OCR CropSize] Crop size: {bounds.width}x{bounds.height} pixels");
+            UnityEngine.Debug.Log(
+                $"[OCR CropSize] Crop size: {bounds.width}x{bounds.height} pixels"
+            );
             Rect normalizedLocal = new Rect(
                 bounds.x / MaskSize,
                 bounds.y / MaskSize,
@@ -299,7 +313,12 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
             // Crop from the frozen ROI snapshot (640×640) instead of the live camera frame
             int cropW = Mathf.Max(1, Mathf.RoundToInt(normalizedLocal.width * roiSnapshot.width));
             int cropH = Mathf.Max(1, Mathf.RoundToInt(normalizedLocal.height * roiSnapshot.height));
-            RenderTexture tempCrop = RenderTexture.GetTemporary(cropW, cropH, 0, RenderTextureFormat.ARGB32);
+            RenderTexture tempCrop = RenderTexture.GetTemporary(
+                cropW,
+                cropH,
+                0,
+                RenderTextureFormat.ARGB32
+            );
 
             if (
                 !TextureCropper.CropBoundingBoxTopLeft(
@@ -344,7 +363,9 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
             }
         }
 
-        UnityEngine.Debug.Log($"[OCR Crop] Successfully cropped {croppedRois.Count} word regions from the ad.");
+        UnityEngine.Debug.Log(
+            $"[OCR Crop] Successfully cropped {croppedRois.Count} word regions from the ad."
+        );
 
         if (croppedRois.Count == 0)
         {
@@ -545,7 +566,9 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
             }
         }
 
-        UnityEngine.Debug.Log($"[OCR BFS] Found {boxes.Count} text boxes, time={sw.ElapsedMilliseconds}ms");
+        UnityEngine.Debug.Log(
+            $"[OCR BFS] Found {boxes.Count} text boxes, time={sw.ElapsedMilliseconds}ms"
+        );
         return boxes;
     }
 

@@ -44,6 +44,9 @@ public class TrackingManager_MVP2 : MonoBehaviour
     [SerializeField]
     private DecisionManager decisionManager;
 
+    [SerializeField]
+    private TextDetectionInference_MVP2 textDetectionInference;
+
     [Header("Tracking Settings")]
     [SerializeField]
     private float timeToLive = 2.0f; // Seconds before object expires
@@ -78,6 +81,10 @@ public class TrackingManager_MVP2 : MonoBehaviour
         {
             decisionManager.onDecisionMade += UpdateOCRResult;
         }
+        if (textDetectionInference != null)
+        {
+            textDetectionInference.onEarlyExitRequired += UpdateOCRResult;
+        }
     }
 
     private void OnDisable()
@@ -89,6 +96,10 @@ public class TrackingManager_MVP2 : MonoBehaviour
         if (decisionManager != null)
         {
             decisionManager.onDecisionMade -= UpdateOCRResult;
+        }
+        if (textDetectionInference != null)
+        {
+            textDetectionInference.onEarlyExitRequired -= UpdateOCRResult;
         }
     }
 
@@ -129,7 +140,11 @@ public class TrackingManager_MVP2 : MonoBehaviour
             // Try to match with existing tracked object
             bool allowCreate = !suppressNewObjects && trackedObjects.Count < maxTrackedObjects;
             bool wasNewlyCreated;
-            TrackedObject matchedObject = MatchOrCreate(detection, allowCreate, out wasNewlyCreated);
+            TrackedObject matchedObject = MatchOrCreate(
+                detection,
+                allowCreate,
+                out wasNewlyCreated
+            );
 
             if (matchedObject == null)
             {
@@ -190,7 +205,11 @@ public class TrackingManager_MVP2 : MonoBehaviour
     // out wasNewlyCreated: true only when a brand-new TrackedObject is allocated.
     // This lets the caller distinguish "matched an existing object" from "created a new one"
     // so that onNewOCRCandidate fires exactly once per real-world object.
-    private TrackedObject MatchOrCreate(DetectionData detection, bool allowCreate, out bool wasNewlyCreated)
+    private TrackedObject MatchOrCreate(
+        DetectionData detection,
+        bool allowCreate,
+        out bool wasNewlyCreated
+    )
     {
         wasNewlyCreated = false;
         float bestIouOverall = float.NegativeInfinity;
@@ -266,7 +285,7 @@ public class TrackingManager_MVP2 : MonoBehaviour
             timeToLive = timeToLive,
             isAnalyzed = false,
             text = string.Empty,
-            shouldBlock = detection.confidence >= 0.8f
+            shouldBlock = detection.confidence >= 0.8f,
         };
 
         trackedObjects.Add(newObj);
@@ -398,7 +417,9 @@ public class TrackingManager_MVP2 : MonoBehaviour
             );
 
             // Notify subscribers
-            Debug.Log($"[Tracking] Firing onTrackedObjectsUpdated, subscribers: {onTrackedObjectsUpdated?.GetInvocationList()?.Length ?? 0}"); // Pontus Debugging
+            Debug.Log(
+                $"[Tracking] Firing onTrackedObjectsUpdated, subscribers: {onTrackedObjectsUpdated?.GetInvocationList()?.Length ?? 0}"
+            ); // Pontus Debugging
             onTrackedObjectsUpdated?.Invoke(trackedObjects);
         }
         else
