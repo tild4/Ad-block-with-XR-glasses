@@ -250,9 +250,11 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         {
             // check if heatmap contains any value above threshold to determine if text is likely present
             bool hasText = false;
-            foreach (var val in outputTensor)
+            float[] tensorData = outputTensor.DownloadToArray();
+
+            for (int i = 0; i < tensorData.Length; i++)
             {
-                if (val > 0.2f) // Threshold for potential text region
+                if (tensorData[i] > 0.2f)
                 {
                     hasText = true;
                     break;
@@ -262,7 +264,7 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
             if (!hasText)
             {
                 Debug.Log(
-                    $"[TextDetect] Early Exit för ID {advertisement.id} - ingen text funnen i heatmap."
+                    $"[Early Exit] Early Exit for ID {advertisement.id} - no text found in heatmap."
                 );
 
                 // Dispose the output tensor immediately since we're not sending it to OCR, to free up resources.
@@ -274,7 +276,7 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
                 }
 
                 // Notify tracking manager
-                onEarlyExitRequired?.Invoke(advertisement, "Ingen text funnen", true);
+                onEarlyExitRequired?.Invoke(advertisement, "", true);
 
                 // Signal with an empty result to reset isProcessing and move on to the next item
                 findTextRegions?.Invoke(
