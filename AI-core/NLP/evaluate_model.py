@@ -18,7 +18,7 @@ from transformers import (
 )
 
 NLP_DIR = Path(__file__).resolve().parent
-TEST_FILE = NLP_DIR / "dataset" / "test_original.jsonl"
+TEST_FILE = NLP_DIR / "dataset" / "test_original_augmented.jsonl"
 SAVED_MODEL_DIR = NLP_DIR / "saved_model"
 RESULTS_DIR = NLP_DIR / "results"
 
