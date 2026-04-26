@@ -63,17 +63,37 @@ public class OptionsUI : MonoBehaviour
         foreach (Sprite sprite in _loadedSprites)
         {
             GameObject btn = Instantiate(imageButtonPrefab, imageButtonContainer);
+            Debug.Log($"[Options] Instantiated button at position {btn.transform.localPosition}, size {btn.GetComponent<RectTransform>().sizeDelta}");
+
 
             // Set preview image
-            btn.GetComponentInChildren<Image>().sprite = sprite;
+            Image previewImage = btn.transform.Find("PreviewImage")?.GetComponent<Image>();
+            Debug.Log($"[Options] PreviewImage found: {previewImage != null}");
 
-            // Set label to filename
-            btn.GetComponentInChildren<TextMeshProUGUI> ().text = sprite.name;
+            if (previewImage != null)
+            {
+                previewImage.sprite = sprite;
+                previewImage.preserveAspect = true;
+            }
+            else
+            {
+                Debug.LogWarning("[Options] PreviewImage child not found on button prefab");
+            }
+
+            TextMeshProUGUI label = btn.GetComponentInChildren<TextMeshProUGUI>();
+            if (label != null)
+                label.text = sprite.name;
+            else
+                Debug.LogWarning("[Options] TextMeshProUGUI not found on button prefab");
+            
 
             // Wire selection
             Sprite captured = sprite;
             btn.GetComponent<Button>().onClick.AddListener(() => OnImageSelected(captured));
         }
+
+        Canvas.ForceUpdateCanvases(); // Ensure layout is updated after adding buttons
+        UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(imageButtonContainer.GetComponent<RectTransform>());
     }
 
     private void OnImageSelected(Sprite sprite)

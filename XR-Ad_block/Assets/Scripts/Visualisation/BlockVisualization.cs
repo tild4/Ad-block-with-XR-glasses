@@ -27,6 +27,10 @@ public class BlockVisualization : MonoBehaviour
     [SerializeField]
     private Transform labelTransform;
 
+    [Header("Materials")]
+    [SerializeField] private Material defaultMaterial;
+    [SerializeField] private Material imageMaterial;
+
     [Header("Pop-in Animation")]
     [SerializeField]
     private float popInDuration = 0.15f;
@@ -104,8 +108,8 @@ public class BlockVisualization : MonoBehaviour
         if (idText != null)
         {
             idText.text = $"ID: {id}";
-            ApplyImageOverride();
         }
+        ApplyImageOverride();
     }
 
     public void UpdateTargetScale(Vector3 newScale)
@@ -119,6 +123,7 @@ public class BlockVisualization : MonoBehaviour
 
     public void SetTargetTransform(Vector3 position, Quaternion rotation, Vector3 scale)
     {
+        Debug.Log($"[BlockVis] SetTargetTransform called, scale: {scale}, initialized: {_initialized}");
         if (!_initialized)
         {
             transform.position = position;
@@ -132,22 +137,26 @@ public class BlockVisualization : MonoBehaviour
 
     public void ApplyImageOverride()
     {
-        if (quadRenderer == null) return;
-
-        if (BlockerImageSettings.SelectedSprite != null)
+        if (quadRenderer == null)
         {
-            // Convert sprite to texture and apply
-            quadRenderer.material.mainTexture = BlockerImageSettings.SelectedSprite.texture;
+            Debug.LogWarning("[BlockVis] quadRenderer is null");
+            return;
+        }
 
-            //Switch to opaque-ish so the image is visible
-            Color c = quadRenderer.material.color;
-            quadRenderer.material.color = new Color(c.r, c.g, c.b, 1f);
-        }
-        else
+        if (BlockerImageSettings.SelectedSprite != null && imageMaterial != null)
         {
-            quadRenderer.material.mainTexture = null;
-            // Restore transparent blue
-            quadRenderer.material.color = new Color(0.1f, 0.4f, 0.9f, 0.6f);
+
+            Material mat = new Material(imageMaterial);
+            mat.SetTexture("_BaseMap", BlockerImageSettings.SelectedSprite.texture);
+            quadRenderer.material = mat;
+            Debug.Log($"[BlockVis] Texture null? {mat.mainTexture == null}, mat shader: {mat.shader.name}");
+
         }
+        else if (defaultMaterial != null)
+        {
+            quadRenderer.material = defaultMaterial;
+            Debug.Log($"[BlockVis] No image override, using default material");
+        }
+
     }
 }
