@@ -16,8 +16,8 @@ from transformers import (
 )
 
 NLP_DIR = Path(__file__).resolve().parent
-TRAIN_FILE = NLP_DIR / "dataset" / "train_large.jsonl"
-TEST_FILE = NLP_DIR / "dataset" / "test_large.jsonl"
+TRAIN_FILE = NLP_DIR / "dataset" / "train_augmented.jsonl"
+TEST_FILE = NLP_DIR / "dataset" / "test_original.jsonl"
 RESULTS_DIR = NLP_DIR / "results"
 SAVED_MODEL_DIR = NLP_DIR / "saved_model"
 PLOTS_DIR = NLP_DIR / "plots"
@@ -26,7 +26,7 @@ MODEL_NAME = "KBLab/electra-small-swedish-cased-discriminator"
 
 # The order defines the output indices of the classifier                                                                                                  
 # Should be in sync with test_model.py and the inference code                                                                                      
-LABELS = ["inte reklam", "reklam", "skadlig", "samhällsnyttig"]                                                                                              
+LABELS = ["inte reklam", "samhällsnyttig", "reklam"]                                                                                              
 label2id = {label: i for i, label in enumerate(LABELS)}                                                                                                      
 id2label = {i: label for i, label in enumerate(LABELS)}
 
