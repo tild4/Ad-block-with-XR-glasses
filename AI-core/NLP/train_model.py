@@ -8,7 +8,6 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
 from datasets import load_dataset
 from label_schema import LABELS, id2label, label2id
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
@@ -20,29 +19,6 @@ from transformers import (
     Trainer,
     TrainingArguments,
 )
-
-# Samhällsnyttig is ~20% of training data but ~5-10% in reality.
-# Down-weighting it makes the model less eager to predict it,
-# trading some recall for better precision.
-CLASS_WEIGHTS = [1.0, 0.4, 1.0]  # [inte reklam, samhällsnyttig, reklam]
-
-
-class WeightedTrainer(Trainer):
-    """Trainer with per-class weights in the cross-entropy loss."""
-
-    def __init__(self, class_weights=None, **kwargs):
-        super().__init__(**kwargs)
-        self.class_weights = class_weights
-
-    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
-        labels = inputs.pop("labels")
-        outputs = model(**inputs)
-        if self.class_weights is not None:
-            weight = torch.tensor(self.class_weights, dtype=torch.float32, device=labels.device)
-            loss = torch.nn.functional.cross_entropy(outputs.logits, labels, weight=weight)
-        else:
-            loss = torch.nn.functional.cross_entropy(outputs.logits, labels)
-        return (loss, outputs) if return_outputs else loss
 
 NLP_DIR = Path(__file__).resolve().parent
 TRAIN_FILE = NLP_DIR / "dataset" / "train_augmented.jsonl"
@@ -182,11 +158,9 @@ def main():
     print("Training class distribution:")
     for lid in sorted(label_counts):
         print(f"  {id2label[lid]}: {label_counts[lid]} ({label_counts[lid]/total*100:.1f}%)")
-    print(f"Class weights: {CLASS_WEIGHTS}")
 
-    # 9. Initialize trainer with per-class weights
-    trainer = WeightedTrainer(
-        class_weights=CLASS_WEIGHTS,
+    # 9. Initialize trainer
+    trainer = Trainer(
         model=model,
         args=args,
         train_dataset=train_dataset,

@@ -8,7 +8,8 @@ from pathlib import Path
 import numpy as np
 from datasets import load_dataset
 from label_schema import LABELS, LABEL_IDS, label2id
-from sklearn.metrics import accuracy_score, classification_report
+import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, ConfusionMatrixDisplay
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
@@ -84,6 +85,26 @@ def main():
             zero_division=0,
         )
     )
+
+    # Confusion matrix saved as plot
+    cm = confusion_matrix(true_ids, predicted_ids, labels=LABEL_IDS)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=LABELS)
+    disp.plot(cmap="Blues", values_format="d")
+    plt.title("Confusion Matrix")
+    plt.tight_layout()
+    plots_dir = NLP_DIR / "plots"
+    plots_dir.mkdir(parents=True, exist_ok=True)
+    plt.savefig(plots_dir / "confusion_matrix.png", dpi=120)
+    plt.close()
+    print(f"Saved confusion matrix to {plots_dir / 'confusion_matrix.png'}")
+
+    # Safety check: how often is samhällsnyttig misclassified as reklam?
+    samh_id = label2id["samhällsnyttig"]
+    reklam_id = label2id["reklam"]
+    samh_as_reklam = cm[samh_id][reklam_id]
+    samh_total = cm[samh_id].sum()
+    print(f"Safety: {samh_as_reklam}/{samh_total} samhällsnyttig classified as reklam "
+          f"({samh_as_reklam/samh_total*100:.1f}%)")
 
 
 if __name__ == "__main__":
