@@ -132,7 +132,7 @@ def main():
     # 6. Training configuration
     args = TrainingArguments(
         output_dir=str(RESULTS_DIR),
-        num_train_epochs=15,
+        num_train_epochs=5,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=64,
         learning_rate=1e-5,
