@@ -9,7 +9,7 @@ import random
 import sys
 
 
-NOISE_COPIES = 2  # how many noisy variants per clean example
+NOISE_COPIES = 1  # how many noisy variants per clean example
 CHAR_NOISE_PROB = 0.15  # probability of noise per character
 
 # Common OCR character confusions (what the camera might misread)

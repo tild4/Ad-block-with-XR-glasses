@@ -21,7 +21,7 @@ from transformers import (
 
 NLP_DIR = Path(__file__).resolve().parent
 TRAIN_FILE = NLP_DIR / "dataset" / "train_augmented.jsonl"
-TEST_FILE = NLP_DIR / "dataset" / "test_original.jsonl"
+TEST_FILE = NLP_DIR / "dataset" / "test_original_augmented.jsonl"
 RESULTS_DIR = NLP_DIR / "results"
 SAVED_MODEL_DIR = NLP_DIR / "saved_model"
 PLOTS_DIR = NLP_DIR / "plots"
@@ -131,7 +131,7 @@ def main():
     # 6. Training configuration
     args = TrainingArguments(
         output_dir=str(RESULTS_DIR),
-        num_train_epochs=8,
+        num_train_epochs=15,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=64,
         learning_rate=2e-5,
@@ -142,7 +142,7 @@ def main():
         save_strategy="epoch",
         save_total_limit=2,
         load_best_model_at_end=True,
-        metric_for_best_model="eval_reklam_f1",
+        metric_for_best_model="eval_macro_f1",
         greater_is_better=True,
         report_to="none",
         seed=42,
@@ -160,7 +160,7 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=compute_metrics,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=4)],
     )
 
     # 9. Start training
