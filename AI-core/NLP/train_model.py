@@ -6,12 +6,15 @@ dataset and saves the result to AI-core/NLP/saved_model/
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 from datasets import load_dataset
 from label_schema import LABELS, id2label, label2id
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
     DataCollatorWithPadding,
+    EarlyStoppingCallback,
     Trainer,
     TrainingArguments,
 )
@@ -24,6 +27,8 @@ SAVED_MODEL_DIR = NLP_DIR / "saved_model"
 PLOTS_DIR = NLP_DIR / "plots"
 
 MODEL_NAME = "KBLab/electra-small-swedish-cased-discriminator"
+POSITIVE_LABEL = "reklam"
+POSITIVE_LABEL_ID = label2id[POSITIVE_LABEL]
 
 
 def encode_label(example):                                                                                                                                   
@@ -74,6 +79,37 @@ def plot_loss_curves(log_history, output_path):
     print(f"Saved loss curves to {output_path}")
 
 
+def compute_metrics(eval_pred):
+    """Log metrics that reflect ad-detection quality, not just loss."""
+    logits, labels = eval_pred
+    predicted_ids = np.argmax(logits, axis=-1)
+
+    accuracy = accuracy_score(labels, predicted_ids)
+    macro_precision, macro_recall, macro_f1, _ = precision_recall_fscore_support(
+        labels,
+        predicted_ids,
+        average="macro",
+        zero_division=0,
+    )
+    reklam_precision, reklam_recall, reklam_f1, _ = precision_recall_fscore_support(
+        labels,
+        predicted_ids,
+        labels=[POSITIVE_LABEL_ID],
+        average=None,
+        zero_division=0,
+    )
+
+    return {
+        "accuracy": accuracy,
+        "macro_precision": macro_precision,
+        "macro_recall": macro_recall,
+        "macro_f1": macro_f1,
+        "reklam_precision": reklam_precision[0],
+        "reklam_recall": reklam_recall[0],
+        "reklam_f1": reklam_f1[0],
+    }
+
+
 def main():
     # 1+2+3+4. Load tokenizer once, then prepare both datasets through it.
     print(f"Loading tokenizer: {MODEL_NAME}")
@@ -95,16 +131,21 @@ def main():
     # 6. Training configuration
     args = TrainingArguments(
         output_dir=str(RESULTS_DIR),
-        num_train_epochs=3,
+        num_train_epochs=8,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=64,
-        learning_rate=5e-5,
+        learning_rate=2e-5,
+        warmup_ratio=0.1,
         weight_decay=0.01,
         logging_steps=10,
         eval_strategy="epoch",
         save_strategy="epoch",
         save_total_limit=2,
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_reklam_f1",
+        greater_is_better=True,
         report_to="none",
+        seed=42,
     )
 
     # 7. Data collator to handle dynamic padding
@@ -118,12 +159,17 @@ def main():
         eval_dataset=eval_dataset,
         tokenizer=tokenizer,
         data_collator=data_collator,
+        compute_metrics=compute_metrics,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
     )
 
     # 9. Start training
     print("Starting training...")                                                                                                                      
     trainer.train()                                                                                                                                      
     print("Training complete.") 
+    if trainer.state.best_model_checkpoint is not None:
+        print(f"Best checkpoint: {trainer.state.best_model_checkpoint}")
+        print(f"Best {args.metric_for_best_model}: {trainer.state.best_metric:.4f}")
 
     # 10. Save the fine-tuned model and tokenizer
     print(f"Saving final model to {SAVED_MODEL_DIR}")
@@ -137,7 +183,6 @@ def main():
 
 if __name__ == "__main__":
     main() 
-
 
 
 
