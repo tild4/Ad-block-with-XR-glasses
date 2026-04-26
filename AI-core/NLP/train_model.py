@@ -3,10 +3,12 @@ Fine-tunes KBLab/electra-small-swedish-cased-discriminator on the ad-classificat
 dataset and saves the result to AI-core/NLP/saved_model/
 """
 
+from collections import Counter
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from datasets import load_dataset
 from label_schema import LABELS, id2label, label2id
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
@@ -18,6 +20,29 @@ from transformers import (
     Trainer,
     TrainingArguments,
 )
+
+# Samhällsnyttig is ~20% of training data but ~5-10% in reality.
+# Down-weighting it makes the model less eager to predict it,
+# trading some recall for better precision.
+CLASS_WEIGHTS = [1.0, 0.4, 1.0]  # [inte reklam, samhällsnyttig, reklam]
+
+
+class WeightedTrainer(Trainer):
+    """Trainer with per-class weights in the cross-entropy loss."""
+
+    def __init__(self, class_weights=None, **kwargs):
+        super().__init__(**kwargs)
+        self.class_weights = class_weights
+
+    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        labels = inputs.pop("labels")
+        outputs = model(**inputs)
+        if self.class_weights is not None:
+            weight = torch.tensor(self.class_weights, dtype=torch.float32, device=labels.device)
+            loss = torch.nn.functional.cross_entropy(outputs.logits, labels, weight=weight)
+        else:
+            loss = torch.nn.functional.cross_entropy(outputs.logits, labels)
+        return (loss, outputs) if return_outputs else loss
 
 NLP_DIR = Path(__file__).resolve().parent
 TRAIN_FILE = NLP_DIR / "dataset" / "train_augmented.jsonl"
@@ -151,8 +176,17 @@ def main():
     # 7. Data collator to handle dynamic padding
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
-    # 8. Initialize the automatic Trainer class
-    trainer = Trainer(
+    # 8. Print class distribution so we can verify balance
+    label_counts = Counter(train_dataset["label"])
+    total = sum(label_counts.values())
+    print("Training class distribution:")
+    for lid in sorted(label_counts):
+        print(f"  {id2label[lid]}: {label_counts[lid]} ({label_counts[lid]/total*100:.1f}%)")
+    print(f"Class weights: {CLASS_WEIGHTS}")
+
+    # 9. Initialize trainer with per-class weights
+    trainer = WeightedTrainer(
+        class_weights=CLASS_WEIGHTS,
         model=model,
         args=args,
         train_dataset=train_dataset,
@@ -163,7 +197,7 @@ def main():
         callbacks=[EarlyStoppingCallback(early_stopping_patience=4)],
     )
 
-    # 9. Start training
+    # 10. Start training
     print("Starting training...")                                                                                                                      
     trainer.train()                                                                                                                                      
     print("Training complete.") 
@@ -171,11 +205,11 @@ def main():
         print(f"Best checkpoint: {trainer.state.best_model_checkpoint}")
         print(f"Best {args.metric_for_best_model}: {trainer.state.best_metric:.4f}")
 
-    # 10. Save the fine-tuned model and tokenizer
+    # 11. Save the fine-tuned model and tokenizer
     print(f"Saving final model to {SAVED_MODEL_DIR}")
     trainer.save_model(str(SAVED_MODEL_DIR))
 
-    # 11. Plot train + eval loss curves so we can spot under-/overfitting
+    # 12. Plot train + eval loss curves so we can spot under-/overfitting
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
     plot_loss_curves(trainer.state.log_history, PLOTS_DIR / "loss_curves.png")
     print("Done.")
