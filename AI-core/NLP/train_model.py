@@ -7,6 +7,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from datasets import load_dataset
+from label_schema import LABELS, id2label, label2id
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
@@ -23,12 +24,6 @@ SAVED_MODEL_DIR = NLP_DIR / "saved_model"
 PLOTS_DIR = NLP_DIR / "plots"
 
 MODEL_NAME = "KBLab/electra-small-swedish-cased-discriminator"
-
-# The order defines the output indices of the classifier                                                                                                  
-# Should be in sync with test_model.py and the inference code                                                                                      
-LABELS = ["inte reklam", "samhällsnyttig", "reklam"]                                                                                              
-label2id = {label: i for i, label in enumerate(LABELS)}                                                                                                      
-id2label = {i: label for i, label in enumerate(LABELS)}
 
 
 def encode_label(example):                                                                                                                                   
@@ -100,7 +95,7 @@ def main():
     # 6. Training configuration
     args = TrainingArguments(
         output_dir=str(RESULTS_DIR),
-        num_train_epochs=20,
+        num_train_epochs=3,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=64,
         learning_rate=5e-5,
@@ -142,7 +137,6 @@ def main():
 
 if __name__ == "__main__":
     main() 
-
 
 
 

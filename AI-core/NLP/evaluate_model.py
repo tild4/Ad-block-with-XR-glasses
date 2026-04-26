@@ -1,5 +1,5 @@
 """
-Evaluates the fine-tuned text classifier on AI-core/NLP/dataset/test_large.jsonl
+Evaluates the fine-tuned text classifier on AI-core/NLP/dataset/test_original.jsonl
 and prints accuracy plus a per-class classification report.
 """
 
@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 from datasets import load_dataset
+from label_schema import LABELS, LABEL_IDS, label2id
 from sklearn.metrics import accuracy_score, classification_report
 from transformers import (
     AutoModelForSequenceClassification,
@@ -17,13 +18,9 @@ from transformers import (
 )
 
 NLP_DIR = Path(__file__).resolve().parent
-TEST_FILE = NLP_DIR / "dataset" / "test_large.jsonl"
+TEST_FILE = NLP_DIR / "dataset" / "test_original.jsonl"
 SAVED_MODEL_DIR = NLP_DIR / "saved_model"
 RESULTS_DIR = NLP_DIR / "results"
-
-# Must stay in sync with train_model.py and the inference code.
-LABELS = ["inte reklam", "reklam", "skadlig", "samhällsnyttig"]
-label2id = {label: i for i, label in enumerate(LABELS)}
 
 
 def encode_label(example):
@@ -77,7 +74,16 @@ def main():
     print(f"Accuracy: {accuracy:.4f}")
     print()
     print("Classification report:")
-    print(classification_report(true_ids, predicted_ids, target_names=LABELS, digits=4))
+    print(
+        classification_report(
+            true_ids,
+            predicted_ids,
+            labels=LABEL_IDS,
+            target_names=LABELS,
+            digits=4,
+            zero_division=0,
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -10,14 +10,12 @@ from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
+from label_schema import LABELS
 from transformers import AutoTokenizer
 
 # --- Paths ---
 NLP_DIR = Path(__file__).resolve().parent
 MODELS_DIR = NLP_DIR / "models"
-
-# Must match train_model.py
-LABELS = ["inte reklam", "reklam", "skadlig", "samhällsnyttig"]
 
 
 def main():
