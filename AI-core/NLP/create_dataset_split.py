@@ -45,7 +45,7 @@ from sklearn.model_selection import train_test_split
 # The source .jsonl files use Swedish labels; we remap to English.
 LABEL_REMAP = {
     "inte reklam": "non-ad",
-    "socially beneficial": "socially beneficial",
+    "samhällsnyttig": "socially beneficial",
     "reklam": "ad",
 }
 
