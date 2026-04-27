@@ -32,9 +32,13 @@ from transformers import (
 )
 
 NLP_DIR = Path(__file__).resolve().parent
-TEST_FILE = NLP_DIR / "dataset" / "test_clean.jsonl"
-SAVED_MODEL_DIR = NLP_DIR / "saved_model"
-RESULTS_DIR = NLP_DIR / "results"
+
+# "clean" → Model A, "augmented" → Model B
+MODE = "clean"
+
+TEST_FILE = NLP_DIR / "dataset" / ("test_augmented_v2.jsonl" if MODE == "augmented" else "test_clean.jsonl")
+SAVED_MODEL_DIR = NLP_DIR / "saved_model" / MODE
+RESULTS_DIR = NLP_DIR / "results" / MODE
 
 
 def encode_label(example):
@@ -142,11 +146,12 @@ def main():
     disp.plot(cmap="Blues", values_format="d")
     plt.title("Confusion Matrix")
     plt.tight_layout()
-    plots_dir = NLP_DIR / "plots"
+    plots_dir = NLP_DIR / "plots" / MODE
     plots_dir.mkdir(parents=True, exist_ok=True)
-    plt.savefig(plots_dir / "confusion_matrix_clean_data.png", dpi=120)
+    cm_path = plots_dir / "confusion_matrix.png"
+    plt.savefig(cm_path, dpi=120)
     plt.close()
-    print(f"Saved confusion matrix to {plots_dir / 'confusion_matrix_clean_data.png'}")
+    print(f"Saved confusion matrix to {cm_path}")
 
     # ── Safety check (full set) ───────────────────────────────────────
     samh_id = label2id["socially beneficial"]

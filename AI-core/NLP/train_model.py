@@ -49,26 +49,26 @@ from transformers import (
 
 from augment_ocr_noise import CHAR_NOISE_PROB, add_noise
 
-# ── Paths ─────────────────────────────────────────────────────────────
+# ── Mode switch ───────────────────────────────────────────────────────
+# "clean"     → Model A: no augmentation, eval on clean test data
+# "augmented" → Model B: on-the-fly OCR noise, eval on augmented test data
+MODE = "clean"
+
+# ── Augmentation config (only used when MODE = "augmented") ──────────
+AUGMENT_PROB = 0.5  # probability of applying OCR noise to each example per epoch
+
+# ── Paths (derived from MODE) ────────────────────────────────────────
 NLP_DIR = Path(__file__).resolve().parent
 TRAIN_FILE = NLP_DIR / "dataset" / "train_clean.jsonl"
-# Model A: use "test_clean.jsonl"
-# Model B: use "test_augmented_v2.jsonl" (clean + OCR-noisy copies)
-TEST_FILE = NLP_DIR / "dataset" / "test_clean.jsonl"
-RESULTS_DIR = NLP_DIR / "results"
-SAVED_MODEL_DIR = NLP_DIR / "saved_model"
-PLOTS_DIR = NLP_DIR / "plots"
+TEST_FILE = NLP_DIR / "dataset" / ("test_augmented_v2.jsonl" if MODE == "augmented" else "test_clean.jsonl")
+RESULTS_DIR = NLP_DIR / "results" / MODE
+SAVED_MODEL_DIR = NLP_DIR / "saved_model" / MODE
+PLOTS_DIR = NLP_DIR / "plots" / MODE
 
 # ── Model ─────────────────────────────────────────────────────────────
 MODEL_NAME = "KBLab/electra-small-swedish-cased-discriminator"
 POSITIVE_LABEL = "ad"
 POSITIVE_LABEL_ID = label2id[POSITIVE_LABEL]
-
-# ── Augmentation config ──────────────────────────────────────────────
-# Set USE_AUGMENTATION = False for Model A (baseline),
-#                        True  for Model B (production with OCR noise).
-USE_AUGMENTATION = False
-AUGMENT_PROB = 0.5  # probability of applying OCR noise to each example per epoch
 
 
 # ── AugmentedDataset ─────────────────────────────────────────────────
@@ -216,7 +216,7 @@ def main():
     # Printed at the start of every run so we can compare Minerva logs.
     print("=== Run Configuration ===")
     print(f"  model: {MODEL_NAME}")
-    print(f"  use_augmentation: {USE_AUGMENTATION}")
+    print(f"  mode: {MODE}")
     print(f"  augment_prob: {AUGMENT_PROB}")
     print(f"  char_noise_prob: {CHAR_NOISE_PROB}")
     print(f"  learning_rate: {args.learning_rate}")
@@ -233,7 +233,7 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
     # ── Prepare datasets ──────────────────────────────────────────────
-    if USE_AUGMENTATION:
+    if MODE == "augmented":
         # Model B: load without tokenizing — AugmentedDataset handles it
         train_hf = load_and_prepare(TRAIN_FILE, tokenizer, "train", do_tokenize=False)
         train_dataset = AugmentedDataset(train_hf, tokenizer, augment_prob=AUGMENT_PROB)
@@ -257,7 +257,7 @@ def main():
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
     # ── Print class distribution ──────────────────────────────────────
-    if USE_AUGMENTATION:
+    if MODE == "augmented":
         label_counts = Counter(train_hf["label"])
     else:
         label_counts = Counter(train_dataset["label"])
