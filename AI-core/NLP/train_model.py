@@ -54,7 +54,7 @@ NLP_DIR = Path(__file__).resolve().parent
 TRAIN_FILE = NLP_DIR / "dataset" / "train_clean.jsonl"
 # Model A: use "test_clean.jsonl"
 # Model B: use "test_augmented_v2.jsonl" (clean + OCR-noisy copies)
-TEST_FILE = NLP_DIR / "dataset" / "test_augmented_v2.jsonl"
+TEST_FILE = NLP_DIR / "dataset" / "test_clean.jsonl"
 RESULTS_DIR = NLP_DIR / "results"
 SAVED_MODEL_DIR = NLP_DIR / "saved_model"
 PLOTS_DIR = NLP_DIR / "plots"
@@ -67,7 +67,7 @@ POSITIVE_LABEL_ID = label2id[POSITIVE_LABEL]
 # ── Augmentation config ──────────────────────────────────────────────
 # Set USE_AUGMENTATION = False for Model A (baseline),
 #                        True  for Model B (production with OCR noise).
-USE_AUGMENTATION = True
+USE_AUGMENTATION = False
 AUGMENT_PROB = 0.5  # probability of applying OCR noise to each example per epoch
 
 
