@@ -2730,6 +2730,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::YOLOPostProcessor_MVP2
   sentisInferenceManager: {fileID: 540478703}
+  viewCroppedImage: {fileID: 0}
   cropMaterial: {fileID: 2100000, guid: ac1ddba664915451b8b511e4a3544091, type: 2}
   confidenceThreshold: 0.5
   iouThreshold: 0.4
@@ -7800,6 +7801,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56a216096a3c14dbda7a11c7827f78de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TextRecognitionInference_MVP2
+  viewCroppedImage: {fileID: 0}
   getROIText: {fileID: 1145609323}
   tensorTargetHeight: 48
   tensorTargetWidth: 320
@@ -7821,6 +7823,8 @@ MonoBehaviour:
   viewCroppedImage: {fileID: 0}
   textDetectionInference: {fileID: 1145609324}
   maskThreshold: 0.05
+  boxScoreThreshold: 0.6
+  unclipRatio: 1.5
   tensorTargetHeight: 48
   tensorTargetWidth: 320
   cropMaterial: {fileID: 2100000, guid: ac1ddba664915451b8b511e4a3544091, type: 2}
@@ -8453,7 +8457,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScrollViewThumbstick
   scrollRect: {fileID: 1230619436}
-  scrollSpeed: 3
+  scrollSpeed: 2
   deadZone: 0.1
 --- !u!1 &1240099193
 GameObject:
