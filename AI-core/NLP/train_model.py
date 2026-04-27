@@ -52,7 +52,9 @@ from augment_ocr_noise import CHAR_NOISE_PROB, add_noise
 # ── Paths ─────────────────────────────────────────────────────────────
 NLP_DIR = Path(__file__).resolve().parent
 TRAIN_FILE = NLP_DIR / "dataset" / "train_clean.jsonl"
-TEST_FILE = NLP_DIR / "dataset" / "test_clean.jsonl"
+# Model A: use "test_clean.jsonl"
+# Model B: use "test_augmented_v2.jsonl" (clean + OCR-noisy copies)
+TEST_FILE = NLP_DIR / "dataset" / "test_augmented_v2.jsonl"
 RESULTS_DIR = NLP_DIR / "results"
 SAVED_MODEL_DIR = NLP_DIR / "saved_model"
 PLOTS_DIR = NLP_DIR / "plots"
