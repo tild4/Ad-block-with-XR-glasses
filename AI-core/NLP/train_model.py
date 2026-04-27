@@ -195,7 +195,7 @@ def main():
     # ── Training configuration ────────────────────────────────────────
     args = TrainingArguments(
         output_dir=str(RESULTS_DIR),
-        num_train_epochs=15,
+        num_train_epochs=20,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=64,
         learning_rate=2e-5,
