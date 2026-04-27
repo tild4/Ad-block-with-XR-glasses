@@ -144,9 +144,9 @@ def main():
     plt.tight_layout()
     plots_dir = NLP_DIR / "plots"
     plots_dir.mkdir(parents=True, exist_ok=True)
-    plt.savefig(plots_dir / "confusion_matrix.png", dpi=120)
+    plt.savefig(plots_dir / "confusion_matrix_clean_data.png", dpi=120)
     plt.close()
-    print(f"Saved confusion matrix to {plots_dir / 'confusion_matrix.png'}")
+    print(f"Saved confusion matrix to {plots_dir / 'confusion_matrix_clean_data.png'}")
 
     # ── Safety check (full set) ───────────────────────────────────────
     samh_id = label2id["socially beneficial"]

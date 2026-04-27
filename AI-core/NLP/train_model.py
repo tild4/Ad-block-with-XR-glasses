@@ -292,7 +292,7 @@ def main():
 
     # ── Plot loss curves ──────────────────────────────────────────────
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
-    plot_loss_curves(trainer.state.log_history, PLOTS_DIR / "loss_curves.png")
+    plot_loss_curves(trainer.state.log_history, PLOTS_DIR / "loss_curves_clean_data.png")
     print("Done.")
 
 
