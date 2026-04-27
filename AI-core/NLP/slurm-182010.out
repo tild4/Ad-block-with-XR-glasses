@@ -1,0 +1,99 @@
+Running on host: callisto
+Using Python: /data/users/linusu/venvs/ad-block-nlp/bin/python
+Working directory: /data/users/linusu/Ad-block-with-XR-glasses/AI-core/NLP
+Virtual environment: /data/users/linusu/venvs/ad-block-nlp/bin/activate
+Mon Apr 27 22:08:55 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 590.48.01              Driver Version: 590.48.01      CUDA Version: 13.1     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA L4                      Off |   00000000:0D:00.0 Off |                    0 |
+| N/A   34C    P8             16W /   72W |       0MiB /  23034MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   1  NVIDIA L4                      Off |   00000000:37:00.0 Off |                    0 |
+| N/A   49C    P0             32W /   72W |     427MiB /  23034MiB |      4%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   2  NVIDIA L4                      Off |   00000000:4A:00.0 Off |                    0 |
+| N/A   22C    P8             11W /   72W |       0MiB /  23034MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   3  NVIDIA L4                      Off |   00000000:61:00.0 Off |                    0 |
+| N/A   25C    P8             15W /   72W |       3MiB /  23034MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   4  NVIDIA L4                      Off |   00000000:A0:00.0 Off |                    0 |
+| N/A   47C    P0             30W /   72W |     521MiB /  23034MiB |      5%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   5  NVIDIA L4                      Off |   00000000:B5:00.0 Off |                    0 |
+| N/A   30C    P8             12W /   72W |       0MiB /  23034MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   6  NVIDIA L4                      Off |   00000000:CA:00.0 Off |                    0 |
+| N/A   21C    P8             12W /   72W |       0MiB /  23034MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   7  NVIDIA L4                      Off |   00000000:E1:00.0 Off |                    0 |
+| N/A   22C    P8             12W /   72W |       0MiB /  23034MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    1   N/A  N/A         2972836      C   python                                  420MiB |
+|    4   N/A  N/A         2972080      C   python                                  514MiB |
++-----------------------------------------------------------------------------------------+
+=== Run Configuration ===
+  model: KBLab/electra-small-swedish-cased-discriminator
+  use_augmentation: True
+  augment_prob: 0.5
+  char_noise_prob: 0.15
+  learning_rate: 2e-05
+  weight_decay: 0.05
+  warmup_ratio: 0.1
+  num_train_epochs: 15
+  metric_for_best_model: eval_macro_f1
+  train_file: /data/users/linusu/Ad-block-with-XR-glasses/AI-core/NLP/dataset/train_clean.jsonl
+  test_file: /data/users/linusu/Ad-block-with-XR-glasses/AI-core/NLP/dataset/test_augmented_v2.jsonl
+=========================
+
+Loading tokenizer: KBLab/electra-small-swedish-cased-discriminator
+Loading train dataset from /data/users/linusu/Ad-block-with-XR-glasses/AI-core/NLP/dataset/train_clean.jsonl
+Generating train split: 0 examples [00:00, ? examples/s]Generating train split: 1982 examples [00:00, 7394.77 examples/s]Generating train split: 1982 examples [00:00, 7321.27 examples/s]
+  1982 examples, columns: ['text', 'label', 'source']
+Map:   0%|          | 0/1982 [00:00<?, ? examples/s]Map:   0%|          | 0/1982 [00:00<?, ? examples/s]
+Traceback (most recent call last):
+  File "/data/users/linusu/Ad-block-with-XR-glasses/AI-core/NLP/train_model.py", line 300, in <module>
+    main()
+  File "/data/users/linusu/Ad-block-with-XR-glasses/AI-core/NLP/train_model.py", line 238, in main
+    train_hf = load_and_prepare(TRAIN_FILE, tokenizer, "train", do_tokenize=False)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/users/linusu/Ad-block-with-XR-glasses/AI-core/NLP/train_model.py", line 133, in load_and_prepare
+    ds = ds.map(encode_label)
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/data/users/linusu/venvs/ad-block-nlp/lib/python3.12/site-packages/datasets/arrow_dataset.py", line 602, in wrapper
+    out: Union["Dataset", "DatasetDict"] = func(self, *args, **kwargs)
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/users/linusu/venvs/ad-block-nlp/lib/python3.12/site-packages/datasets/arrow_dataset.py", line 567, in wrapper
+    out: Union["Dataset", "DatasetDict"] = func(self, *args, **kwargs)
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/users/linusu/venvs/ad-block-nlp/lib/python3.12/site-packages/datasets/arrow_dataset.py", line 3167, in map
+    for rank, done, content in Dataset._map_single(**dataset_kwargs):
+  File "/data/users/linusu/venvs/ad-block-nlp/lib/python3.12/site-packages/datasets/arrow_dataset.py", line 3528, in _map_single
+    example = apply_function_on_filtered_inputs(example, i, offset=offset)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/users/linusu/venvs/ad-block-nlp/lib/python3.12/site-packages/datasets/arrow_dataset.py", line 3427, in apply_function_on_filtered_inputs
+    processed_inputs = function(*fn_args, *additional_args, **fn_kwargs)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/users/linusu/Ad-block-with-XR-glasses/AI-core/NLP/train_model.py", line 112, in encode_label
+    example["label"] = label2id[example["label"]]
+                       ~~~~~~~~^^^^^^^^^^^^^^^^^^
+KeyError: 'inte reklam'
