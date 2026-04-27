@@ -34,7 +34,7 @@ from transformers import (
 NLP_DIR = Path(__file__).resolve().parent
 
 # "clean" → Model A, "augmented" → Model B
-MODE = "clean"
+MODE = "augmented"
 
 TEST_FILE = NLP_DIR / "dataset" / ("test_augmented_v2.jsonl" if MODE == "augmented" else "test_clean.jsonl")
 SAVED_MODEL_DIR = NLP_DIR / "saved_model" / MODE
