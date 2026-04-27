@@ -1,6 +1,19 @@
 """
-Evaluates the fine-tuned text classifier on AI-core/NLP/dataset/test_original.jsonl
-and prints accuracy plus a per-class classification report.
+Evaluates the fine-tuned text classifier and prints accuracy, a per-class
+classification report, confusion matrix, and a safety check.
+
+=== Provenance-split evaluation ===
+Each example in the test set has a "source" field ("real" or "synthetic"),
+added by create_dataset_split.py. This script reports metrics both for the
+full test set AND separately for real vs synthetic examples, so we can see
+how well the model generalises to real-world text vs synthetic training
+distribution.
+
+=== Test files ===
+  test_clean.jsonl          — Clean text (for Model A baseline evaluation)
+  test_augmented_v2.jsonl   — Clean + OCR-noisy copies (for Model B production eval)
+
+Change TEST_FILE below to switch between them.
 """
 
 from pathlib import Path
@@ -19,7 +32,7 @@ from transformers import (
 )
 
 NLP_DIR = Path(__file__).resolve().parent
-TEST_FILE = NLP_DIR / "dataset" / "test_original_augmented.jsonl"
+TEST_FILE = NLP_DIR / "dataset" / "test_clean.jsonl"
 SAVED_MODEL_DIR = NLP_DIR / "saved_model"
 RESULTS_DIR = NLP_DIR / "results"
 
@@ -38,12 +51,48 @@ def tokenize(batch, tokenizer):
     )
 
 
+def evaluate_subset(true_ids, predicted_ids, subset_name):
+    """Print classification report and safety check for a subset of examples."""
+    if len(true_ids) == 0:
+        print(f"  No {subset_name} examples found, skipping.")
+        return
+
+    accuracy = accuracy_score(true_ids, predicted_ids)
+    print(f"\n{'=' * 50}")
+    print(f"  {subset_name} ({len(true_ids)} examples) — Accuracy: {accuracy:.4f}")
+    print(f"{'=' * 50}")
+    print(
+        classification_report(
+            true_ids,
+            predicted_ids,
+            labels=LABEL_IDS,
+            target_names=LABELS,
+            digits=4,
+            zero_division=0,
+        )
+    )
+
+    # Safety check for this subset
+    samh_id = label2id["socially beneficial"]
+    reklam_id = label2id["ad"]
+    cm = confusion_matrix(true_ids, predicted_ids, labels=LABEL_IDS)
+    samh_total = cm[samh_id].sum()
+    if samh_total > 0:
+        samh_as_reklam = cm[samh_id][reklam_id]
+        print(f"  Safety: {samh_as_reklam}/{samh_total} socially beneficial → reklam "
+              f"({samh_as_reklam / samh_total * 100:.1f}%)")
+
+
 def main():
     if not SAVED_MODEL_DIR.exists():
         raise FileNotFoundError(f"Could not find saved model directory: {SAVED_MODEL_DIR}")
 
     print(f"Loading test dataset from {TEST_FILE}")
     dataset = load_dataset("json", data_files=str(TEST_FILE), split="train")
+
+    # Save source tags before encoding labels (source column may be dropped by map)
+    sources = dataset["source"] if "source" in dataset.column_names else None
+
     dataset = dataset.map(encode_label)
     print(f"  {len(dataset)} examples")
 
@@ -71,10 +120,11 @@ def main():
     predicted_ids = np.argmax(predictions.predictions, axis=1)
     true_ids = np.array(dataset["label"])
 
+    # ── Full test set metrics ─────────────────────────────────────────
     accuracy = accuracy_score(true_ids, predicted_ids)
-    print(f"Accuracy: {accuracy:.4f}")
+    print(f"\nOverall Accuracy: {accuracy:.4f}")
     print()
-    print("Classification report:")
+    print("Classification report (all examples):")
     print(
         classification_report(
             true_ids,
@@ -86,7 +136,7 @@ def main():
         )
     )
 
-    # Confusion matrix saved as plot
+    # ── Confusion matrix (full set) ──────────────────────────────────
     cm = confusion_matrix(true_ids, predicted_ids, labels=LABEL_IDS)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=LABELS)
     disp.plot(cmap="Blues", values_format="d")
@@ -98,13 +148,29 @@ def main():
     plt.close()
     print(f"Saved confusion matrix to {plots_dir / 'confusion_matrix.png'}")
 
-    # Safety check: how often is samhällsnyttig misclassified as reklam?
-    samh_id = label2id["samhällsnyttig"]
-    reklam_id = label2id["reklam"]
+    # ── Safety check (full set) ───────────────────────────────────────
+    samh_id = label2id["socially beneficial"]
+    reklam_id = label2id["ad"]
     samh_as_reklam = cm[samh_id][reklam_id]
     samh_total = cm[samh_id].sum()
-    print(f"Safety: {samh_as_reklam}/{samh_total} samhällsnyttig classified as reklam "
-          f"({samh_as_reklam/samh_total*100:.1f}%)")
+    if samh_total > 0:
+        print(f"Safety: {samh_as_reklam}/{samh_total} socially beneficial classified as reklam "
+              f"({samh_as_reklam / samh_total * 100:.1f}%)")
+
+    # ── Provenance-split evaluation ───────────────────────────────────
+    # Report metrics separately for real vs synthetic test examples.
+    # This shows how well the model generalises to real-world text
+    # compared to the synthetic distribution it was partially trained on.
+    if sources is not None:
+        sources_arr = np.array(sources)
+        for source_type in ["real", "synthetic"]:
+            mask = sources_arr == source_type
+            if mask.sum() > 0:
+                evaluate_subset(
+                    true_ids[mask],
+                    predicted_ids[mask],
+                    f"{source_type.upper()} examples",
+                )
 
 
 if __name__ == "__main__":

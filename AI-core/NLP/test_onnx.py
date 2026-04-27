@@ -24,10 +24,10 @@ ONNX_MODEL_PATH = MODELS_DIR / "model.onnx"
 
 # A small set of test sentences — one per class plus a noisy OCR-style one.
 TEST_SENTENCES = [
-    "Imorgon öppnar biblioteket klockan nio",            # inte reklam
-    "Vaccinationen mot influensa är gratis i höst",      # samhällsnyttig
-    "Halva priset på alla laptops denna vecka!",         # reklam
-    "B0ka b0rd nu h0s Café S01 till halva priset",       # noisy / blandad
+    "Imorgon öppnar biblioteket klockan nio",            # non-ad
+    "Vaccinationen mot influensa är gratis i höst",      # socially beneficial
+    "Halva priset på alla laptops denna vecka!",         # ad
+    "B0ka b0rd nu h0s Café S01 till halva priset",       # noisy / mixed
 ]
 
 

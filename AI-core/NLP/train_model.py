@@ -1,13 +1,40 @@
-"""                                                                                                                                                        
-Fine-tunes KBLab/electra-small-swedish-cased-discriminator on the ad-classification                                                                          
-dataset and saves the result to AI-core/NLP/saved_model/
+"""
+Fine-tunes KBLab/electra-small-swedish-cased-discriminator for Swedish
+ad-classification (3 classes: "non-ad", "socially beneficial", "ad").
+
+=== Two training modes ===
+
+Model A — Baseline (USE_AUGMENTATION = False):
+  Trains on clean text only (train_clean.jsonl).
+  Evaluates on clean test data (test_clean.jsonl).
+  Shows the model's base performance without OCR-noise robustness.
+
+Model B — Production (USE_AUGMENTATION = True):
+  Trains with on-the-fly OCR-noise augmentation: each epoch, every example
+  has a probability AUGMENT_PROB of being corrupted by add_noise() from
+  augment_ocr_noise.py. This gives the model fresh noise patterns every
+  epoch instead of memorising fixed noisy copies.
+  Evaluates on test_clean.jsonl (during training) and test_augmented_v2.jsonl
+  (during final evaluation with evaluate_model.py).
+
+=== Dataset origin ===
+train_clean.jsonl and test_clean.jsonl are created by create_dataset_split.py,
+which pools:
+  - Real data from test_original.jsonl (372 manually collected examples)
+  - Synthetic data from (Claude + GPT)generated_examples.jsonl (1994 examples)
+and performs a stratified split with source-tagging ("real"/"synthetic").
+
+Toggle USE_AUGMENTATION and AUGMENT_PROB below to switch between Model A and B.
+Adjust hyperparameters (learning_rate, weight_decay, etc.) for tuning runs.
 """
 
+import random
 from collections import Counter
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from datasets import load_dataset
 from label_schema import LABELS, id2label, label2id
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
@@ -20,39 +47,90 @@ from transformers import (
     TrainingArguments,
 )
 
+from augment_ocr_noise import CHAR_NOISE_PROB, add_noise
+
+# ── Paths ─────────────────────────────────────────────────────────────
 NLP_DIR = Path(__file__).resolve().parent
-TRAIN_FILE = NLP_DIR / "dataset" / "train_augmented.jsonl"
-TEST_FILE = NLP_DIR / "dataset" / "test_original_augmented.jsonl"
+TRAIN_FILE = NLP_DIR / "dataset" / "train_clean.jsonl"
+TEST_FILE = NLP_DIR / "dataset" / "test_clean.jsonl"
 RESULTS_DIR = NLP_DIR / "results"
 SAVED_MODEL_DIR = NLP_DIR / "saved_model"
 PLOTS_DIR = NLP_DIR / "plots"
 
+# ── Model ─────────────────────────────────────────────────────────────
 MODEL_NAME = "KBLab/electra-small-swedish-cased-discriminator"
-POSITIVE_LABEL = "reklam"
+POSITIVE_LABEL = "ad"
 POSITIVE_LABEL_ID = label2id[POSITIVE_LABEL]
 
+# ── Augmentation config ──────────────────────────────────────────────
+# Set USE_AUGMENTATION = False for Model A (baseline),
+#                        True  for Model B (production with OCR noise).
+USE_AUGMENTATION = True
+AUGMENT_PROB = 0.5  # probability of applying OCR noise to each example per epoch
 
-def encode_label(example):                                                                                                                                   
-    """Convert the string label to its integer id."""                                                                                                        
-    example["label"] = label2id[example["label"]]                                                                                                            
+
+# ── AugmentedDataset ─────────────────────────────────────────────────
+class AugmentedDataset(torch.utils.data.Dataset):
+    """
+    Wraps a HuggingFace Dataset to apply random OCR noise on-the-fly.
+
+    Instead of pre-generating a fixed set of noisy copies (which the model
+    memorises after the first epoch), this dataset applies add_noise() with
+    probability augment_prob each time an example is accessed. This means
+    every epoch sees different noise patterns, increasing the effective
+    training diversity without inflating the dataset size.
+
+    The tokenizer is called inside __getitem__ so that the noisy text is
+    tokenized fresh each time (we can't pre-tokenize because the text changes).
+    """
+
+    def __init__(self, hf_dataset, tokenizer, augment_prob=0.5):
+        self.dataset = hf_dataset
+        self.tokenizer = tokenizer
+        self.augment_prob = augment_prob
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        item = self.dataset[idx]
+        text = item["text"]
+
+        # With probability augment_prob, corrupt the text with OCR noise
+        if random.random() < self.augment_prob:
+            text = add_noise(text)
+
+        tokens = self.tokenizer(text, truncation=True, max_length=64)
+        tokens["labels"] = item["label"]
+        return tokens
+
+
+def encode_label(example):
+    """Convert the string label to its integer id."""
+    example["label"] = label2id[example["label"]]
     return example
 
 
 def tokenize(batch, tokenizer):
-    return tokenizer(                                                                                                                                        
-        batch["text"],                                                                                                                                     
-        truncation=True,                                                                                                                                   
-        max_length=64,                                                                                                                                       
-    )    
+    return tokenizer(
+        batch["text"],
+        truncation=True,
+        max_length=64,
+    )
 
 
-def load_and_prepare(jsonl_path, tokenizer, label_name):
-    """Load a jsonl, encode labels to ids, tokenize. Returns the prepared dataset."""
+def load_and_prepare(jsonl_path, tokenizer, label_name, do_tokenize=True):
+    """Load a jsonl, encode labels to ids, optionally tokenize.
+
+    When using AugmentedDataset, we skip tokenization here because
+    the dataset tokenizes on-the-fly after applying noise.
+    """
     print(f"Loading {label_name} dataset from {jsonl_path}")
     ds = load_dataset("json", data_files=str(jsonl_path), split="train")
     print(f"  {len(ds)} examples, columns: {ds.column_names}")
     ds = ds.map(encode_label)
-    ds = ds.map(lambda batch: tokenize(batch, tokenizer), batched=True)
+    if do_tokenize:
+        ds = ds.map(lambda batch: tokenize(batch, tokenizer), batched=True)
     return ds
 
 
@@ -112,30 +190,13 @@ def compute_metrics(eval_pred):
 
 
 def main():
-    # 1+2+3+4. Load tokenizer once, then prepare both datasets through it.
-    print(f"Loading tokenizer: {MODEL_NAME}")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-
-    train_dataset = load_and_prepare(TRAIN_FILE, tokenizer, "train")
-    eval_dataset = load_and_prepare(TEST_FILE, tokenizer, "eval")
-
-
-    # 5. Load model with a classification head 
-    print(f"Loading model: {MODEL_NAME}")                                                                                                                    
-    model = AutoModelForSequenceClassification.from_pretrained(                                                                                              
-        MODEL_NAME,                                                                                                                                          
-        num_labels=len(LABELS),                                                                                                                              
-        label2id=label2id,                                                                                                                                   
-        id2label=id2label,                                                                                                                                 
-    ) 
-
-    # 6. Training configuration
+    # ── Training configuration ────────────────────────────────────────
     args = TrainingArguments(
         output_dir=str(RESULTS_DIR),
-        num_train_epochs=5,
+        num_train_epochs=15,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=64,
-        learning_rate=1e-5,
+        learning_rate=2e-5,
         warmup_ratio=0.1,
         weight_decay=0.05,
         logging_steps=10,
@@ -149,17 +210,61 @@ def main():
         seed=42,
     )
 
-    # 7. Data collator to handle dynamic padding
+    # ── Log run configuration ─────────────────────────────────────────
+    # Printed at the start of every run so we can compare Minerva logs.
+    print("=== Run Configuration ===")
+    print(f"  model: {MODEL_NAME}")
+    print(f"  use_augmentation: {USE_AUGMENTATION}")
+    print(f"  augment_prob: {AUGMENT_PROB}")
+    print(f"  char_noise_prob: {CHAR_NOISE_PROB}")
+    print(f"  learning_rate: {args.learning_rate}")
+    print(f"  weight_decay: {args.weight_decay}")
+    print(f"  warmup_ratio: {args.warmup_ratio}")
+    print(f"  num_train_epochs: {args.num_train_epochs}")
+    print(f"  metric_for_best_model: {args.metric_for_best_model}")
+    print(f"  train_file: {TRAIN_FILE}")
+    print(f"  test_file: {TEST_FILE}")
+    print("=========================")
+
+    # ── Load tokenizer ────────────────────────────────────────────────
+    print(f"\nLoading tokenizer: {MODEL_NAME}")
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+
+    # ── Prepare datasets ──────────────────────────────────────────────
+    if USE_AUGMENTATION:
+        # Model B: load without tokenizing — AugmentedDataset handles it
+        train_hf = load_and_prepare(TRAIN_FILE, tokenizer, "train", do_tokenize=False)
+        train_dataset = AugmentedDataset(train_hf, tokenizer, augment_prob=AUGMENT_PROB)
+    else:
+        # Model A: standard tokenized dataset
+        train_dataset = load_and_prepare(TRAIN_FILE, tokenizer, "train")
+
+    # Eval dataset is always pre-tokenized (no on-the-fly noise for eval)
+    eval_dataset = load_and_prepare(TEST_FILE, tokenizer, "eval")
+
+    # ── Load model ────────────────────────────────────────────────────
+    print(f"Loading model: {MODEL_NAME}")
+    model = AutoModelForSequenceClassification.from_pretrained(
+        MODEL_NAME,
+        num_labels=len(LABELS),
+        label2id=label2id,
+        id2label=id2label,
+    )
+
+    # ── Data collator ─────────────────────────────────────────────────
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
-    # 8. Print class distribution so we can verify balance
-    label_counts = Counter(train_dataset["label"])
+    # ── Print class distribution ──────────────────────────────────────
+    if USE_AUGMENTATION:
+        label_counts = Counter(train_hf["label"])
+    else:
+        label_counts = Counter(train_dataset["label"])
     total = sum(label_counts.values())
     print("Training class distribution:")
     for lid in sorted(label_counts):
         print(f"  {id2label[lid]}: {label_counts[lid]} ({label_counts[lid]/total*100:.1f}%)")
 
-    # 9. Initialize trainer
+    # ── Initialize trainer ────────────────────────────────────────────
     trainer = Trainer(
         model=model,
         args=args,
@@ -171,26 +276,23 @@ def main():
         callbacks=[EarlyStoppingCallback(early_stopping_patience=4)],
     )
 
-    # 10. Start training
-    print("Starting training...")                                                                                                                      
-    trainer.train()                                                                                                                                      
-    print("Training complete.") 
+    # ── Train ─────────────────────────────────────────────────────────
+    print("Starting training...")
+    trainer.train()
+    print("Training complete.")
     if trainer.state.best_model_checkpoint is not None:
         print(f"Best checkpoint: {trainer.state.best_model_checkpoint}")
         print(f"Best {args.metric_for_best_model}: {trainer.state.best_metric:.4f}")
 
-    # 11. Save the fine-tuned model and tokenizer
+    # ── Save model ────────────────────────────────────────────────────
     print(f"Saving final model to {SAVED_MODEL_DIR}")
     trainer.save_model(str(SAVED_MODEL_DIR))
 
-    # 12. Plot train + eval loss curves so we can spot under-/overfitting
+    # ── Plot loss curves ──────────────────────────────────────────────
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
     plot_loss_curves(trainer.state.log_history, PLOTS_DIR / "loss_curves.png")
     print("Done.")
 
 
 if __name__ == "__main__":
-    main() 
-
-
-
+    main()
