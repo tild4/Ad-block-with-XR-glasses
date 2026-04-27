@@ -15,7 +15,11 @@ from transformers import AutoTokenizer
 
 # --- Paths ---
 NLP_DIR = Path(__file__).resolve().parent
-MODELS_DIR = NLP_DIR / "models"
+
+# "clean" → Model A, "augmented" → Model B
+MODE = "augmented"
+
+MODELS_DIR = NLP_DIR / "models" / MODE
 
 
 def main():
