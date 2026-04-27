@@ -95,10 +95,24 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         }
     }
 
+    /*
+        FIX: Previously this method returned silently when the tensor was null,
+        which meant findTextRegions was never fired. OCRPipelineManager listens
+        to findTextRegions to reset its isProcessing flag — so a silent return
+        here caused a permanent deadlock (the queue kept growing but nothing
+        was ever dequeued again).
+
+        Now we always fire findTextRegions with an empty DetectionsPerAd so the
+        pipeline manager can move on to the next queued item.
+    */
     private void HandleNewTrackedObject(TrackedObject advertisement)
     {
         if (advertisement == null || advertisement.lastDetection.RoiTensor == null)
         {
+            // Signal completion with an empty result so that
+            // OCRPipelineManager.OnOcrFinished resets isProcessing.
+            Debug.LogWarning($"[TextDetect] Skipping null/disposed object, signalling completion.");
+            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero));
             return;
         }
         StartCoroutine(RunOCRDetection(advertisement));
@@ -116,17 +130,79 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
 
     private IEnumerator RunInference(TrackedObject advertisement)
     {
-        Tensor<float> inputTensor = advertisement.lastDetection.RoiTensor;
-        Rect bounds = advertisement.lastDetection.bboxNormalized;
+        Tensor<float> inputTensor = null;
+        RenderTexture roiSnapshot = null;
+        Rect roiContentRect = Rect.zero;
+        Rect yoloBounds = Rect.zero;
+
+        // Capture values immediately before any yield.
+        // TrackedObject.lastDetection is updated every YOLO frame (it's a shared
+        // reference), so we freeze snapshot/bounds/tensor NOW while they still
+        // correspond to each other. After a yield, lastDetection may already
+        // point to a newer frame's data.
+        //
+        // FIX: Wrapped in try/catch because TrackedObject may have expired
+        // (TTL) between being dequeued and reaching this point. In that case
+        // its tensor could be disposed, causing an ObjectDisposedException.
+        // Without this catch the coroutine would die silently and
+        // findTextRegions would never fire, deadlocking the pipeline.
+        try
+        {
+            inputTensor = advertisement.lastDetection.RoiTensor;
+            roiContentRect = advertisement.lastDetection.RoiContentRectNormalized;
+            roiSnapshot = advertisement.lastDetection.RoiSnapshot;
+            yoloBounds = advertisement.lastDetection.bboxNormalized;
+            // Setting RoiSnapshot to null transfers ownership to the OCR pipeline.
+            advertisement.lastDetection.RoiSnapshot = null;
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[TextDetect] Failed to capture detection data for Object {advertisement.id}: {e.Message}");
+        }
 
         if (inputTensor == null || worker == null)
         {
-            yield return null;
+            if (roiSnapshot != null)
+            {
+                roiSnapshot.Release();
+                Destroy(roiSnapshot);
+            }
+            // Always signal completion so OCRPipelineManager.OnOcrFinished
+            // resets isProcessing. Without this the pipeline permanently deadlocks.
+            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero));
+            yield break;
+        }
+
+        Tensor<float> normalizedInput = null;
+        Tensor<float> outputTensor = null;
+        bool inferenceSucceeded = false;
+
+        // PP-OCR expects BGR channel order + ImageNet normalization.
+        // Unity's tensor conversion produces RGB values in [0,1].
+        // FIX: Wrapped in try/catch — if the input tensor was disposed by
+        // TrackingManager between the null-check above and this point
+        // (race with TTL expiry), ReadbackAndClone inside NormalizeForPPOCR
+        // would throw. We catch it and signal completion to keep the pipeline alive.
+        try
+        {
+            PipelineProfiler.begin("OCR Preprocess");
+            normalizedInput = NormalizeForPPOCR(inputTensor);
+            PipelineProfiler.end("OCR Preprocess");
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[TextDetect] Preprocessing failed for Object {advertisement.id}: {e.Message}");
+            if (roiSnapshot != null)
+            {
+                roiSnapshot.Release();
+                Destroy(roiSnapshot);
+            }
+            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero));
             yield break;
         }
 
         PipelineProfiler.begin("OCR TextDetect");
-        worker.Schedule(inputTensor);
+        worker.Schedule(normalizedInput);
 
         var outputAwaiter = (worker.PeekOutput(0) as Tensor<float>)
             .ReadbackAndCloneAsync()
@@ -138,24 +214,86 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         }
 
         PipelineProfiler.end("OCR TextDetect");
+        normalizedInput.Dispose();
 
-        //inputTensor.Dispose();
-
-        Tensor<float> outputTensor = outputAwaiter.GetResult();
-
-        if (outputTensor == null)
+        // FIX: Wrapped GetResult in try/catch — the async readback can fail
+        // if the GPU resource was released during the wait (e.g. scene unload).
+        // On failure we signal completion to prevent pipeline deadlock.
+        try
         {
+            outputTensor = outputAwaiter.GetResult();
+            inferenceSucceeded = outputTensor != null;
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[TextDetect] Inference readback failed for Object {advertisement.id}: {e.Message}");
+        }
+
+        if (!inferenceSucceeded)
+        {
+            if (roiSnapshot != null)
+            {
+                roiSnapshot.Release();
+                Destroy(roiSnapshot);
+            }
+            // Same pattern: always signal completion to unblock the queue.
+            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero));
             yield break;
         }
 
-        //advertisement.findTextTensor = outputTensor;
-
-        DetectionsPerAd findDetections = new DetectionsPerAd(advertisement, outputTensor);
+        DetectionsPerAd findDetections = new DetectionsPerAd(
+            advertisement, outputTensor, roiSnapshot, yoloBounds, roiContentRect
+        );
 
         findTextRegions?.Invoke(findDetections);
         Debug.Log(
             $"[TextDetect] Heatmap generated for Object {advertisement.id}. Sending to ProcessOCRDetection."
         );
+    }
+
+    /*
+        Normalizes an RGB [0,1] tensor for PP-OCR text detection.
+        PP-OCR expects BGR channel order + ImageNet normalization:
+        output = (pixel - mean) / std
+    */
+    private Tensor<float> NormalizeForPPOCR(Tensor<float> rgbTensor)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        Tensor<float> cpuTensor = rgbTensor.ReadbackAndClone();
+
+        int height = cpuTensor.shape[2];
+        int width = cpuTensor.shape[3];
+
+        const float meanB = 0.485f;
+        const float meanG = 0.456f;
+        const float meanR = 0.406f;
+        const float stdB = 0.229f;
+        const float stdG = 0.224f;
+        const float stdR = 0.225f;
+
+        Tensor<float> result = new Tensor<float>(new TensorShape(1, 3, height, width));
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float r = cpuTensor[0, 0, y, x];
+                float g = cpuTensor[0, 1, y, x];
+                float b = cpuTensor[0, 2, y, x];
+
+                result[0, 0, y, x] = (b - meanB) / stdB;
+                result[0, 1, y, x] = (g - meanG) / stdG;
+                result[0, 2, y, x] = (r - meanR) / stdR;
+            }
+        }
+
+        cpuTensor.Dispose();
+
+        Debug.Log(
+            $"[OCR Preprocess] Normalized {height}x{width} RGB->BGR tensor in {sw.ElapsedMilliseconds}ms"
+        );
+        return result;
     }
 
     private void OnDestroy()

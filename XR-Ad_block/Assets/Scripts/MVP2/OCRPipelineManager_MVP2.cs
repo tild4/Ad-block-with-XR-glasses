@@ -57,6 +57,22 @@ public class OCRPipelineManager_MVP2 : MonoBehaviour
         ProcessNextInQueue();
     }
 
+    /*
+        FIX: Changed from simple dequeue-one to a loop that skips stale entries.
+
+        Previously this method dequeued exactly one item and sent it to OCR.
+        If that item's tensor had been disposed (e.g. the TrackedObject expired
+        via TTL while waiting in the queue), TextDetectionInference would
+        silently return without firing findTextRegions. That left isProcessing
+        stuck at true forever — a permanent deadlock where no further items
+        could ever be processed.
+
+        Now we loop through the queue, skipping any entry that is:
+          - null or already analyzed (OCR result already obtained)
+          - missing its RoiTensor (expired object whose tensor was disposed)
+        This guarantees we either find a valid item to process or drain the
+        queue cleanly.
+    */
     private void ProcessNextInQueue()
     {
         if (isProcessing)
@@ -64,13 +80,44 @@ public class OCRPipelineManager_MVP2 : MonoBehaviour
             Debug.LogWarning("[Queue] Still waiting for previous OCR to finish...");
             return;
         }
-        if (ocrQueue.Count == 0)
-            return;
 
-        var next = ocrQueue.Dequeue();
-        isProcessing = true;
-        Debug.Log($"[Queue] Starting OCR process for Object {next.id}.");
-        onReadyForOCR?.Invoke(next);
+        while (ocrQueue.Count > 0)
+        {
+            var next = ocrQueue.Dequeue();
+
+            // An object may have completed OCR via an earlier queue entry
+            // (duplicates were possible before the TrackingManager fix).
+            // Skip it to avoid redundant work.
+            if (next == null || next.isAnalyzed)
+            {
+                Debug.Log($"[Queue] Skipping already-analyzed or null object. Remaining: {ocrQueue.Count}");
+                continue;
+            }
+
+            // When a TrackedObject's TTL expires, RemoveExpired() disposes its
+            // tensor but the queue still holds a reference to the object.
+            // Attempting OCR on a disposed tensor would crash the inference
+            // coroutine and deadlock the pipeline. Skip these safely.
+            try
+            {
+                var tensor = next.lastDetection.RoiTensor;
+                if (tensor == null)
+                {
+                    Debug.LogWarning($"[Queue] Skipping Object {next.id}: RoiTensor is null.");
+                    continue;
+                }
+            }
+            catch (Exception)
+            {
+                Debug.LogWarning($"[Queue] Skipping Object {next.id}: RoiTensor access failed (disposed?).");
+                continue;
+            }
+
+            isProcessing = true;
+            Debug.Log($"[Queue] Starting OCR process for Object {next.id}. Remaining: {ocrQueue.Count}");
+            onReadyForOCR?.Invoke(next);
+            return;
+        }
     }
 
     // Called when TextDetectionInference finishes processing an item

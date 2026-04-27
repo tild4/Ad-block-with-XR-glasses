@@ -23,6 +23,7 @@ using UnityEngine;
 public class TextDecoder
 {
     private Dictionary<int, char> indexToChar;
+    private bool hasLoggedClassMismatch;
 
     public TextDecoder(TextAsset file)
     {
@@ -37,6 +38,14 @@ public class TextDecoder
         // The output tensor shape is (1, sequence_length, num_classes)
         int numClasses = tensor.shape[2];
         int sequenceLength = tensor.shape[1];
+
+        if (!hasLoggedClassMismatch && numClasses != indexToChar.Count + 1)
+        {
+            hasLoggedClassMismatch = true;
+            Debug.LogWarning(
+                $"[TextDecoder] Model outputs {numClasses} classes but YAML maps {indexToChar.Count + 1} including blank. Unmapped special classes will be ignored."
+            );
+        }
 
         var decodedString = new StringBuilder(sequenceLength);
         int previousIndex = -1;
@@ -66,6 +75,11 @@ public class TextDecoder
 
             // Skip blank token (index 0)
             if (maxIndex == 0)
+            {
+                continue;
+            }
+
+            if (maxIndex > indexToChar.Count)
             {
                 continue;
             }

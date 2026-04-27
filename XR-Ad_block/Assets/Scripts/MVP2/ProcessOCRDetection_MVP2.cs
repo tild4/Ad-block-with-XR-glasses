@@ -30,7 +30,7 @@ using UnityEngine.Rendering;
 public class ProcessOCRDetection_MVP2 : MonoBehaviour
 {
     private const int MaskSize = 640;
-    private const long FrameBudgetMs = 3;
+    // private const long FrameBudgetMs = 3; // Removed: BFS now runs synchronously
     private const int MinBoxWidth = 10;
     private const int MinBoxHeight = 10;
     private const int PaddingX = 4;
@@ -47,9 +47,16 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
     // Reused threshold mask for OCR text-detection output.
     private readonly bool[,] mask = new bool[MaskSize, MaskSize];
+    private readonly float[,] scoreMap = new float[MaskSize, MaskSize];
 
     [SerializeField]
     private float maskThreshold = 0.3f;
+
+    [SerializeField]
+    private float boxScoreThreshold = 0.6f;
+
+    [SerializeField]
+    private float unclipRatio = 1.5f;
 
     /*
         OCR recognition model input:
@@ -177,11 +184,13 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
     private IEnumerator ProcessDetectionOCR(DetectionsPerAd advertisement)
     {
         Tensor<float> tensor = advertisement.findTextTensor;
-        Rect parentYoloBounds = advertisement.trackedObject.lastDetection.bboxNormalized;
-        Texture parentTexture = advertisement.trackedObject.lastDetection.frame.currentTexture;
+        RenderTexture roiSnapshot = advertisement.roiSnapshot;
+        Rect yoloBounds = advertisement.yoloBounds;
+        Rect roiContentRect = advertisement.roiContentRectNormalized;
 
-        if (tensor == null)
+        if (tensor == null || roiSnapshot == null)
         {
+            tensor?.Dispose();
             yield break;
         }
 
@@ -193,10 +202,8 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
         PipelineProfiler.begin("OCR ProcessBFS");
         UnityEngine.Debug.Log($"[OCR] findTextTensor shape: {tensor.shape}");
-        yield return BuildMaskFromTensor(tensor);
-
-        List<Rect> boundingBoxes = null;
-        yield return FindTextBoxesCoroutine(mask, result => boundingBoxes = result);
+        BuildMask(tensor);
+        List<Rect> boundingBoxes = FindTextBoxes(mask, scoreMap);
         PipelineProfiler.end("OCR ProcessBFS");
 
         tensor.Dispose();
@@ -204,12 +211,23 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         // Merge nearby boxes on the same text line into full words/sentences
         boundingBoxes = MergeBoxesOnSameLine(boundingBoxes);
 
-        // Takes the list of bounds and crops the text regions
+        if (boundingBoxes == null || boundingBoxes.Count == 0)
+        {
+            UnityEngine.Debug.Log("[OCR] No text boxes found in current ad crop.");
+            viewCroppedImage?.SetDetectedWord("No text detected");
+        }
+
+        // Takes the list of bounds and crops the text regions from the frozen ROI snapshot
         List<TextTensor> croppedRois = BuildCroppedRecognitionRois(
             boundingBoxes,
-            parentYoloBounds,
-            parentTexture
+            roiSnapshot,
+            yoloBounds,
+            roiContentRect
         );
+
+        // Release the snapshot now that all text regions have been cropped
+        roiSnapshot.Release();
+        Destroy(roiSnapshot);
 
         TextTensorsPerAd advertisementWithTensors = new TextTensorsPerAd(
             advertisement.trackedObject,
@@ -218,7 +236,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         sendCroppedROIText?.Invoke(advertisementWithTensors);
     }
 
-    private IEnumerator BuildMaskFromTensor(Tensor<float> tensor)
+    private void BuildMask(Tensor<float> tensor)
     {
         var sw = Stopwatch.StartNew();
         float maxVal = 0f;
@@ -233,40 +251,40 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                 bool above = v > maskThreshold;
                 if (above) aboveCount++;
                 mask[y, x] = above;
-            }
-
-            if (sw.ElapsedMilliseconds >= FrameBudgetMs)
-            {
-                yield return null;
-                sw.Restart();
+                scoreMap[y, x] = v;
             }
         }
 
-        UnityEngine.Debug.Log($"[OCR Mask] maxVal={maxVal:F4}, aboveThreshold={aboveCount}/{MaskSize * MaskSize}, threshold={maskThreshold}");
+        UnityEngine.Debug.Log($"[OCR Mask] maxVal={maxVal:F4}, aboveThreshold={aboveCount}/{MaskSize * MaskSize}, threshold={maskThreshold}, time={sw.ElapsedMilliseconds}ms");
     }
 
     /*
     NOTE :
-    These bounding boxes are relative to the ad region from YOLO
-    Therefore the coordinates need to be converted to be relative
-    to the full frame
+    These bounding boxes are relative to the 640×640 ROI from YOLO.
+    We crop directly from the frozen ROI snapshot using local coordinates.
+    Full-frame coordinates are only computed for debug visualization.
     */
     private List<TextTensor> BuildCroppedRecognitionRois(
         List<Rect> boundingBoxes,
-        Rect parentYoloBounds,
-        Texture parentTexture
+        RenderTexture roiSnapshot,
+        Rect yoloBounds,
+        Rect roiContentRectNormalized
     )
     {
         List<TextTensor> croppedRois = new List<TextTensor>();
 
         /*
         For each detected text region in the ad:
-        1. Normalize cooridinates for TextureCropper
-        2. Convert the coordinates relative to the ad region to coordinates relative to the full frame
-        3. Crop the text region
-        4. Convert it to a tensor
-        5. Include the relative bounds in emission for debuggning purposes / to view cropped text region
+        1. Normalize coordinates for TextureCropper
+        2. Crop from the frozen ROI snapshot (not the live camera frame)
+        3. Convert it to a tensor
+        4. Compute full-frame bounds for debug visualization
         */
+
+        if (boundingBoxes == null || boundingBoxes.Count == 0)
+        {
+            return croppedRois;
+        }
 
         foreach (Rect bounds in boundingBoxes)
         {
@@ -278,20 +296,15 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                 bounds.height / MaskSize
             );
 
-            Rect normalizedFullFrame = ConvertLocalToFullFrameBounds(
-                normalizedLocal,
-                parentYoloBounds
-            );
-
-            // Crop at natural resolution to preserve aspect ratio
-            int cropW = Mathf.Max(1, Mathf.RoundToInt(normalizedFullFrame.width * parentTexture.width));
-            int cropH = Mathf.Max(1, Mathf.RoundToInt(normalizedFullFrame.height * parentTexture.height));
+            // Crop from the frozen ROI snapshot (640×640) instead of the live camera frame
+            int cropW = Mathf.Max(1, Mathf.RoundToInt(normalizedLocal.width * roiSnapshot.width));
+            int cropH = Mathf.Max(1, Mathf.RoundToInt(normalizedLocal.height * roiSnapshot.height));
             RenderTexture tempCrop = RenderTexture.GetTemporary(cropW, cropH, 0, RenderTextureFormat.ARGB32);
 
             if (
-                !TextureCropper.CropBoundingBox(
-                    normalizedFullFrame,
-                    parentTexture,
+                !TextureCropper.CropBoundingBoxTopLeft(
+                    normalizedLocal,
+                    roiSnapshot,
                     tempCrop,
                     cropMaterial
                 )
@@ -318,12 +331,47 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
             if (roiTensor != null)
             {
+                // Full-frame coordinates for debug visualization
+                Rect normalizedContentRect = ConvertModelRectToContentRect(
+                    normalizedLocal,
+                    roiContentRectNormalized
+                );
+                Rect normalizedFullFrame = ConvertLocalToFullFrameBounds(
+                    normalizedContentRect,
+                    yoloBounds
+                );
                 croppedRois.Add(new TextTensor(roiTensor, normalizedFullFrame));
             }
         }
 
         UnityEngine.Debug.Log($"[OCR Crop] Successfully cropped {croppedRois.Count} word regions from the ad.");
+
+        if (croppedRois.Count == 0)
+        {
+            viewCroppedImage?.SetDetectedWord("No text detected");
+        }
+
         return croppedRois;
+    }
+
+    private Rect ConvertModelRectToContentRect(Rect modelRect, Rect contentRect)
+    {
+        if (contentRect.width <= 1e-5f || contentRect.height <= 1e-5f)
+        {
+            return modelRect;
+        }
+
+        float localXMin = Mathf.InverseLerp(contentRect.xMin, contentRect.xMax, modelRect.xMin);
+        float localXMax = Mathf.InverseLerp(contentRect.xMin, contentRect.xMax, modelRect.xMax);
+        float localYMin = Mathf.InverseLerp(contentRect.yMin, contentRect.yMax, modelRect.yMin);
+        float localYMax = Mathf.InverseLerp(contentRect.yMin, contentRect.yMax, modelRect.yMax);
+
+        localXMin = Mathf.Clamp01(localXMin);
+        localXMax = Mathf.Clamp01(localXMax);
+        localYMin = Mathf.Clamp01(localYMin);
+        localYMax = Mathf.Clamp01(localYMax);
+
+        return Rect.MinMaxRect(localXMin, localYMin, localXMax, localYMax);
     }
 
     private Rect ConvertLocalToFullFrameBounds(Rect normalizedLocal, Rect parentYoloBounds)
@@ -412,10 +460,12 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
     /*
         Connected-component search over the threshold mask.
-        Yields periodically so one large mask does not block the main thread.
+        Runs synchronously — profile via the log to verify timing.
     */
-    private IEnumerator FindTextBoxesCoroutine(bool[,] inputMask, Action<List<Rect>> onComplete)
+    private List<Rect> FindTextBoxes(bool[,] inputMask, float[,] inputScores)
     {
+        var sw = Stopwatch.StartNew();
+
         int h = inputMask.GetLength(0);
         int w = inputMask.GetLength(1);
 
@@ -424,8 +474,6 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
         int[] dx = { -1, 0, 1, -1, 1, -1, 0, 1 };
         int[] dy = { -1, -1, -1, 0, 0, 1, 1, 1 };
-
-        var sw = Stopwatch.StartNew();
 
         for (int y = 0; y < h; y++)
         {
@@ -444,6 +492,8 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                 int maxX = x;
                 int minY = y;
                 int maxY = y;
+                float scoreSum = inputScores[y, x];
+                int pixelCount = 1;
 
                 while (queue.Count > 0)
                 {
@@ -466,6 +516,8 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
                         visited[ny, nx] = true;
                         queue.Enqueue(new Vector2Int(nx, ny));
+                        scoreSum += inputScores[ny, nx];
+                        pixelCount++;
 
                         if (nx < minX)
                             minX = nx;
@@ -476,43 +528,49 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                         if (ny > maxY)
                             maxY = ny;
                     }
-
-                    if (sw.ElapsedMilliseconds >= FrameBudgetMs)
-                    {
-                        yield return null;
-                        sw.Restart();
-                    }
                 }
 
                 int width = maxX - minX + 1;
                 int height = maxY - minY + 1;
+                float averageScore = scoreSum / Mathf.Max(1, pixelCount);
 
-                if (width > MinBoxWidth && height > MinBoxHeight)
+                if (
+                    width > MinBoxWidth
+                    && height > MinBoxHeight
+                    && averageScore >= boxScoreThreshold
+                )
                 {
-                    int paddedMinX = Mathf.Max(0, minX - PaddingX);
-                    int paddedMinY = Mathf.Max(0, minY - PaddingY);
-                    int paddedMaxX = Mathf.Min(w - 1, maxX + PaddingX);
-                    int paddedMaxY = Mathf.Min(h - 1, maxY + PaddingY);
-
-                    boxes.Add(
-                        new Rect(
-                            paddedMinX,
-                            paddedMinY,
-                            paddedMaxX - paddedMinX + 1,
-                            paddedMaxY - paddedMinY + 1
-                        )
-                    );
+                    boxes.Add(ExpandRect(minX, minY, maxX, maxY, w, h));
                 }
-            }
-
-            if (sw.ElapsedMilliseconds >= FrameBudgetMs)
-            {
-                yield return null;
-                sw.Restart();
             }
         }
 
-        onComplete?.Invoke(boxes);
+        UnityEngine.Debug.Log($"[OCR BFS] Found {boxes.Count} text boxes, time={sw.ElapsedMilliseconds}ms");
+        return boxes;
+    }
+
+    private Rect ExpandRect(int minX, int minY, int maxX, int maxY, int width, int height)
+    {
+        float boxWidth = maxX - minX + 1f;
+        float boxHeight = maxY - minY + 1f;
+        float area = boxWidth * boxHeight;
+        float perimeter = Mathf.Max(1f, 2f * (boxWidth + boxHeight));
+        int dynamicPad = Mathf.CeilToInt((area * Mathf.Max(0f, unclipRatio - 1f)) / perimeter);
+
+        int padX = PaddingX + dynamicPad;
+        int padY = PaddingY + dynamicPad;
+
+        int paddedMinX = Mathf.Max(0, minX - padX);
+        int paddedMinY = Mathf.Max(0, minY - padY);
+        int paddedMaxX = Mathf.Min(width - 1, maxX + padX);
+        int paddedMaxY = Mathf.Min(height - 1, maxY + padY);
+
+        return new Rect(
+            paddedMinX,
+            paddedMinY,
+            paddedMaxX - paddedMinX + 1,
+            paddedMaxY - paddedMinY + 1
+        );
     }
 
     private void OnDestroy()
