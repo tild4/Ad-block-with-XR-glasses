@@ -8,12 +8,8 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
     [SerializeField]
     private PassthroughCameraAccess cameraAccess;
 
-    // Two separate fields - use mock for Editor, real for Quest
     [SerializeField]
     private EnvironmentRaycastManager realRaycastManager;
-
-    [SerializeField]
-    private MockEnvironmentRaycastManager mockRaycastManager;
 
     [SerializeField]
     private OVRCameraRig cameraRig;
@@ -120,29 +116,9 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
 
     private bool TryRaycastEnvironment(Ray ray, out EnvironmentRaycastHit hit)
     {
-        if (Application.isEditor)
+        if (realRaycastManager != null)
         {
-            if (mockRaycastManager != null)
-            {
-                return mockRaycastManager.Raycast(ray, out hit);
-            }
-
-            if (realRaycastManager != null)
-            {
-                return realRaycastManager.Raycast(ray, out hit);
-            }
-        }
-        else
-        {
-            if (realRaycastManager != null)
-            {
-                return realRaycastManager.Raycast(ray, out hit);
-            }
-
-            if (mockRaycastManager != null)
-            {
-                return mockRaycastManager.Raycast(ray, out hit);
-            }
+            return realRaycastManager.Raycast(ray, out hit);
         }
 
         hit = default;
@@ -198,7 +174,9 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
     {
         float halfFovRad = Mathf.Deg2Rad * (Camera.main.fieldOfView / 2f);
         float viewportWidthAtDepth = 2f * depth * Mathf.Tan(halfFovRad);
-        float viewportHeightAtDepth = viewportWidthAtDepth * ((float)cameraAccess.CurrentResolution.y / cameraAccess.CurrentResolution.x);
+        float viewportHeightAtDepth =
+            viewportWidthAtDepth
+            * ((float)cameraAccess.CurrentResolution.y / cameraAccess.CurrentResolution.x);
 
         float padding = 0.7f; // Optional padding to make blocks slightly smaller than the bounding box
         return new Vector2(
@@ -216,7 +194,9 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
     {
         try
         {
-            Debug.Log($"[Block] Attempting placement for object {obj.id}, shouldBlock={obj.shouldBlock}");
+            Debug.Log(
+                $"[Block] Attempting placement for object {obj.id}, shouldBlock={obj.shouldBlock}"
+            );
             // If the object should not be blocked but we have an active block, remove it
             if (!obj.shouldBlock && activeBlocks.ContainsKey(obj.id))
             {
@@ -306,9 +286,9 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
                 */
 
                 position = hit.point;
-                Vector3 towardCamera = (usingPassthroughRay
-                    ? cameraPose.position
-                    : Camera.main.transform.position) - position;
+                Vector3 towardCamera =
+                    (usingPassthroughRay ? cameraPose.position : Camera.main.transform.position)
+                    - position;
                 if (towardCamera.sqrMagnitude < 1e-6f)
                 {
                     // Ray points from camera -> world; invert to get world -> camera.
@@ -323,7 +303,7 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
             if (!activeBlocks.ContainsKey(obj.id))
             {
                 CreateBlockWithAnchor(obj, position, rotation, worldSize);
-            }   
+            }
             else
             {
                 UpdateBlock(obj, position, rotation, worldSize);
@@ -342,12 +322,16 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
         - Parents the block to the camera rig's tracking space to maintain relative positioning in the room.
         - If spatial anchors are enabled, it creates an OVRSpatialAnchor component, saves it, and stores it in the activeSpatialAnchors dictionary for later management.
     */
-    private void CreateBlockWithAnchor(TrackedObject obj, Vector3 position, Quaternion rotation, Vector2 size)
+    private void CreateBlockWithAnchor(
+        TrackedObject obj,
+        Vector3 position,
+        Quaternion rotation,
+        Vector2 size
+    )
     {
         GameObject block = Instantiate(blockPrefab);
         block.name = $"Block_{obj.id}";
         Vector3 worldScale = new Vector3(size.x, size.y, 0.01f);
-
 
         BlockVisualization vis = block.GetComponent<BlockVisualization>();
         if (vis != null)
