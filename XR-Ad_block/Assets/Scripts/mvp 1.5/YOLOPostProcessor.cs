@@ -158,7 +158,7 @@ public class YOLOPostProcessor : MonoBehaviour
             DetectionData data = new DetectionData
             {
                 bboxNormalized = bbox,
-                bboxPixels = ConvertToPixelCoordinates(bbox, frame.currentResolution),
+                //bboxPixels = ConvertToPixelCoordinates(bbox, frame.currentResolution),
                 confidence = conf,
                 frame = frame,
             };
