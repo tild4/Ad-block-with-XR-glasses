@@ -1,0 +1,45 @@
+Overall Accuracy: 0.9256
+
+Classification report (all examples):
+                     precision    recall  f1-score   support
+
+             non-ad     0.9657    0.9494    0.9575       178
+socially beneficial     0.8352    0.9383    0.8837        81
+                 ad     0.9343    0.8889    0.9110       144
+
+           accuracy                         0.9256       403
+          macro avg     0.9117    0.9255    0.9174       403
+       weighted avg     0.9283    0.9256    0.9261       403
+
+Saved confusion matrix to /data/users/linusu/Ad-block-with-XR-glasses/AI-core/NLP/plots/clean/confusion_matrix.png
+Safety: 5/81 socially beneficial classified as reklam (6.2%)
+
+==================================================
+  REAL examples (103 examples) — Accuracy: 0.8155
+==================================================
+                     precision    recall  f1-score   support
+
+             non-ad     0.8519    0.8214    0.8364        28
+socially beneficial     0.6538    0.8095    0.7234        21
+                 ad     0.8800    0.8148    0.8462        54
+
+           accuracy                         0.8155       103
+          macro avg     0.7952    0.8153    0.8020       103
+       weighted avg     0.8262    0.8155    0.8185       103
+
+  Safety: 4/21 socially beneficial → reklam (19.0%)
+
+==================================================
+  SYNTHETIC examples (300 examples) — Accuracy: 0.9633
+==================================================
+                     precision    recall  f1-score   support
+
+             non-ad     0.9865    0.9733    0.9799       150
+socially beneficial     0.9077    0.9833    0.9440        60
+                 ad     0.9655    0.9333    0.9492        90
+
+           accuracy                         0.9633       300
+          macro avg     0.9532    0.9633    0.9577       300
+       weighted avg     0.9644    0.9633    0.9635       300
+
+  Safety: 1/60 socially beneficial → reklam (1.7%)
