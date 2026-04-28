@@ -262,23 +262,7 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
                 : Camera.main.ViewportPointToRay(
                     new Vector3(viewportRect.center.x, viewportRect.center.y, 0f)
                 );
-            /* -------------OLD VERSION------------------------
-            Vector3 referenceCameraPosition = usingPassthroughRay
-                ? cameraPose.position
-                : Camera.main.transform.position;
-
-            Ray ray;
-            if (usingPassthroughRay)
-            {
-                ray = cameraAccess.ViewportPointToRay(viewportRect.center, cameraPose);
-            }
-            else
-            {
-                ray = Camera.main.ViewportPointToRay(
-                    new Vector3(viewportRect.center.x, viewportRect.center.y, 0f)
-                );
-            }
-            */
+           
             // Perform the raycast and handle misses if necessary.
             if (!TryRaycastEnvironment(ray, out EnvironmentRaycastHit hit))
             {
@@ -307,18 +291,6 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
             }
             else
             {
-                /*---------------------OLD VERSION------------------------
-                // Simple fallback: place at hit point, face camera.
-                position = hit.point;
-                Vector3 towardCamera = referenceCameraPosition - position;
-                if (towardCamera.sqrMagnitude < 1e-6f)
-                {
-                    // Ray points from camera -> world; invert to get world -> camera.
-                    towardCamera = -ray.direction;
-                }
-                rotation = Quaternion.LookRotation(towardCamera.normalized, Vector3.up);
-                */
-
                 position = hit.point;
                 Vector3 towardCamera =
                     (usingPassthroughRay ? cameraPose.position : Camera.main.transform.position)
@@ -471,7 +443,8 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
     }
 
     /*
-        Removes all currently active blocks and anchors.
+        Public method with same functionality as OnDestroy but can be called by other scripts to clean up.
+        Used by AppStateManager when stopping the blocking and user is returned to main menu.
     */
     public void ClearAllBlocks()
     {
