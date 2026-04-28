@@ -50,7 +50,6 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
     */
     private void OnEnable()
     {
-        Debug.Log($"[Block] Subscribed to trackingManager: {trackingManager != null}"); // Pontus Debugging
 
         if (trackingManager != null)
         {
@@ -248,23 +247,6 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
                 : Camera.main.ViewportPointToRay(
                     new Vector3(viewportRect.center.x, viewportRect.center.y, 0f)
                 );
-            /* -------------OLD VERSION------------------------
-            Vector3 referenceCameraPosition = usingPassthroughRay
-                ? cameraPose.position
-                : Camera.main.transform.position;
-
-            Ray ray;
-            if (usingPassthroughRay)
-            {
-                ray = cameraAccess.ViewportPointToRay(viewportRect.center, cameraPose);
-            }
-            else
-            {
-                ray = Camera.main.ViewportPointToRay(
-                    new Vector3(viewportRect.center.x, viewportRect.center.y, 0f)
-                );
-            }
-            */
 
             if (!TryRaycastEnvironment(ray, out EnvironmentRaycastHit hit))
             {
@@ -293,17 +275,6 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
             }
             else
             {
-                /*---------------------OLD VERSION------------------------
-                // Simple fallback: place at hit point, face camera.
-                position = hit.point;
-                Vector3 towardCamera = referenceCameraPosition - position;
-                if (towardCamera.sqrMagnitude < 1e-6f)
-                {
-                    // Ray points from camera -> world; invert to get world -> camera.
-                    towardCamera = -ray.direction;
-                }
-                rotation = Quaternion.LookRotation(towardCamera.normalized, Vector3.up);
-                */
 
                 position = hit.point;
                 Vector3 towardCamera = (usingPassthroughRay
@@ -448,7 +419,10 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
             RemoveBlock(id);
         }
     }
-
+    /* 
+        Public method that can be called by others to clear all blocks and their associated spatial anchors.
+        Used by AppStateManager when transitioning back to the StartScreen state to ensure a clean slate.
+    */
     public void ClearAllBlocks()
     {
         var allIds = new List<int>(activeBlocks.Keys);
