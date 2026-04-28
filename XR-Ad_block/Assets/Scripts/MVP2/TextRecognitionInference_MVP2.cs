@@ -6,12 +6,12 @@
     and logs the recognized output.
 
     CURRENT FLOW:
-    ProcessOCRDetection2 -> THIS
+    ProcessOCRDetection_MVP2 -> THIS
 
     POLICY:
-    - Latest batch wins.
-    - Older pending batches are disposed before they start.
-    - Recognition runs sequentially per ROI.
+    - Processes one advertisement's cropped text regions at a time.
+    - Runs recognition sequentially for each ROI in the batch.
+    - Disposes each ROI tensor after preprocessing it for recognition.
 */
 
 using System;
@@ -92,8 +92,7 @@ public class TextRecognitionInference_MVP2 : MonoBehaviour
 
         FLOW:
         1. Filter invalid ROI tensors.
-        2. Keep only the newest pending batch.
-        3. Start processing if needed.
+        2. Start processing immediately if this component is idle.
     */
     private void HandleNewTextTensorsPerAd(TextTensorsPerAd advertisement)
     {

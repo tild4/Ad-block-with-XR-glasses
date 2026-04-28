@@ -1,4 +1,4 @@
-// Copyright (c) [Your Name or Project]. All rights reserved.
+// Copyright (c). All rights reserved.
 //
 // This file contains code inspired by samples from Meta Platforms, Inc.
 // It is not a direct copy of Meta source; the implementation and
@@ -6,29 +6,10 @@
 //
 /*
     TrackingManager
-
-    PURPOSE:
-    The "Brain" of the persistence layer. It ensures that a physical object in the real
-    world maintains the same unique ID across multiple camera frames, even if the
-    AI detection momentarily flickers or disappears.
-
-    ARCHITECTURE:
-        - Object Association: Matches new detections with existing 'TrackedObjects'
-            using pose-compensated IOU. The old bbox is reprojected into the new frame's
-            screen space using the relative camera rotation between frames, then standard
-            2D IOU is calculated.
-    - ID Management: Assigns a permanent 'nextId' to every new unique detection.
-    - Lifecycle Control:
-        1. TTL (Time To Live): Keeps objects alive for a few seconds (e.g., 2.0s)
-           after they are no longer seen by the AI.
-        2. Cleanup: Automatically purges expired objects from the system.
-    - OCR Coordination: Identifies new objects that haven't been analyzed yet and
-      broadcasts them via 'onNewOCRCandidate'.
-
-    IMPORTANT:
-        - The 'iouThreshold' controls matching sensitivity.
-        - Reprojection uses only rotation (ignores translation parallax).
-    - 'UpdateDetections' is the main entry point, triggered by the DetectionPostProcessor.
+    - Maintains a list of currently tracked objects based on YOLO detections.
+    - Matches new detections to existing objects using IOU and reprojection.
+    - Assigns unique IDs to objects and tracks their time to live (TTL).
+    - Fires events when new OCR candidates are created and when tracked objects are updated.
 */
 
 using System;
@@ -71,6 +52,10 @@ public class TrackingManager_MVP2 : MonoBehaviour
     public event Action<TrackedObject> onNewOCRCandidate;
     public event Action<List<TrackedObject>> onTrackedObjectsUpdated;
 
+    /*
+        Subscribes to events from YOLO post-processor, DecisionManager,
+        and (optionally) the OCR pipeline early-exit signal.
+    */
     private void OnEnable()
     {
         if (yoloPostProcessor != null)
@@ -87,6 +72,9 @@ public class TrackingManager_MVP2 : MonoBehaviour
         }
     }
 
+    /*
+        Unsubscribe from events to prevent memory leaks and unintended behavior when disabled.
+    */
     private void OnDisable()
     {
         if (yoloPostProcessor != null)
@@ -103,6 +91,11 @@ public class TrackingManager_MVP2 : MonoBehaviour
         }
     }
 
+    /*
+        Update is called once per frame.
+        - Decreases the time to live for all tracked objects.
+        - Removes any objects whose TTL has expired.
+    */
     private void Update()
     {
         // Decrease time to live for all objects
@@ -124,9 +117,8 @@ public class TrackingManager_MVP2 : MonoBehaviour
     private void UpdateDetections(List<DetectionData> detections)
     {
         Debug.Log($"[Tracking] Received {detections.Count} new detections from YOLO.");
-        // If we're at capacity, keep matching/updating existing objects but don't create new ones.
-        // Otherwise tracked objects would stop receiving TTL refreshes and expire, causing IDs to
-        // continuously increase as objects get recreated.
+
+        // Check if we're at capacity before processing detections
         bool suppressNewObjects = trackedObjects.Count >= maxTrackedObjects;
         if (suppressNewObjects)
         {
@@ -183,11 +175,7 @@ public class TrackingManager_MVP2 : MonoBehaviour
                 matchedObject.lastDetection.RoiSnapshot = null;
             }
 
-            // FIX: Only enqueue for OCR when the TrackedObject is first created.
-            // Previously, onNewOCRCandidate fired for ALL unanalyzed objects on EVERY
-            // YOLO frame. Since YOLO runs at ~5-10 FPS and OCR takes ~1-2 s per item,
-            // the queue grew with hundreds of duplicate entries for the same object,
-            // starving the pipeline and eventually causing a deadlock.
+            // If this is a new object, fire the event to trigger OCR analysis
             if (wasNewlyCreated)
             {
                 onNewOCRCandidate?.Invoke(matchedObject);
@@ -199,12 +187,11 @@ public class TrackingManager_MVP2 : MonoBehaviour
     }
 
     /*
-        Tries to match a new detection with existing tracked objects using IOU.
-        If a good match is found, returns the matched object; otherwise, creates and returns a new tracked object.
+        Tries to match a new detection to an existing tracked object using IOU and reprojection.
+        If a match is found above the threshold, returns the matched object.
+        If no match is found and allowCreate is true, creates a new tracked object and returns it.
+        Otherwise, returns null.
     */
-    // out wasNewlyCreated: true only when a brand-new TrackedObject is allocated.
-    // This lets the caller distinguish "matched an existing object" from "created a new one"
-    // so that onNewOCRCandidate fires exactly once per real-world object.
     private TrackedObject MatchOrCreate(
         DetectionData detection,
         bool allowCreate,
@@ -296,6 +283,10 @@ public class TrackingManager_MVP2 : MonoBehaviour
         return newObj;
     }
 
+    /*
+        Converts a YOLO normalized bounding box (x, y, width, height) with top-left origin
+        to a Unity viewport rectangle with bottom-left origin.
+    */
     private static Rect ToViewportRect(Rect yoloNormalizedRect)
     {
         // YOLO: (x, y) = top-left. Viewport: (x, y) = bottom-left.
@@ -309,6 +300,11 @@ public class TrackingManager_MVP2 : MonoBehaviour
         );
     }
 
+    /*
+        Reprojects a bounding box from an old camera pose to a new camera pose.
+        This accounts for camera movement between frames and can help maintain tracking of objects even when the camera moves.
+        If the reprojected box is invalid (e.g., all corners behind the camera), returns an empty rect.
+    */
     private static Rect ReprojectBbox(Rect oldViewportRect, Pose oldPose, Pose newPose, Camera cam)
     {
         // Relative rotation from old frame to new frame
@@ -398,8 +394,9 @@ public class TrackingManager_MVP2 : MonoBehaviour
     }
 
     /*
-        Called by DecisionManager with OCR results and blocking decision.
-        Updates the TrackedObject with text and shouldBlock flag.
+        Called by DecisionManager (and optionally by TextDetectionInference early-exit)
+        with OCR results and blocking decision. Updates the TrackedObject with text,
+        shouldBlock flag, and marks it as analyzed.
     */
     public void UpdateOCRResult(TrackedObject obj, string text, bool shouldBlock)
     {
@@ -470,6 +467,10 @@ public class TrackingManager_MVP2 : MonoBehaviour
         onTrackedObjectsUpdated?.Invoke(trackedObjects);
     }
 
+    /*
+        OnDestroy is called when the object is being destroyed.
+        We use it to clean up any tensors or snapshots that are still held by tracked objects to prevent memory leaks.
+    */
     private void OnDestroy()
     {
         // Dispose any tensors and snapshots still held by tracked objects

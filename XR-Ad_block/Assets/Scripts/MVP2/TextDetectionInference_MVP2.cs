@@ -2,15 +2,15 @@
     TextDetectionInference
 
     PURPOSE:
-    Runs OCR text detection on the latest ROI tensor batch from YOLOPostProcessor.
+    Runs OCR text detection on ROI tensors delivered by the OCR pipeline manager.
 
     CURRENT FLOW:
-    YOLOPostProcessor -> THIS -> ProcessOCRDetection2
+    OCRPipelineManager_MVP2 -> THIS -> ProcessOCRDetection_MVP2
 
     POLICY:
-    - Latest batch wins.
-    - Older pending batches are disposed before they start.
-    - Inference runs sequentially per ROI.
+    - Starts one OCR text-detection inference at a time.
+    - Always emits a completion event, even on early exits or failures.
+    - Owns the ROI snapshot after detaching it from the tracked object's latest detection.
 
     NOTE:
     Emitted tensor is a "heat map" of where text bounds might be relative to the cropped ad
@@ -101,14 +101,9 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
     }
 
     /*
-        FIX: Previously this method returned silently when the tensor was null,
-        which meant findTextRegions was never fired. OCRPipelineManager listens
-        to findTextRegions to reset its isProcessing flag — so a silent return
-        here caused a permanent deadlock (the queue kept growing but nothing
-        was ever dequeued again).
-
-        Now we always fire findTextRegions with an empty DetectionsPerAd so the
-        pipeline manager can move on to the next queued item.
+        Handles one tracked object that is ready for OCR text detection.
+        If the ROI tensor is missing, it still emits an empty result so the
+        OCR pipeline manager can clear its busy state and continue.
     */
     private void HandleNewTrackedObject(TrackedObject advertisement)
     {

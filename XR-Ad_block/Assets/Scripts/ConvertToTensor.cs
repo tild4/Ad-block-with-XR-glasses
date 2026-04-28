@@ -11,8 +11,8 @@
         - Tensor disposal
 
     IMPORTANT:
-    This function ALLOCATES a new Tensor every call.
-    The caller MUST dispose it when done.
+    The conversion methods ALLOCATE a new Tensor on each call.
+    The caller MUST dispose returned tensors when done.
 */
 using System;
 using JetBrains.Annotations;

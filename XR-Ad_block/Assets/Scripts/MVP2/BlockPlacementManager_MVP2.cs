@@ -1,3 +1,23 @@
+// Copyright (c). All rights reserved.
+//
+// This file contains code inspired by samples from Meta Platforms, Inc.
+// It is not a direct copy of Meta source; the implementation and
+// copyright belong to this project unless otherwise stated.
+//
+/*
+    BlockPlacementManager
+
+    This script manages the placement of virtual blocks in the environment based on tracked objects and their associated YOLO detections.
+    It listens for updates from the TrackingManager and synchronizes the active blocks accordingly.
+
+    Key Features:
+    - Subscribes to tracking updates and maintains a dictionary of active blocks keyed by tracked object ID.
+    - For each tracked object that should be blocked, it performs a raycast to determine the correct placement in the environment.
+    - Supports two placement strategies: raycast hit placement and camera plane placement.
+    - Computes the world size of the block based on the YOLO bounding box and the camera's field of view at the detected depth.
+    - Creates, if enabled, spatial anchors for each block to maintain persistence in the environment.
+    - Cleans up blocks and anchors when they are no longer needed or when the manager is destroyed.
+*/
 using System.Collections.Generic;
 using Meta.XR;
 using UnityEngine;
@@ -8,12 +28,8 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
     [SerializeField]
     private PassthroughCameraAccess cameraAccess;
 
-    // Two separate fields - use mock for Editor, real for Quest
     [SerializeField]
     private EnvironmentRaycastManager realRaycastManager;
-
-    [SerializeField]
-    private MockEnvironmentRaycastManager mockRaycastManager;
 
     [SerializeField]
     private OVRCameraRig cameraRig;
@@ -33,6 +49,7 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
     private bool useCameraPlanePlacement = true;
 
     [SerializeField]
+    // Offset in meters to nudge the block toward the camera when using camera plane placement
     private float placementPlaneOffsetMeters = 0.01f;
 
     [SerializeField]
@@ -50,6 +67,7 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
     */
     private void OnEnable()
     {
+        Debug.Log($"[Block] Subscribed to trackingManager: {trackingManager != null}"); // Pontus Debugging
 
         if (trackingManager != null)
         {
@@ -88,6 +106,7 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
         List<int> idsToRemove = new List<int>();
         foreach (var id in activeBlocks.Keys)
         {
+            // Check if this block's ID still exists in the active tracks. If not, mark it for removal.
             bool stillTracked = activeTracks.Exists(obj => obj.id == id);
             if (!stillTracked)
             {
@@ -105,6 +124,9 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
         PipelineProfiler.end("5. Block Placement (3D)");
     }
 
+    /*
+        Converts a YOLO-normalized bounding box (with top-left origin) to a viewport rectangle (with bottom-left origin).
+    */
     private static Rect ToViewportRect(Rect yoloNormalizedRect)
     {
         // YOLO: top-left origin. Viewport: bottom-left origin.
@@ -117,37 +139,25 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
         );
     }
 
+    /*
+        Performs a raycast into the environment using the provided ray and returns whether it hit something along with the hit information.
+    */
     private bool TryRaycastEnvironment(Ray ray, out EnvironmentRaycastHit hit)
     {
-        if (Application.isEditor)
+        if (realRaycastManager != null)
         {
-            if (mockRaycastManager != null)
-            {
-                return mockRaycastManager.Raycast(ray, out hit);
-            }
-
-            if (realRaycastManager != null)
-            {
-                return realRaycastManager.Raycast(ray, out hit);
-            }
-        }
-        else
-        {
-            if (realRaycastManager != null)
-            {
-                return realRaycastManager.Raycast(ray, out hit);
-            }
-
-            if (mockRaycastManager != null)
-            {
-                return mockRaycastManager.Raycast(ray, out hit);
-            }
+            return realRaycastManager.Raycast(ray, out hit);
         }
 
         hit = default;
         return false;
     }
 
+    /*
+        Computes the placement of the block on a plane parallel to the camera's view direction at the depth of the raycast hit.
+        - This method is used as an alternative to placing the block directly on the raycast hit surface, which can lead to better visibility and less embedding in certain scenarios.
+        - It calculates the world position by projecting from the camera through the center of the YOLO bounding box at the appropriate depth, and orients the block to face the camera.
+    */
     private bool TryComputeCameraPlanePlacement(
         Rect yoloNormalizedRect,
         Pose cameraPose,
@@ -159,17 +169,18 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
         worldPosition = default;
         worldRotation = default;
 
+        // Ensure a valid camera pose and access to the passthrough camera for ray generation.
         if (cameraAccess == null || !cameraAccess.enabled || !cameraAccess.IsPlaying)
         {
             return false;
         }
-
+        // Calculate the distance from the camera to the depth point. If it's too close, we can't reliably place the block.
         float distance = Vector3.Distance(cameraPose.position, depthPoint);
         if (distance <= 0.0001f)
         {
             return false;
         }
-
+        // Generate a ray from the camera through the center of the YOLO bounding box to find the world position at the correct depth.
         Rect viewportRect = ToViewportRect(yoloNormalizedRect);
         Ray centerRay = cameraAccess.ViewportPointToRay(viewportRect.center, cameraPose);
         worldPosition = centerRay.GetPoint(distance);
@@ -183,7 +194,7 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
 
         // We want the block (and its ID label) to face the camera.
         Vector3 towardCamera = (-fromCamera).normalized;
-
+        // Orient the block to face the camera.
         worldRotation = Quaternion.LookRotation(towardCamera, Vector3.up);
         // Nudge slightly toward the camera to avoid embedding into the hit surface.
         worldPosition += towardCamera * placementPlaneOffsetMeters;
@@ -197,7 +208,9 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
     {
         float halfFovRad = Mathf.Deg2Rad * (Camera.main.fieldOfView / 2f);
         float viewportWidthAtDepth = 2f * depth * Mathf.Tan(halfFovRad);
-        float viewportHeightAtDepth = viewportWidthAtDepth * ((float)cameraAccess.CurrentResolution.y / cameraAccess.CurrentResolution.x);
+        float viewportHeightAtDepth =
+            viewportWidthAtDepth
+            * ((float)cameraAccess.CurrentResolution.y / cameraAccess.CurrentResolution.x);
 
         float padding = 0.7f; // Optional padding to make blocks slightly smaller than the bounding box
         return new Vector2(
@@ -215,7 +228,9 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
     {
         try
         {
-            Debug.Log($"[Block] Attempting placement for object {obj.id}, shouldBlock={obj.shouldBlock}");
+            Debug.Log(
+                $"[Block] Attempting placement for object {obj.id}, shouldBlock={obj.shouldBlock}"
+            );
             // If the object should not be blocked but we have an active block, remove it
             if (!obj.shouldBlock && activeBlocks.ContainsKey(obj.id))
             {
@@ -234,20 +249,37 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
                 Debug.LogError("No camera available for ViewportPointToRay.");
                 return;
             }
-
+            // Perform raycast to find placement position in the environment
             Rect yoloRect = obj.lastDetection.bboxNormalized;
             Pose cameraPose = obj.lastDetection.frame.currentPose;
             Rect viewportRect = ToViewportRect(yoloRect);
-
+            // Determine whether to use the passthrough camera for ray generation or fall back to the main camera.
             bool usingPassthroughRay =
                 cameraAccess != null && cameraAccess.enabled && cameraAccess.IsPlaying;
-
+            // Generate the ray from the appropriate camera source.
             Ray ray = usingPassthroughRay
                 ? cameraAccess.ViewportPointToRay(viewportRect.center, cameraPose)
                 : Camera.main.ViewportPointToRay(
                     new Vector3(viewportRect.center.x, viewportRect.center.y, 0f)
                 );
+            /* -------------OLD VERSION------------------------
+            Vector3 referenceCameraPosition = usingPassthroughRay
+                ? cameraPose.position
+                : Camera.main.transform.position;
 
+            Ray ray;
+            if (usingPassthroughRay)
+            {
+                ray = cameraAccess.ViewportPointToRay(viewportRect.center, cameraPose);
+            }
+            else
+            {
+                ray = Camera.main.ViewportPointToRay(
+                    new Vector3(viewportRect.center.x, viewportRect.center.y, 0f)
+                );
+            }
+            */
+            // Perform the raycast and handle misses if necessary.
             if (!TryRaycastEnvironment(ray, out EnvironmentRaycastHit hit))
             {
                 if (logRaycastMisses)
@@ -259,7 +291,7 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
 
             Vector3 position;
             Quaternion rotation;
-
+            // Attempt camera plane placement first if enabled, otherwise fall back to raycast hit placement.
             if (
                 useCameraPlanePlacement
                 && TryComputeCameraPlanePlacement(
@@ -275,11 +307,22 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
             }
             else
             {
+                /*---------------------OLD VERSION------------------------
+                // Simple fallback: place at hit point, face camera.
+                position = hit.point;
+                Vector3 towardCamera = referenceCameraPosition - position;
+                if (towardCamera.sqrMagnitude < 1e-6f)
+                {
+                    // Ray points from camera -> world; invert to get world -> camera.
+                    towardCamera = -ray.direction;
+                }
+                rotation = Quaternion.LookRotation(towardCamera.normalized, Vector3.up);
+                */
 
                 position = hit.point;
-                Vector3 towardCamera = (usingPassthroughRay
-                    ? cameraPose.position
-                    : Camera.main.transform.position) - position;
+                Vector3 towardCamera =
+                    (usingPassthroughRay ? cameraPose.position : Camera.main.transform.position)
+                    - position;
                 if (towardCamera.sqrMagnitude < 1e-6f)
                 {
                     // Ray points from camera -> world; invert to get world -> camera.
@@ -290,11 +333,12 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
 
             float depth = Vector3.Distance(cameraPose.position, hit.point);
             Vector2 worldSize = ComputeWorldSize(yoloRect, cameraPose, depth);
-
+            // If we don't have an active block for this object, create one
             if (!activeBlocks.ContainsKey(obj.id))
             {
                 CreateBlockWithAnchor(obj, position, rotation, worldSize);
-            }   
+            }
+            // Update existing block
             else
             {
                 UpdateBlock(obj, position, rotation, worldSize);
@@ -307,19 +351,25 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
     }
 
     /*
-        Creates a new block GameObject at the specified hit location and sets up a spatial anchor for it.
+        Creates a new block GameObject at the specified world transform and (optionally) sets up a spatial anchor.
         - Instantiates the block prefab and names it based on the tracked object's ID.
-        - Sets the block's position and rotation based on the raycast hit.
+        - Sets the block's position and rotation based on the chosen placement strategy.
         - Parents the block to the camera rig's tracking space to maintain relative positioning in the room.
         - If spatial anchors are enabled, it creates an OVRSpatialAnchor component, saves it, and stores it in the activeSpatialAnchors dictionary for later management.
     */
-    private void CreateBlockWithAnchor(TrackedObject obj, Vector3 position, Quaternion rotation, Vector2 size)
+    private void CreateBlockWithAnchor(
+        TrackedObject obj,
+        Vector3 position,
+        Quaternion rotation,
+        Vector2 size
+    )
     {
+        // Instantiate the block prefab and set its name.
         GameObject block = Instantiate(blockPrefab);
         block.name = $"Block_{obj.id}";
         Vector3 worldScale = new Vector3(size.x, size.y, 0.01f);
 
-
+        // If the block prefab has a BlockVisualization component, use it to set the transform; otherwise, set it directly on the GameObject.
         BlockVisualization vis = block.GetComponent<BlockVisualization>();
         if (vis != null)
         {
@@ -338,7 +388,7 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
             block.transform.SetParent(cameraRig.trackingSpace);
         }
 
-        // 4. Create spatial anchor for persistence if enabled
+        // Create spatial anchor for persistence if enabled
         if (useSpatialAnchors && cameraRig != null && !activeSpatialAnchors.ContainsKey(obj.id))
         {
             OVRSpatialAnchor spatialAnchor = block.AddComponent<OVRSpatialAnchor>();
@@ -354,14 +404,14 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
             // Store the spatial anchor reference for later cleanup
             activeSpatialAnchors[obj.id] = spatialAnchor;
         }
-
+        // Store the block reference for this tracked object
         activeBlocks[obj.id] = block;
     }
 
     /*
-        Updates the position and rotation of an existing block based on the new raycast hit information.
+        Updates the transform and size of an existing block.
         - Retrieves the block GameObject from the activeBlocks dictionary using the tracked object's ID.
-        - Updates the block's position to the new hit point and rotates it to align with the hit normal.
+        - Applies the provided position/rotation and updates scale to match the current bbox-derived size.
     */
     private void UpdateBlock(TrackedObject obj, Vector3 position, Quaternion rotation, Vector2 size)
     {
@@ -419,9 +469,9 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
             RemoveBlock(id);
         }
     }
-    /* 
-        Public method that can be called by others to clear all blocks and their associated spatial anchors.
-        Used by AppStateManager when transitioning back to the StartScreen state to ensure a clean slate.
+
+    /*
+        Removes all currently active blocks and anchors.
     */
     public void ClearAllBlocks()
     {
