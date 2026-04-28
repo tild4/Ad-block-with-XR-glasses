@@ -51,7 +51,7 @@ from augment_ocr_noise import CHAR_NOISE_PROB, add_noise
 # ── Mode switch ───────────────────────────────────────────────────────
 # "clean"     → Model A: no augmentation, eval on clean test data
 # "augmented" → Model B: on-the-fly OCR noise, eval on augmented test data
-MODE = "augmented"
+MODE = "clean"
 
 # ── Augmentation config (only used when MODE = "augmented") ──────────
 AUGMENT_PROB = 0.5  # probability of applying OCR noise to each example per epoch

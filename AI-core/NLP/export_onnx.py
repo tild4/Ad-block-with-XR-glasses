@@ -10,7 +10,7 @@ from optimum.exporters.onnx import main_export
 NLP_DIR = Path(__file__).resolve().parent
 
 # "clean" → Model A, "augmented" → Model B
-MODE = "augmented"
+MODE = "clean"
 
 SAVED_MODEL_DIR = NLP_DIR / "saved_model" / MODE
 MODELS_DIR = NLP_DIR / "models" / MODE
