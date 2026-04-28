@@ -1,5 +1,5 @@
 /*
-    ProcessOCRDetection2
+    ProcessOCRDetection_MVP2
 
     PURPOSE:
     Post-processes OCR text-detection output masks into word boxes,
@@ -7,15 +7,15 @@
     recognition tensors, and forwards them to OCR recognition.
 
     CURRENT FLOW:
-    TextDetectionInference -> THIS -> TextRecognitionInference
+    TextDetectionInference_MVP2 -> THIS -> TextRecognitionInference_MVP2
 
     POLICY:
-    - Latest batch wins.
-    - The class owns incoming tensors and disposes dropped or consumed ones.
+    - Processes one OCR detection result at a time.
+    - The class owns incoming detection tensors and ROI snapshots once processing starts.
     - Processing yields during heavy CPU work to avoid monopolizing the frame.
 
     NOTE:
-    Emitted tensor is the detected text
+    Emits cropped recognition tensors plus their associated tracked object.
 
 */
 
@@ -140,8 +140,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
         FLOW:
         1. Ignore empty input.
-        2. Keep only the newest pending batch.
-        3. Start processing if needed.
+        2. Start processing immediately if this component is idle.
     */
     private void HandleNewTrackedObject(DetectionsPerAd advertisment)
     {
@@ -163,11 +162,8 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
     }
 
     /*
-        Processes batches sequentially.
-
-        POLICY:
-        - Finish the current batch.
-        - Then process the newest pending batch, if one exists.
+        Processes one advertisement's OCR-detection result.
+        This coroutine acts as the re-entrancy guard for the component.
     */
     private IEnumerator ProcessDPA(DetectionsPerAd advertisement)
     {
@@ -187,7 +183,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         2. Find connected text boxes.
         3. Dispose the consumed detection tensor.
         4. Crop each text ROI and convert it to a recognition tensor.
-        5. Store the frame batch for recognition.
+        5. Emit the cropped ROI tensors for recognition.
     */
     private IEnumerator ProcessDetectionOCR(DetectionsPerAd advertisement)
     {
