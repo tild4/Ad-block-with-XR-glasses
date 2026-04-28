@@ -3,7 +3,7 @@
 
     PURPOSE:
     Drives the initial start screen presented to the user on launch.
-    Exposes two buttons — Start and Options — and delegates all
+    Exposes two buttons ï¿½ Start and Options ï¿½ and delegates all
     state transitions to AppStateManager.
 
     ARCHITECTURE:
@@ -19,9 +19,14 @@ using UnityEngine.UI;
 
 public class StartScreenUI : MonoBehaviour
 {
-    [SerializeField] private Button startButton;
-    [SerializeField] private Button optionsButton;
-    [SerializeField] private OptionsUI optionsUI;
+    [SerializeField]
+    private Button startButton;
+
+    [SerializeField]
+    private Button optionsButton;
+
+    [SerializeField]
+    private OptionsUI optionsUI;
 
     private void Awake()
     {

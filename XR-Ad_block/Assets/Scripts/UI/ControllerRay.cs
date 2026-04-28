@@ -24,9 +24,14 @@ using UnityEngine;
 
 public class ControllerRay : MonoBehaviour
 {
-    [SerializeField] private Color rayColor = new Color(1f, 1f, 1f, 0.5f);
-    [SerializeField] private float rayLength = 5f;
-    [SerializeField] private Material rayMaterial;
+    [SerializeField]
+    private Color rayColor = new Color(1f, 1f, 1f, 0.5f);
+
+    [SerializeField]
+    private float rayLength = 5f;
+
+    [SerializeField]
+    private Material rayMaterial;
 
     private LineRenderer _line;
     private GameObject _dot;

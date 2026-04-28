@@ -21,21 +21,31 @@ using UnityEngine.UI;
 
 public class ScrollViewThumbstick : MonoBehaviour
 {
-    [SerializeField] private ScrollRect scrollRect;
-    [SerializeField] private float scrollSpeed = 0.5f;
-    [SerializeField] private float deadZone = 0.1f;
+    [SerializeField]
+    private ScrollRect scrollRect;
+
+    [SerializeField]
+    private float scrollSpeed = 0.5f;
+
+    [SerializeField]
+    private float deadZone = 0.1f;
+
     private void Update()
     {
-        if (scrollRect == null) return;
+        if (scrollRect == null)
+            return;
 
         // Only scroll when Options panel is active
-        if (!gameObject.activeInHierarchy) return;
+        if (!gameObject.activeInHierarchy)
+            return;
 
         float input = OVRInput.Get(OVRInput.Axis2D.SecondaryThumbstick).y;
 
         if (Mathf.Abs(input) > deadZone)
         {
-            scrollRect.verticalNormalizedPosition = Mathf.Clamp01(scrollRect.verticalNormalizedPosition + input * scrollSpeed * Time.deltaTime);
+            scrollRect.verticalNormalizedPosition = Mathf.Clamp01(
+                scrollRect.verticalNormalizedPosition + input * scrollSpeed * Time.deltaTime
+            );
         }
     }
 }

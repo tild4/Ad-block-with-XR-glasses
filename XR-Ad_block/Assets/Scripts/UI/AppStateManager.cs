@@ -17,22 +17,37 @@
     - Pipeline components are toggled via .enabled rather than
       GameObject.SetActive so their state is preserved between sessions.
 */
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
 
 public class AppStateManager : MonoBehaviour
 {
-    public enum  AppState {StartScreen, Running, ConfirmStop }
+    public enum AppState
+    {
+        StartScreen,
+        Running,
+        ConfirmStop,
+    }
 
     [Header("Pipeline Components")]
-    [SerializeField] private CaptureCameraFrame captureCameraFrame;
-    [SerializeField] private SentisInferenceManager sentisInferenceManager;
-    [SerializeField] private BlockPlacementManager_MVP2 blockPlacementManager;
+    [SerializeField]
+    private CaptureCameraFrame captureCameraFrame;
+
+    [SerializeField]
+    private SentisInferenceManager sentisInferenceManager;
+
+    [SerializeField]
+    private BlockPlacementManager_MVP2 blockPlacementManager;
 
     [Header("UI Controllers")]
-    [SerializeField] private StartScreenUI startScreenUI;
-    [SerializeField] private ConfirmStopUI confirmStopUI;
-    [SerializeField] private HUDController hudController;
+    [SerializeField]
+    private StartScreenUI startScreenUI;
+
+    [SerializeField]
+    private ConfirmStopUI confirmStopUI;
+
+    [SerializeField]
+    private HUDController hudController;
 
     public static AppStateManager Instance { get; private set; }
     public AppState CurrentState { get; private set; } = AppState.StartScreen;
@@ -53,7 +68,10 @@ public class AppStateManager : MonoBehaviour
         // B button only active while running
         if (CurrentState == AppState.Running)
         {
-            if (OVRInput.GetDown(OVRInput.Button.Two) || OVRInput.GetDown(OVRInput.Button.SecondaryThumbstick))
+            if (
+                OVRInput.GetDown(OVRInput.Button.Two)
+                || OVRInput.GetDown(OVRInput.Button.SecondaryThumbstick)
+            )
             {
                 SetState(AppState.ConfirmStop);
             }
@@ -64,7 +82,7 @@ public class AppStateManager : MonoBehaviour
     {
         Debug.Log($"[AppState] SetState called: {newState}");
         CurrentState = newState;
-        
+
         //Enable pipeline if user has presssed start, app is running.
         bool pipelineActive = newState == AppState.Running;
         Debug.Log($"[AppState] Setting pipeline active: {pipelineActive}");
@@ -94,5 +112,4 @@ public class AppStateManager : MonoBehaviour
     }
 
     public void OnConfirmNo() => SetState(AppState.Running);
-
 }

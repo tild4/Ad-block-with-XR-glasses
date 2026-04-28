@@ -13,14 +13,17 @@
       regardless of frame rate.
 */
 
-using UnityEngine;
-using TMPro;
 using System.Collections;
+using TMPro;
+using UnityEngine;
 
 public class HUDController : MonoBehaviour
 {
-    [SerializeField] private TextMeshProUGUI toastText;
-    [SerializeField] private float fadeSpeed = 0.7f;
+    [SerializeField]
+    private TextMeshProUGUI toastText;
+
+    [SerializeField]
+    private float fadeSpeed = 0.7f;
 
     private Coroutine _activeToast;
 
@@ -43,8 +46,8 @@ public class HUDController : MonoBehaviour
         Color c = toastText.color;
         while (alpha < 1f)
         {
-            alpha = Mathf.MoveTowards(alpha, 1f, Time.deltaTime* fadeSpeed);
-            toastText.color = new Color(c.r,c.g,c.b, alpha);
+            alpha = Mathf.MoveTowards(alpha, 1f, Time.deltaTime * fadeSpeed);
+            toastText.color = new Color(c.r, c.g, c.b, alpha);
             yield return null;
         }
 
@@ -53,8 +56,8 @@ public class HUDController : MonoBehaviour
         //Fade out
         while (alpha > 0f)
         {
-            alpha = Mathf.MoveTowards(alpha, 0f, Time.deltaTime* fadeSpeed);
-            toastText.color = new Color(c.r,c.g,c.b,alpha);
+            alpha = Mathf.MoveTowards(alpha, 0f, Time.deltaTime * fadeSpeed);
+            toastText.color = new Color(c.r, c.g, c.b, alpha);
             yield return null;
         }
 

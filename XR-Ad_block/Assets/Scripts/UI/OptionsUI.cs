@@ -19,18 +19,24 @@
     - Images must be imported as Sprite (2D and UI) texture type.
 */
 
-using UnityEngine;
-using UnityEngine.UI;
 using System.Collections.Generic;
 using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
 
 public class OptionsUI : MonoBehaviour
 {
+    [SerializeField]
+    private Transform imageButtonContainer;
 
-    [SerializeField] private Transform imageButtonContainer;
-    [SerializeField] private GameObject imageButtonPrefab;
-    [SerializeField] private Button closeButton;
-    [SerializeField] private Button resetToDefaultButton;
+    [SerializeField]
+    private GameObject imageButtonPrefab;
+
+    [SerializeField]
+    private Button closeButton;
+
+    [SerializeField]
+    private Button resetToDefaultButton;
 
     private List<Sprite> _loadedSprites = new();
 
@@ -63,8 +69,9 @@ public class OptionsUI : MonoBehaviour
         foreach (Sprite sprite in _loadedSprites)
         {
             GameObject btn = Instantiate(imageButtonPrefab, imageButtonContainer);
-            Debug.Log($"[Options] Instantiated button at position {btn.transform.localPosition}, size {btn.GetComponent<RectTransform>().sizeDelta}");
-
+            Debug.Log(
+                $"[Options] Instantiated button at position {btn.transform.localPosition}, size {btn.GetComponent<RectTransform>().sizeDelta}"
+            );
 
             // Set preview image
             Image previewImage = btn.transform.Find("PreviewImage")?.GetComponent<Image>();
@@ -85,7 +92,6 @@ public class OptionsUI : MonoBehaviour
                 label.text = sprite.name;
             else
                 Debug.LogWarning("[Options] TextMeshProUGUI not found on button prefab");
-            
 
             // Wire selection
             Sprite captured = sprite;
@@ -93,7 +99,9 @@ public class OptionsUI : MonoBehaviour
         }
 
         Canvas.ForceUpdateCanvases(); // Ensure layout is updated after adding buttons
-        UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(imageButtonContainer.GetComponent<RectTransform>());
+        UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(
+            imageButtonContainer.GetComponent<RectTransform>()
+        );
     }
 
     private void OnImageSelected(Sprite sprite)
