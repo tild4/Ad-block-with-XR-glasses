@@ -30,11 +30,16 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
     [SerializeField]
     private OCRPipelineManager_MVP2 ocrPipelineManager;
 
+    [SerializeField]
+    private TrackingManager_MVP2 trackingManager;
+
     private bool isProcessing = false;
 
     private Worker worker;
 
     public event Action<DetectionsPerAd> findTextRegions;
+
+    public event Action<TrackedObject, string, bool> onEarlyExitRequired; // Notify exit early if no text
 
     private void Awake()
     {
@@ -112,7 +117,9 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
             // Signal completion with an empty result so that
             // OCRPipelineManager.OnOcrFinished resets isProcessing.
             Debug.LogWarning($"[TextDetect] Skipping null/disposed object, signalling completion.");
-            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero));
+            findTextRegions?.Invoke(
+                new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero)
+            );
             return;
         }
         StartCoroutine(RunOCRDetection(advertisement));
@@ -157,7 +164,9 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogWarning($"[TextDetect] Failed to capture detection data for Object {advertisement.id}: {e.Message}");
+            Debug.LogWarning(
+                $"[TextDetect] Failed to capture detection data for Object {advertisement.id}: {e.Message}"
+            );
         }
 
         if (inputTensor == null || worker == null)
@@ -169,7 +178,9 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
             }
             // Always signal completion so OCRPipelineManager.OnOcrFinished
             // resets isProcessing. Without this the pipeline permanently deadlocks.
-            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero));
+            findTextRegions?.Invoke(
+                new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero)
+            );
             yield break;
         }
 
@@ -191,13 +202,17 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogWarning($"[TextDetect] Preprocessing failed for Object {advertisement.id}: {e.Message}");
+            Debug.LogWarning(
+                $"[TextDetect] Preprocessing failed for Object {advertisement.id}: {e.Message}"
+            );
             if (roiSnapshot != null)
             {
                 roiSnapshot.Release();
                 Destroy(roiSnapshot);
             }
-            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero));
+            findTextRegions?.Invoke(
+                new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero)
+            );
             yield break;
         }
 
@@ -226,23 +241,69 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogWarning($"[TextDetect] Inference readback failed for Object {advertisement.id}: {e.Message}");
+            Debug.LogWarning(
+                $"[TextDetect] Inference readback failed for Object {advertisement.id}: {e.Message}"
+            );
         }
 
-        if (!inferenceSucceeded)
+        if (inferenceSucceeded)
+        {
+            // check if heatmap contains any value above threshold to determine if text is likely present
+            bool hasText = false;
+            float[] tensorData = outputTensor.DownloadToArray();
+
+            for (int i = 0; i < tensorData.Length; i++)
+            {
+                if (tensorData[i] > 0.2f)
+                {
+                    hasText = true;
+                    break;
+                }
+            }
+
+            if (!hasText)
+            {
+                Debug.Log(
+                    $"[Early Exit] Early Exit for ID {advertisement.id} - no text found in heatmap."
+                );
+
+                // Dispose the output tensor immediately since we're not sending it to OCR, to free up resources.
+                outputTensor.Dispose();
+                if (roiSnapshot != null)
+                {
+                    roiSnapshot.Release();
+                    Destroy(roiSnapshot);
+                }
+
+                // Notify tracking manager
+                onEarlyExitRequired?.Invoke(advertisement, "", true);
+
+                // Signal with an empty result to reset isProcessing and move on to the next item
+                findTextRegions?.Invoke(
+                    new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero)
+                );
+                yield break;
+            }
+        }
+        else // On inference failed completely
         {
             if (roiSnapshot != null)
             {
                 roiSnapshot.Release();
                 Destroy(roiSnapshot);
             }
-            // Same pattern: always signal completion to unblock the queue.
-            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero));
+            findTextRegions?.Invoke(
+                new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero)
+            );
             yield break;
         }
 
         DetectionsPerAd findDetections = new DetectionsPerAd(
-            advertisement, outputTensor, roiSnapshot, yoloBounds, roiContentRect
+            advertisement,
+            outputTensor,
+            roiSnapshot,
+            yoloBounds,
+            roiContentRect
         );
 
         findTextRegions?.Invoke(findDetections);
