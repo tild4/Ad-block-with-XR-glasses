@@ -4,27 +4,26 @@ ad-classification (3 classes: "non-ad", "socially beneficial", "ad").
 
 === Two training modes ===
 
-Model A — Baseline (USE_AUGMENTATION = False):
+Model A — Baseline (MODE = "clean"):
   Trains on clean text only (train_clean.jsonl).
   Evaluates on clean test data (test_clean.jsonl).
   Shows the model's base performance without OCR-noise robustness.
 
-Model B — Production (USE_AUGMENTATION = True):
+Model B — Production (MODE = "augmented"):
   Trains with on-the-fly OCR-noise augmentation: each epoch, every example
   has a probability AUGMENT_PROB of being corrupted by add_noise() from
   augment_ocr_noise.py. This gives the model fresh noise patterns every
   epoch instead of memorising fixed noisy copies.
-  Evaluates on test_clean.jsonl (during training) and test_augmented_v2.jsonl
-  (during final evaluation with evaluate_model.py).
+  Evaluates on test_augmented_v2.jsonl (during training and final evaluation).
 
 === Dataset origin ===
 train_clean.jsonl and test_clean.jsonl are created by create_dataset_split.py,
 which pools:
-  - Real data from test_original.jsonl (372 manually collected examples)
+  - Real data from test_original.jsonl (430 manually collected examples)
   - Synthetic data from (Claude + GPT)generated_examples.jsonl (1994 examples)
 and performs a stratified split with source-tagging ("real"/"synthetic").
 
-Toggle USE_AUGMENTATION and AUGMENT_PROB below to switch between Model A and B.
+Toggle MODE below to switch between Model A and B.
 Adjust hyperparameters (learning_rate, weight_decay, etc.) for tuning runs.
 """
 

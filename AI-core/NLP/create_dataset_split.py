@@ -2,10 +2,10 @@
 Creates the train/test split for the Swedish ad-classification model.
 
 === Data sources ===
-1. test_original.jsonl (372 examples)
+1. test_original.jsonl (430 examples, 428 unique after deduplication)
    - Manually collected REAL examples from photos of Swedish street signs,
-     storefronts, and public-service notices.
-   - Labels: 142 "non-ad", 12 "socially beneficial", 218 "ad"
+     storefronts, and public-service notices. 
+   - Labels: 142 "non-ad", 21 "socially beneficial", 267 "ad"
    - This is the ONLY source of real (non-synthetic) data.
 
 2. (Claude + GPT)generated_examples.jsonl (1994 examples)
@@ -16,7 +16,7 @@ Creates the train/test split for the Swedish ad-classification model.
 === Split strategy ===
 We pool both sources and create a stratified train/test split so that:
   - Real data appears in BOTH training and test (reduces domain gap).
-  - All 12 real "socially beneficial" examples go to the TEST set because
+  - All 21 real "socially beneficial" examples go to the TEST set because
     there are too few to split meaningfully — the model relies on
     synthetic socially beneficial for training instead.
   - For the other two real-data classes, 80% goes to train / 20% to test.
@@ -108,6 +108,17 @@ def main():
     real_examples = load_jsonl(REAL_FILE)
     synthetic_examples = load_jsonl(SYNTHETIC_FILE)
 
+    # Deduplicate by text (test_original.jsonl has a few duplicate entries)
+    seen = set()
+    deduped = []
+    for ex in real_examples:
+        if ex["text"] not in seen:
+            seen.add(ex["text"])
+            deduped.append(ex)
+    if len(deduped) < len(real_examples):
+        print(f"Removed {len(real_examples) - len(deduped)} duplicate(s) from real data")
+    real_examples = deduped
+
     # Tag every example with its provenance
     for ex in real_examples:
         ex["source"] = "real"
@@ -118,7 +129,7 @@ def main():
     print(f"Loaded {len(synthetic_examples)} synthetic examples from {SYNTHETIC_FILE.name}")
 
     # ── Split real data ───────────────────────────────────────────────
-    # All 12 socially beneficial → test (too few to split).
+    # All 21 real socially beneficial → test (too few to split).
     # The remaining classes are split 80/20 stratified.
     real_samhallsnyttig = [ex for ex in real_examples if ex["label"] == "socially beneficial"]
     real_other = [ex for ex in real_examples if ex["label"] != "socially beneficial"]

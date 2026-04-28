@@ -1,384 +1,403 @@
-{"text": "showstart 19.30", "label": "ad", "source": "synthetic"}
-{"text": "Avis weekend-erbjudande", "label": "ad", "source": "synthetic"}
-{"text": "mpab 031-87 45 79", "label": "non-ad", "source": "real"}
-{"text": "13 härlanda", "label": "non-ad", "source": "synthetic"}
-{"text": "miljörum", "label": "non-ad", "source": "real"}
-{"text": "Farsta strand", "label": "non-ad", "source": "synthetic"}
-{"text": "omledning av trafik", "label": "non-ad", "source": "synthetic"}
-{"text": "Samsung fri frakt över 499", "label": "ad", "source": "synthetic"}
-{"text": "Bastard Burgers varmkorv 25:-", "label": "ad", "source": "synthetic"}
-{"text": "sahlgrenska science park", "label": "non-ad", "source": "real"}
-{"text": "Toltorpsdalen", "label": "non-ad", "source": "synthetic"}
-{"text": "boka gratis hälsoundersökning", "label": "socially beneficial", "source": "synthetic"}
-{"text": "mind - för psykisk hälsa", "label": "socially beneficial", "source": "synthetic"}
-{"text": "låga priser varje dag", "label": "ad", "source": "real"}
-{"text": "Raw Comedy Club konsert på fredag", "label": "ad", "source": "synthetic"}
-{"text": "förhandsrösta på biblioteket", "label": "socially beneficial", "source": "synthetic"}
-{"text": "10:-/st", "label": "ad", "source": "real"}
-{"text": "restavfall", "label": "non-ad", "source": "real"}
-{"text": "Felix ketchup 2 för 39:-", "label": "ad", "source": "synthetic"}
-{"text": "Länsförsäkringar Bank kort med bonuspoäng", "label": "ad", "source": "synthetic"}
-{"text": "Norrköping resecentrum", "label": "non-ad", "source": "synthetic"}
-{"text": "Volvo XC40 provkör nu", "label": "ad", "source": "synthetic"}
-{"text": "vasagatan 8", "label": "non-ad", "source": "synthetic"}
-{"text": "take away meny", "label": "ad", "source": "synthetic"}
-{"text": "Hållplats Annedal", "label": "non-ad", "source": "synthetic"}
-{"text": "Klarna tillgängligt här", "label": "ad", "source": "real"}
-{"text": "eriksbergsgatan 8", "label": "non-ad", "source": "synthetic"}
-{"text": "Göteborgs Stad gratis läxhjälp efter skolan", "label": "socially beneficial", "source": "synthetic"}
-{"text": "kajkajen 24", "label": "non-ad", "source": "synthetic"}
-{"text": "8 frölunda", "label": "non-ad", "source": "real"}
-{"text": "Kjell & Company hemleverans på köpet", "label": "ad", "source": "synthetic"}
-{"text": "Norrtullsgatan", "label": "non-ad", "source": "synthetic"}
-{"text": "jorden behöver dig - klimatmarsch 20 sept", "label": "socially beneficial", "source": "synthetic"}
-{"text": "majallén 8", "label": "non-ad", "source": "synthetic"}
-{"text": "LG smartklocka med rabatt", "label": "ad", "source": "synthetic"}
-{"text": "fiskolja som inte smakar fisk", "label": "ad", "source": "real"}
-{"text": "Bolt taxi billigare än du tror", "label": "ad", "source": "synthetic"}
-{"text": "aleris specialklinik göteborg specialister inom ortopedi och plastikkirurgi", "label": "ad", "source": "real"}
-{"text": "naturreservat", "label": "non-ad", "source": "synthetic"}
-{"text": "regionen söker barnmorskor", "label": "socially beneficial", "source": "synthetic"}
-{"text": "lär dig mer om källkritik", "label": "socially beneficial", "source": "synthetic"}
-{"text": "spara till pensionen", "label": "ad", "source": "synthetic"}
-{"text": "Power hemleverans på köpet", "label": "ad", "source": "synthetic"}
-{"text": "Scalateatern standup ikväll", "label": "ad", "source": "synthetic"}
-{"text": "ekplatsen 12", "label": "non-ad", "source": "synthetic"}
-{"text": "linje 31", "label": "non-ad", "source": "synthetic"}
-{"text": "fastighetsbyrån", "label": "ad", "source": "real"}
-{"text": "medborgarskolan kurser för alla", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Göteborgs Stad barn rör sig här", "label": "socially beneficial", "source": "synthetic"}
-{"text": "spela på vinterspelen hos atg", "label": "ad", "source": "real"}
-{"text": "grand opening lördag 10:00", "label": "ad", "source": "synthetic"}
-{"text": "Kastanjegatan", "label": "non-ad", "source": "synthetic"}
-{"text": "solstigen 24", "label": "non-ad", "source": "synthetic"}
-{"text": "diakoni stöd och medmänsklighet", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Sandarna centrum", "label": "non-ad", "source": "synthetic"}
-{"text": "600 sanatoriegatan", "label": "non-ad", "source": "synthetic"}
-{"text": "Kristineberg", "label": "non-ad", "source": "synthetic"}
-{"text": "sveavägen 6", "label": "non-ad", "source": "synthetic"}
-{"text": "Svenska mässan", "label": "non-ad", "source": "real"}
-{"text": "Östra sjukhuset", "label": "non-ad", "source": "real"}
-{"text": "Swedbank", "label": "ad", "source": "synthetic"}
-{"text": "Clas Ohlson till salu nu online", "label": "ad", "source": "synthetic"}
-{"text": "25 mölndal resecentrum", "label": "non-ad", "source": "real"}
-{"text": "träning nära dig", "label": "ad", "source": "synthetic"}
-{"text": "Kortedala", "label": "non-ad", "source": "real"}
-{"text": "Brothers kostym från 2999:-", "label": "ad", "source": "synthetic"}
-{"text": "Örebro södra", "label": "non-ad", "source": "synthetic"}
-{"text": "Vänligen sortera ditt avfall", "label": "non-ad", "source": "synthetic"}
-{"text": "spår 5", "label": "non-ad", "source": "synthetic"}
-{"text": "Wallenstam", "label": "ad", "source": "real"}
-{"text": "Apple hemleverans på köpet", "label": "ad", "source": "synthetic"}
-{"text": "kajbacken 31", "label": "non-ad", "source": "synthetic"}
-{"text": "västra kajen 21", "label": "non-ad", "source": "synthetic"}
-{"text": "utanför markerad platas", "label": "non-ad", "source": "real"}
-{"text": "lunchbuffe pizza pasta husman sallad välkommen in", "label": "ad", "source": "real"}
-{"text": "easypark", "label": "non-ad", "source": "real"}
-{"text": "Spårvagnstrafik", "label": "non-ad", "source": "real"}
-{"text": "myrgränd 1", "label": "non-ad", "source": "synthetic"}
-{"text": "Jensens Bøfhus sushi 10 bitar 109:-", "label": "ad", "source": "synthetic"}
-{"text": "linje 753 mot kvillebäcken", "label": "non-ad", "source": "synthetic"}
-{"text": "mölndal stad", "label": "non-ad", "source": "real"}
-{"text": "brostigen 12", "label": "non-ad", "source": "synthetic"}
-{"text": "fri höjd 2,1m", "label": "non-ad", "source": "synthetic"}
-{"text": "spara 30% på färgserien lady", "label": "ad", "source": "real"}
-{"text": "p-plats reserverad", "label": "non-ad", "source": "synthetic"}
-{"text": "med kärlek för matlagning", "label": "ad", "source": "synthetic"}
-{"text": "obehöriga äger ej tillträde", "label": "non-ad", "source": "synthetic"}
-{"text": "postlåda", "label": "non-ad", "source": "synthetic"}
-{"text": "västra stigen 14", "label": "non-ad", "source": "synthetic"}
-{"text": "1177 ge blod rädda liv", "label": "socially beneficial", "source": "synthetic"}
-{"text": "maxvikt 3,5 ton", "label": "non-ad", "source": "synthetic"}
-{"text": "lärkkajen 1", "label": "non-ad", "source": "synthetic"}
-{"text": "vakt", "label": "non-ad", "source": "real"}
-{"text": "Butikerna på lilla klädpressaregatan har öppet precis som vanligt. Välkommen!", "label": "socially beneficial", "source": "real"}
-{"text": "ditt barn förtjänar rent vatten", "label": "socially beneficial", "source": "synthetic"}
-{"text": "dra", "label": "non-ad", "source": "synthetic"}
-{"text": "Swedbank få bättre ränta", "label": "ad", "source": "synthetic"}
-{"text": "Arbeta som sjuksköterska hos oss", "label": "socially beneficial", "source": "synthetic"}
-{"text": "fiskeförbudszon", "label": "non-ad", "source": "synthetic"}
-{"text": "alltid som medlem", "label": "ad", "source": "real"}
-{"text": "gibraltar-gatan 14-22", "label": "non-ad", "source": "real"}
-{"text": "dubbelriktat", "label": "non-ad", "source": "synthetic"}
-{"text": "skolområde", "label": "non-ad", "source": "synthetic"}
-{"text": "hisingsvägen 17", "label": "non-ad", "source": "synthetic"}
-{"text": "skogsstigen 3", "label": "non-ad", "source": "synthetic"}
-{"text": "Dalagatan 28", "label": "non-ad", "source": "synthetic"}
-{"text": "praktikplats i regionen sök nu", "label": "socially beneficial", "source": "synthetic"}
-{"text": "ersättningsbuss", "label": "non-ad", "source": "synthetic"}
-{"text": "Netflix nya serien strömmar nu", "label": "ad", "source": "synthetic"}
-{"text": "krokslättsbacken 42", "label": "non-ad", "source": "synthetic"}
-{"text": "sök sommarjobb och slå på ditt work mode.", "label": "socially beneficial", "source": "real"}
-{"text": "akademibokhandeln bokrea!", "label": "ad", "source": "synthetic"}
-{"text": "Handelsbanken öppna sparkonto idag", "label": "ad", "source": "synthetic"}
-{"text": "gäller ej buss och cykel", "label": "non-ad", "source": "real"}
-{"text": "europark", "label": "non-ad", "source": "real"}
-{"text": "färjevägen 17", "label": "non-ad", "source": "synthetic"}
-{"text": "Vi söker förskolelärare i göteborg", "label": "socially beneficial", "source": "real"}
-{"text": "Biblioteket gratis läxhjälp på torsdag", "label": "socially beneficial", "source": "synthetic"}
-{"text": "McDonald's burgare meny 99:-", "label": "ad", "source": "synthetic"}
-{"text": "Varning hala golv", "label": "non-ad", "source": "synthetic"}
-{"text": "grangränd 6", "label": "non-ad", "source": "synthetic"}
-{"text": "Lyko", "label": "ad", "source": "real"}
-{"text": "Cubus rea upp till 50%", "label": "ad", "source": "synthetic"}
-{"text": "*innehåller spår av aprilskämt", "label": "ad", "source": "real"}
-{"text": "akuten ingång", "label": "non-ad", "source": "synthetic"}
-{"text": "Hållplats Björkekärr", "label": "non-ad", "source": "synthetic"}
-{"text": "stöd till brottsoffer ring 116 006", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Jobba hos göteborgs stad i sommar", "label": "socially beneficial", "source": "real"}
-{"text": "Odengatan 73", "label": "non-ad", "source": "synthetic"}
-{"text": "Västra Götalandsregionen vaccinera dig mot tbe", "label": "socially beneficial", "source": "synthetic"}
-{"text": "vaccin direkt sveriges ledande vaccinatör", "label": "socially beneficial", "source": "real"}
-{"text": "Hyresräter utan kö. Bara att flytta in", "label": "ad", "source": "real"}
-{"text": "medlemskap från 299:-", "label": "ad", "source": "synthetic"}
-{"text": "vad vill du göra med 3 miljoner?", "label": "socially beneficial", "source": "real"}
-{"text": "nödläge ring 112", "label": "non-ad", "source": "synthetic"}
-{"text": "Göteborgs Stad din röst räknas", "label": "socially beneficial", "source": "synthetic"}
-{"text": "normal skönhet och hygien", "label": "ad", "source": "synthetic"}
-{"text": "frölunda torg 60 år!", "label": "ad", "source": "real"}
-{"text": "biljettautomat", "label": "non-ad", "source": "synthetic"}
-{"text": "Kalmar central", "label": "non-ad", "source": "synthetic"}
-{"text": "sörgårdskajen 1", "label": "non-ad", "source": "synthetic"}
-{"text": "Lämna företräde för buss", "label": "non-ad", "source": "real"}
-{"text": "salladsbar 89 kr", "label": "ad", "source": "synthetic"}
-{"text": "Slottsparken", "label": "non-ad", "source": "synthetic"}
-{"text": "Karlbergsvägen 62", "label": "non-ad", "source": "synthetic"}
-{"text": "prästkajen 24", "label": "non-ad", "source": "synthetic"}
-{"text": "barnavårdscentral", "label": "non-ad", "source": "synthetic"}
-{"text": "Göteborgs Stad stanna för gående", "label": "socially beneficial", "source": "synthetic"}
-{"text": "vasaplatsen 3", "label": "non-ad", "source": "synthetic"}
-{"text": "visa hänsyn i trafiken", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Västra Götalandsregionen hjälp finns vid oro", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Wieselgrensplatsen", "label": "non-ad", "source": "synthetic"}
-{"text": "sluta röka-linjen 020-84 00 00", "label": "socially beneficial", "source": "synthetic"}
-{"text": "78 sanatoriegatan", "label": "non-ad", "source": "synthetic"}
-{"text": "Scalateatern konsert på fredag", "label": "ad", "source": "synthetic"}
-{"text": "Webhallen gaming-datorer", "label": "ad", "source": "synthetic"}
-{"text": "Avanza - börja investera", "label": "ad", "source": "synthetic"}
-{"text": "Mäster Samuelsgatan 70", "label": "non-ad", "source": "synthetic"}
-{"text": "yrkesutbildning som leder till jobb", "label": "socially beneficial", "source": "real"}
-{"text": "sakta farthinder", "label": "non-ad", "source": "synthetic"}
-{"text": "följ oss på Instagram", "label": "ad", "source": "synthetic"}
-{"text": "stenplatsen 8", "label": "non-ad", "source": "synthetic"}
-{"text": "Ragn sells", "label": "ad", "source": "real"}
-{"text": "Trollhättan station", "label": "non-ad", "source": "synthetic"}
-{"text": "spår 2", "label": "non-ad", "source": "synthetic"}
-{"text": "Kungssten", "label": "non-ad", "source": "synthetic"}
-{"text": "fler händer behövs i vården", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Handelsbanken spara till pensionen", "label": "ad", "source": "synthetic"}
-{"text": "Trafikverket cykla med hjälm", "label": "socially beneficial", "source": "synthetic"}
-{"text": "vegansk meny nyhet", "label": "ad", "source": "synthetic"}
-{"text": "begränsad upplaga", "label": "ad", "source": "synthetic"}
-{"text": "Stora Essingen", "label": "non-ad", "source": "synthetic"}
-{"text": "Arla ekologisk mjölk", "label": "ad", "source": "synthetic"}
-{"text": "Zoégas kaffe 500g 59:-", "label": "ad", "source": "synthetic"}
-{"text": "majvägen 3", "label": "non-ad", "source": "synthetic"}
-{"text": "letsdeal.se", "label": "ad", "source": "real"}
-{"text": "Länsförsäkringar Bank få bättre ränta", "label": "ad", "source": "synthetic"}
-{"text": "Wavrinskys plats östra", "label": "non-ad", "source": "synthetic"}
-{"text": "lunchstängt 12-13", "label": "non-ad", "source": "synthetic"}
-{"text": "Ticket boka drömresan", "label": "ad", "source": "synthetic"}
-{"text": "Hamngatan 15", "label": "non-ad", "source": "synthetic"}
-{"text": "Spårvagn linje 7", "label": "non-ad", "source": "synthetic"}
-{"text": "konditori 3 bullar för 50:-", "label": "ad", "source": "synthetic"}
-{"text": "ska du flytta för att arbeta inom eu? Dina rättigheter förblir skyddade", "label": "socially beneficial", "source": "real"}
-{"text": "Barn och cancer hör inte ihop.", "label": "socially beneficial", "source": "real"}
-{"text": "10 frihamnen", "label": "non-ad", "source": "synthetic"}
-{"text": "linje 753 mot flatås", "label": "non-ad", "source": "synthetic"}
-{"text": "7-eleven", "label": "ad", "source": "real"}
-{"text": "stadsmissionen ingen ska behöva sova ute", "label": "socially beneficial", "source": "synthetic"}
-{"text": "håll hastigheten - rädda ett barn", "label": "socially beneficial", "source": "synthetic"}
-{"text": "hamnsplatsen 1", "label": "non-ad", "source": "synthetic"}
-{"text": "sannegårdsstigen", "label": "non-ad", "source": "synthetic"}
-{"text": "Amnesty kämpar för mänskliga rättigheter", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Göteborgs Stad lär dig mer om källkritik", "label": "socially beneficial", "source": "synthetic"}
-{"text": "se dig för vid spåret", "label": "socially beneficial", "source": "synthetic"}
-{"text": "39:-/st", "label": "ad", "source": "synthetic"}
-{"text": "Saturday 11-16", "label": "ad", "source": "real"}
-{"text": "Cancerfonden gå på cellprov i tid", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Subway burgare meny 99:-", "label": "ad", "source": "synthetic"}
-{"text": "linnévägen 31", "label": "non-ad", "source": "synthetic"}
 {"text": "samla gänget sänkt priset", "label": "ad", "source": "real"}
-{"text": "köp 2 få 25%", "label": "ad", "source": "real"}
-{"text": "Vaksalagatan 8", "label": "non-ad", "source": "synthetic"}
-{"text": "ICA nära alltid nära dig", "label": "ad", "source": "synthetic"}
-{"text": "Ruddalen södra", "label": "non-ad", "source": "synthetic"}
-{"text": "Willys hemkörning från 39 kr", "label": "ad", "source": "synthetic"}
-{"text": "legendarisk elbutik sedan 1977", "label": "ad", "source": "real"}
-{"text": "läge M", "label": "non-ad", "source": "synthetic"}
-{"text": "Sveavägen", "label": "non-ad", "source": "synthetic"}
-{"text": "max 30 km/tim", "label": "non-ad", "source": "real"}
-{"text": "parkstigen 1", "label": "non-ad", "source": "synthetic"}
-{"text": "kom in och fira med oss", "label": "ad", "source": "real"}
-{"text": "60 redbergsplatsen", "label": "non-ad", "source": "real"}
-{"text": "Roslagsgatan 9", "label": "non-ad", "source": "synthetic"}
-{"text": "Bastard Burgers frukostpaket 59:-", "label": "ad", "source": "synthetic"}
-{"text": "TUI solresor från 2995:-", "label": "ad", "source": "synthetic"}
-{"text": "skogsplatsen 31", "label": "non-ad", "source": "synthetic"}
-{"text": "korv! Korv! Korv!", "label": "ad", "source": "real"}
-{"text": "Lindex", "label": "ad", "source": "synthetic"}
-{"text": "olofgatan", "label": "non-ad", "source": "real"}
-{"text": "NK salonger", "label": "ad", "source": "synthetic"}
-{"text": "Lackarebäck", "label": "non-ad", "source": "synthetic"}
-{"text": "öppet alla helgfria vardagar", "label": "ad", "source": "real"}
-{"text": "TUI hotellnatt från 699:-", "label": "ad", "source": "synthetic"}
-{"text": "framtiden börjar i förskokolan", "label": "socially beneficial", "source": "real"}
-{"text": "Göteborgs Stad tänk på oskyddade trafikanter", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Polisen se dig för vid spåret", "label": "socially beneficial", "source": "synthetic"}
-{"text": "badplats", "label": "non-ad", "source": "synthetic"}
-{"text": "brandlarm", "label": "non-ad", "source": "real"}
-{"text": "maxbredd 2,5 m", "label": "non-ad", "source": "synthetic"}
-{"text": "stor ikon till ett litet pris", "label": "ad", "source": "real"}
-{"text": "lundbybacken", "label": "non-ad", "source": "synthetic"}
-{"text": "gratis SFI - lär dig svenska", "label": "socially beneficial", "source": "synthetic"}
-{"text": "handla online hämta i butik", "label": "ad", "source": "synthetic"}
-{"text": "Rösta i EU-valet 9 juni", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Exercisgatan 7", "label": "non-ad", "source": "synthetic"}
-{"text": "MPR-vaccin skyddar ditt barn", "label": "socially beneficial", "source": "synthetic"}
-{"text": "en del av kretsloppet", "label": "ad", "source": "real"}
-{"text": "camping förbjuden", "label": "non-ad", "source": "synthetic"}
-{"text": "Jensens Bøfhus kvällsmeny från 159:-", "label": "ad", "source": "synthetic"}
-{"text": "Valmyndigheten alla röster är viktiga", "label": "socially beneficial", "source": "synthetic"}
-{"text": "300 Borås", "label": "non-ad", "source": "synthetic"}
-{"text": "vårkajen 1", "label": "non-ad", "source": "synthetic"}
-{"text": "dörren stängs automatiskt", "label": "non-ad", "source": "synthetic"}
-{"text": "Granngården allt för djur och trädgård", "label": "ad", "source": "synthetic"}
-{"text": "färjegatan 24", "label": "non-ad", "source": "synthetic"}
-{"text": "lätt att svälja", "label": "ad", "source": "real"}
-{"text": "garage infart hela dygnet", "label": "non-ad", "source": "real"}
-{"text": "änggårdskajen 24", "label": "non-ad", "source": "synthetic"}
-{"text": "Filmstaden premiärvisning ikväll", "label": "ad", "source": "synthetic"}
-{"text": "Nespresso kapslar 20% rabatt", "label": "ad", "source": "synthetic"}
-{"text": "kålltorpsgatan 12", "label": "non-ad", "source": "synthetic"}
-{"text": "förtidsröstning börjar idag", "label": "socially beneficial", "source": "synthetic"}
-{"text": "linje 177 mot domkyrkan", "label": "non-ad", "source": "synthetic"}
-{"text": "pensionärsträff på medborgarkontoret", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Trafikverket stanna för gående", "label": "socially beneficial", "source": "synthetic"}
-{"text": "välkommen till nya oddset. Större utbud, större upplevelse", "label": "ad", "source": "real"}
-{"text": "TBE går att förebygga men inte betala", "label": "socially beneficial", "source": "real"}
-{"text": "sjukhus huvudentré", "label": "non-ad", "source": "synthetic"}
-{"text": "frukostpaket 59:-", "label": "ad", "source": "synthetic"}
-{"text": "sälj bilen nu när högsäsongen drar igång!", "label": "ad", "source": "real"}
-{"text": "Allt ljus på dig!", "label": "ad", "source": "real"}
-{"text": "linje 78 mot redbergsplatsen", "label": "non-ad", "source": "synthetic"}
 {"text": "Länsförsäkringar Bank bolån med personlig rådgivning", "label": "ad", "source": "synthetic"}
-{"text": "linje 1 mot Östra sjukhuset", "label": "non-ad", "source": "synthetic"}
-{"text": "datumparkering jämna dagar", "label": "non-ad", "source": "synthetic"}
-{"text": "hand in hand utbildning mot fattigdom", "label": "socially beneficial", "source": "synthetic"}
-{"text": "SEB öppna sparkonto idag", "label": "ad", "source": "synthetic"}
-{"text": "Energimyndigheten matavfall blir biogas", "label": "socially beneficial", "source": "synthetic"}
-{"text": "granallén 3", "label": "non-ad", "source": "synthetic"}
-{"text": "bergvägen 6", "label": "non-ad", "source": "synthetic"}
-{"text": "Partille kommun bli stödassistent", "label": "socially beneficial", "source": "synthetic"}
-{"text": "dagens lunch serveras nu", "label": "ad", "source": "synthetic"}
-{"text": "Mölndals stad jobba natt i omsorgen", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Folkhälsomyndigheten ge blod rädda liv", "label": "socially beneficial", "source": "synthetic"}
-{"text": "sporthall", "label": "non-ad", "source": "synthetic"}
-{"text": "Förhyrda platser", "label": "non-ad", "source": "real"}
-{"text": "Länsstyrelsen vattenavstängning på onsdag", "label": "socially beneficial", "source": "synthetic"}
-{"text": "akutmottagning", "label": "non-ad", "source": "synthetic"}
-{"text": "Trafikverket använd reflex i vinter", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Tensta", "label": "non-ad", "source": "synthetic"}
-{"text": "pensionsmyndigheten planera din pension", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Gilla läget!", "label": "ad", "source": "real"}
-{"text": "Skeppsbrogatan 4", "label": "non-ad", "source": "synthetic"}
-{"text": "27 mar | 25 april", "label": "ad", "source": "real"}
-{"text": "Energimyndigheten tillsammans sparar vi el", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Hållplats Marklandsgatan", "label": "non-ad", "source": "synthetic"}
-{"text": "kommunal återvinningscentral", "label": "non-ad", "source": "synthetic"}
-{"text": "Blackeberg", "label": "non-ad", "source": "synthetic"}
-{"text": "surfplatta på kampanj", "label": "ad", "source": "synthetic"}
-{"text": "munkebäcksplatsen 8", "label": "non-ad", "source": "synthetic"}
-{"text": "Dina Försäkringar trygga hemmet från 99:-", "label": "ad", "source": "synthetic"}
-{"text": "Volt stationer", "label": "ad", "source": "synthetic"}
-{"text": "H&M nya kollektionen ute nu", "label": "ad", "source": "synthetic"}
-{"text": "majbacken", "label": "non-ad", "source": "synthetic"}
-{"text": "Friskis&Svettis prova på gratis", "label": "ad", "source": "synthetic"}
-{"text": "kjell & company kablar tillbehör", "label": "ad", "source": "synthetic"}
-{"text": "285 skintebo", "label": "non-ad", "source": "real"}
-{"text": "musikhjälpen ingen ska dö av hunger", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Mölndals stad rösta i eu-valet", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Bride! Bioprämiär 6 mars", "label": "ad", "source": "real"}
-{"text": "reserverad för utryckningsfordon", "label": "non-ad", "source": "synthetic"}
-{"text": "Nordenskiöldsgatan 8", "label": "non-ad", "source": "synthetic"}
-{"text": "avfart 73 Mölndal", "label": "non-ad", "source": "synthetic"}
-{"text": "linje 72", "label": "non-ad", "source": "synthetic"}
-{"text": "Folksam säkra bilen smartare", "label": "ad", "source": "synthetic"}
-{"text": "Ticket solresor från 2995:-", "label": "ad", "source": "synthetic"}
-{"text": "samhällsorientering för nyanlända", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Elgiganten högtalare med extra bas", "label": "ad", "source": "synthetic"}
-{"text": "vasastigen 3", "label": "non-ad", "source": "synthetic"}
-{"text": "klätterställning max 12 år", "label": "non-ad", "source": "synthetic"}
-{"text": "Handelsbanken betala smartare med kort", "label": "ad", "source": "synthetic"}
-{"text": "nordic wellness", "label": "ad", "source": "real"}
 {"text": "Bangårdsgatan 13", "label": "non-ad", "source": "synthetic"}
-{"text": "naglar gelé 399:-", "label": "ad", "source": "synthetic"}
-{"text": "fönsterputs boka online", "label": "ad", "source": "synthetic"}
-{"text": "Telefonplan", "label": "non-ad", "source": "synthetic"}
-{"text": "missa inte succé-utställningen världens spel a world of games", "label": "ad", "source": "real"}
-{"text": "ICA familjefavoriter till kampanjpris", "label": "ad", "source": "synthetic"}
-{"text": "Kjell & Company dammsugare halva priset", "label": "ad", "source": "synthetic"}
-{"text": "gott på alla vis", "label": "ad", "source": "real"}
-{"text": "Rosengård", "label": "non-ad", "source": "synthetic"}
-{"text": "Alströmergatan 14", "label": "non-ad", "source": "synthetic"}
-{"text": "färjegatan 1", "label": "non-ad", "source": "synthetic"}
-{"text": "p-avgift gäller vardagar", "label": "non-ad", "source": "synthetic"}
-{"text": "änggårdsallén", "label": "non-ad", "source": "synthetic"}
+{"text": "Skeppsbrogatan 4", "label": "non-ad", "source": "synthetic"}
 {"text": "skolplatsen 8", "label": "non-ad", "source": "synthetic"}
-{"text": "Toyota Hybrid boka provkörning", "label": "ad", "source": "synthetic"}
-{"text": "folkhälsomyndigheten rekommenderar handtvätt", "label": "socially beneficial", "source": "synthetic"}
-{"text": "läge för en bra hemförsäkring?", "label": "ad", "source": "real"}
-{"text": "Power byt in din gamla mobil", "label": "ad", "source": "synthetic"}
-{"text": "Tegnérlunden", "label": "non-ad", "source": "synthetic"}
-{"text": "Ring om det är något", "label": "ad", "source": "real"}
-{"text": "gångfartsområde", "label": "non-ad", "source": "synthetic"}
-{"text": "Elgiganten ny mobil i butik", "label": "ad", "source": "synthetic"}
-{"text": "ring på klockan", "label": "non-ad", "source": "synthetic"}
-{"text": "festivalpass säljs nu", "label": "ad", "source": "synthetic"}
-{"text": "änggårdsplatsen 17", "label": "non-ad", "source": "synthetic"}
-{"text": "lekande barn", "label": "non-ad", "source": "synthetic"}
-{"text": "VOI elsparkcykel ladda ner appen", "label": "ad", "source": "synthetic"}
-{"text": "Synoptik 2 för 1 på glasögon", "label": "ad", "source": "synthetic"}
-{"text": "krokslättsgränd 1", "label": "non-ad", "source": "synthetic"}
-{"text": "SkandiaMäklarna sälj din bostad", "label": "ad", "source": "synthetic"}
-{"text": "BK3", "label": "non-ad", "source": "real"}
-{"text": "sprängningsarbete pågår", "label": "non-ad", "source": "synthetic"}
-{"text": "seniorlunch på träffpunkten tisdag 12:00", "label": "socially beneficial", "source": "synthetic"}
-{"text": "stop", "label": "non-ad", "source": "real"}
-{"text": "medlemspris på kaffe", "label": "ad", "source": "synthetic"}
-{"text": "familjefavoriter till kampanjpris", "label": "ad", "source": "synthetic"}
-{"text": "Viaplay sport halvår 499:-", "label": "ad", "source": "synthetic"}
-{"text": "dalstigen 12", "label": "non-ad", "source": "synthetic"}
-{"text": "Biblioteket ny i sverige information", "label": "socially beneficial", "source": "synthetic"}
-{"text": "mer sidor för mindre sedlar!", "label": "ad", "source": "real"}
-{"text": "Biblioteket träffa nya grannar", "label": "socially beneficial", "source": "synthetic"}
-{"text": "Röda Korset hjälp människor på flykt", "label": "socially beneficial", "source": "synthetic"}
-{"text": "hela sveriges träningsklubb", "label": "ad", "source": "real"}
-{"text": "västra kajen 7", "label": "non-ad", "source": "synthetic"}
-{"text": "plocka skräp - håll din stad ren", "label": "socially beneficial", "source": "synthetic"}
-{"text": "kaptensplatsen 31", "label": "non-ad", "source": "synthetic"}
-{"text": "bilpoolsplats sunfleet", "label": "ad", "source": "synthetic"}
-{"text": "lundbyplatsen 3", "label": "non-ad", "source": "synthetic"}
-{"text": "tandvård till halva priset 20-23 år", "label": "socially beneficial", "source": "synthetic"}
-{"text": "vasaplatsen 42", "label": "non-ad", "source": "synthetic"}
-{"text": "hagagränd", "label": "non-ad", "source": "synthetic"}
-{"text": "pizza 4 you", "label": "ad", "source": "real"}
-{"text": "LG", "label": "ad", "source": "synthetic"}
+{"text": "Varning hala golv", "label": "non-ad", "source": "synthetic"}
+{"text": "Västra Götalandsregionen hjälp finns vid oro", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Vänligen sortera ditt avfall", "label": "non-ad", "source": "synthetic"}
+{"text": "kajkajen 24", "label": "non-ad", "source": "synthetic"}
+{"text": "diakoni stöd och medmänsklighet", "label": "socially beneficial", "source": "synthetic"}
+{"text": "sluta röka-linjen 020-84 00 00", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Kjell & Company hemleverans på köpet", "label": "ad", "source": "synthetic"}
+{"text": "håll hastigheten - rädda ett barn", "label": "socially beneficial", "source": "synthetic"}
+{"text": "300 Borås", "label": "non-ad", "source": "synthetic"}
+{"text": "3 kålltorp", "label": "non-ad", "source": "real"}
+{"text": "gäller ej buss och cykel", "label": "non-ad", "source": "real"}
+{"text": "vårkajen 1", "label": "non-ad", "source": "synthetic"}
+{"text": "Bolt taxi billigare än du tror", "label": "ad", "source": "synthetic"}
+{"text": "dagens lunch serveras nu", "label": "ad", "source": "synthetic"}
+{"text": "Volvo XC40 provkör nu", "label": "ad", "source": "synthetic"}
+{"text": "färjegatan 1", "label": "non-ad", "source": "synthetic"}
+{"text": "normal skönhet och hygien", "label": "ad", "source": "synthetic"}
+{"text": "Partille kommun bli stödassistent", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Alströmergatan 14", "label": "non-ad", "source": "synthetic"}
+{"text": "vad vill du göra med 3 miljoner?", "label": "socially beneficial", "source": "real"}
+{"text": "circleK", "label": "ad", "source": "real"}
+{"text": "samhällsorientering för nyanlända", "label": "socially beneficial", "source": "synthetic"}
+{"text": "blocket", "label": "ad", "source": "real"}
 {"text": "St1 ladda elbilen", "label": "ad", "source": "synthetic"}
-{"text": "sök nu", "label": "socially beneficial", "source": "real"}
-{"text": "Göteborgs Stad översvämningsrisk i området", "label": "socially beneficial", "source": "synthetic"}
-{"text": "fjällbacken", "label": "non-ad", "source": "synthetic"}
-{"text": "tåg mot Stockholm", "label": "non-ad", "source": "synthetic"}
-{"text": "173 kungsladugård", "label": "non-ad", "source": "synthetic"}
-{"text": "cykling förbjuden", "label": "non-ad", "source": "synthetic"}
-{"text": "grekland. Just nu från 3998 kr", "label": "ad", "source": "real"}
-{"text": "Västra hamnen", "label": "non-ad", "source": "synthetic"}
-{"text": "Studieförbundet träffa nya grannar", "label": "socially beneficial", "source": "synthetic"}
-{"text": "busshållplats", "label": "non-ad", "source": "synthetic"}
-{"text": "odontologen - huvudentre", "label": "non-ad", "source": "real"}
-{"text": "20:-/st", "label": "ad", "source": "real"}
+{"text": "Allt ljus på dig!", "label": "ad", "source": "real"}
+{"text": "Nordenskiöldsgatan 8", "label": "non-ad", "source": "synthetic"}
+{"text": "glasförpackningar", "label": "non-ad", "source": "real"}
+{"text": "änggårdsplatsen 17", "label": "non-ad", "source": "synthetic"}
+{"text": "medlemskap från 299:-", "label": "ad", "source": "synthetic"}
+{"text": "ICA familjefavoriter till kampanjpris", "label": "ad", "source": "synthetic"}
+{"text": "kommunal återvinningscentral", "label": "non-ad", "source": "synthetic"}
+{"text": "folkhälsomyndigheten rekommenderar handtvätt", "label": "socially beneficial", "source": "synthetic"}
+{"text": "lär dig mer om källkritik", "label": "socially beneficial", "source": "synthetic"}
+{"text": "änggårdskajen 24", "label": "non-ad", "source": "synthetic"}
+{"text": "hand in hand utbildning mot fattigdom", "label": "socially beneficial", "source": "synthetic"}
+{"text": "med kärlek för matlagning", "label": "ad", "source": "synthetic"}
+{"text": "Hyresräter utan kö. Bara att flytta in", "label": "ad", "source": "real"}
+{"text": "dörren stängs automatiskt", "label": "non-ad", "source": "synthetic"}
+{"text": "hisingsvägen 17", "label": "non-ad", "source": "synthetic"}
+{"text": "toalett", "label": "non-ad", "source": "real"}
+{"text": "mer plats att träffas när nya stadsmiljöer växer fram", "label": "socially beneficial", "source": "real"}
+{"text": "Synoptik 2 för 1 på glasögon", "label": "ad", "source": "synthetic"}
+{"text": "Always nice price", "label": "ad", "source": "real"}
+{"text": "kaptensplatsen 31", "label": "non-ad", "source": "synthetic"}
 {"text": "2 Mölndal", "label": "non-ad", "source": "synthetic"}
+{"text": "sök nu", "label": "socially beneficial", "source": "real"}
+{"text": "spela på vinterspelen hos atg", "label": "ad", "source": "real"}
+{"text": "Saturday 11-16", "label": "ad", "source": "real"}
+{"text": "Trafikverket cykla med hjälm", "label": "socially beneficial", "source": "synthetic"}
+{"text": "bananskal blir gödsel, plast blir leksaker och metall blir cyklar. Att sortera är början på något nytt", "label": "socially beneficial", "source": "real"}
+{"text": "mer korv för mindre ören!", "label": "ad", "source": "real"}
+{"text": "Nyhet! Järn som känns rätt i magen", "label": "ad", "source": "real"}
+{"text": "Energimyndigheten tillsammans sparar vi el", "label": "socially beneficial", "source": "synthetic"}
+{"text": "parkstigen 1", "label": "non-ad", "source": "synthetic"}
+{"text": "Tensta", "label": "non-ad", "source": "synthetic"}
+{"text": "Wallenstam", "label": "ad", "source": "real"}
+{"text": "Trafikverket stanna för gående", "label": "socially beneficial", "source": "synthetic"}
+{"text": "600 sanatoriegatan", "label": "non-ad", "source": "synthetic"}
+{"text": "Felix ketchup 2 för 39:-", "label": "ad", "source": "synthetic"}
+{"text": "alla dagar 0-4", "label": "non-ad", "source": "real"}
+{"text": "tandvård till halva priset 20-23 år", "label": "socially beneficial", "source": "synthetic"}
+{"text": "bilpoolsplats sunfleet", "label": "ad", "source": "synthetic"}
+{"text": "McDonald's burgare meny 99:-", "label": "ad", "source": "synthetic"}
+{"text": "flyttsupport", "label": "ad", "source": "real"}
+{"text": "linje 78 mot redbergsplatsen", "label": "non-ad", "source": "synthetic"}
+{"text": "en hållbar stad med mer plats för livet", "label": "socially beneficial", "source": "real"}
+{"text": "en mäklare som kan dina kvarter är det svårt att släppa taget om", "label": "ad", "source": "real"}
+{"text": "mmm… glass", "label": "ad", "source": "real"}
+{"text": "ring på klockan", "label": "non-ad", "source": "synthetic"}
+{"text": "postlåda", "label": "non-ad", "source": "synthetic"}
+{"text": "Roslagsgatan 9", "label": "non-ad", "source": "synthetic"}
+{"text": "Clas Ohlson till salu nu online", "label": "ad", "source": "synthetic"}
+{"text": "sveavägen 6", "label": "non-ad", "source": "synthetic"}
+{"text": "för allas trevnad, rasta inga hundar här", "label": "non-ad", "source": "real"}
+{"text": "vasastigen 3", "label": "non-ad", "source": "synthetic"}
+{"text": "medlemspris på kaffe", "label": "ad", "source": "synthetic"}
+{"text": "Barn och cancer hör inte ihop.", "label": "socially beneficial", "source": "real"}
+{"text": "Ticket solresor från 2995:-", "label": "ad", "source": "synthetic"}
+{"text": "p-avgift gäller vardagar", "label": "non-ad", "source": "synthetic"}
 {"text": "Hållplats Scandinavium", "label": "non-ad", "source": "synthetic"}
-{"text": "Nästa hållplats: Brunnsparken", "label": "non-ad", "source": "synthetic"}
+{"text": "framtiden börjar i förskokolan", "label": "socially beneficial", "source": "real"}
+{"text": "mind - för psykisk hälsa", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Hållplats Marklandsgatan", "label": "non-ad", "source": "synthetic"}
+{"text": "vasaplatsen 3", "label": "non-ad", "source": "synthetic"}
+{"text": "p-plats reserverad", "label": "non-ad", "source": "synthetic"}
+{"text": "Västra Götalandsregionen vaccinera dig mot tbe", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Det här är inte sopor", "label": "socially beneficial", "source": "real"}
+{"text": "lunchstängt 12-13", "label": "non-ad", "source": "synthetic"}
+{"text": "173 kungsladugård", "label": "non-ad", "source": "synthetic"}
+{"text": "LF bank|pension|försäkring|fastighetsförmedling", "label": "ad", "source": "real"}
+{"text": "gott på alla vis", "label": "ad", "source": "real"}
+{"text": "lundbybacken", "label": "non-ad", "source": "synthetic"}
+{"text": "pizza 4 you", "label": "ad", "source": "real"}
+{"text": "Röda Korset hjälp människor på flykt", "label": "socially beneficial", "source": "synthetic"}
+{"text": "barnavårdscentral", "label": "non-ad", "source": "synthetic"}
+{"text": "tåg mot Stockholm", "label": "non-ad", "source": "synthetic"}
+{"text": "Göteborgs Stad barn rör sig här", "label": "socially beneficial", "source": "synthetic"}
+{"text": "naglar gelé 399:-", "label": "ad", "source": "synthetic"}
+{"text": "Scalateatern konsert på fredag", "label": "ad", "source": "synthetic"}
+{"text": "konst och life science", "label": "ad", "source": "real"}
+{"text": "Nespresso kapslar 20% rabatt", "label": "ad", "source": "synthetic"}
+{"text": "Jensens Bøfhus kvällsmeny från 159:-", "label": "ad", "source": "synthetic"}
+{"text": "köp 2 få 25%", "label": "ad", "source": "real"}
+{"text": "lätt att svälja", "label": "ad", "source": "real"}
+{"text": "hela sveriges träningsklubb", "label": "ad", "source": "real"}
+{"text": "SkandiaMäklarna sälj din bostad", "label": "ad", "source": "synthetic"}
+{"text": "hagagränd", "label": "non-ad", "source": "synthetic"}
+{"text": "Elgiganten ny mobil i butik", "label": "ad", "source": "synthetic"}
+{"text": "frukostpaket 59:-", "label": "ad", "source": "synthetic"}
+{"text": "Bastard Burgers frukostpaket 59:-", "label": "ad", "source": "synthetic"}
+{"text": "Göteborgs Stad din röst räknas", "label": "socially beneficial", "source": "synthetic"}
+{"text": "busshållplats", "label": "non-ad", "source": "synthetic"}
+{"text": "TBE går att förebygga men inte betala", "label": "socially beneficial", "source": "real"}
+{"text": "klätterställning max 12 år", "label": "non-ad", "source": "synthetic"}
+{"text": "badplats", "label": "non-ad", "source": "synthetic"}
+{"text": "gångfartsområde", "label": "non-ad", "source": "synthetic"}
+{"text": "Karlbergsvägen 62", "label": "non-ad", "source": "synthetic"}
+{"text": "Länsförsäkringar Bank få bättre ränta", "label": "ad", "source": "synthetic"}
+{"text": "lunchbuffe pizza pasta husman sallad välkommen in", "label": "ad", "source": "real"}
+{"text": "ny säsong 16/4 på tv4play", "label": "ad", "source": "real"}
+{"text": "korv! Korv! Korv!", "label": "ad", "source": "real"}
+{"text": "Power hemleverans på köpet", "label": "ad", "source": "synthetic"}
+{"text": "Rosengård", "label": "non-ad", "source": "synthetic"}
+{"text": "Göteborgs Stad gratis läxhjälp efter skolan", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Västra hamnen", "label": "non-ad", "source": "synthetic"}
+{"text": "NK salonger", "label": "ad", "source": "synthetic"}
+{"text": "avfart 73 Mölndal", "label": "non-ad", "source": "synthetic"}
 {"text": "frisör drop-in", "label": "ad", "source": "synthetic"}
+{"text": "Filmstaden premiärvisning ikväll", "label": "ad", "source": "synthetic"}
+{"text": "grand opening lördag 10:00", "label": "ad", "source": "synthetic"}
+{"text": "eriksbergsgatan 8", "label": "non-ad", "source": "synthetic"}
+{"text": "10 frihamnen", "label": "non-ad", "source": "synthetic"}
+{"text": "dubbelriktat", "label": "non-ad", "source": "synthetic"}
+{"text": "majvägen 3", "label": "non-ad", "source": "synthetic"}
+{"text": "begränsad upplaga", "label": "ad", "source": "synthetic"}
+{"text": "linje 31", "label": "non-ad", "source": "synthetic"}
+{"text": "Göteborgs Stad stanna för gående", "label": "socially beneficial", "source": "synthetic"}
+{"text": "7-eleven", "label": "ad", "source": "real"}
+{"text": "goran kajfes: subtropic arkestra", "label": "ad", "source": "real"}
+{"text": "Wieselgrensplatsen", "label": "non-ad", "source": "synthetic"}
+{"text": "biljettköp framme hos föraren ändras", "label": "non-ad", "source": "real"}
+{"text": "västra kajen 21", "label": "non-ad", "source": "synthetic"}
+{"text": "Vaksalagatan 8", "label": "non-ad", "source": "synthetic"}
+{"text": "ska du flytta för att arbeta inom eu? Dina rättigheter förblir skyddade", "label": "socially beneficial", "source": "real"}
+{"text": "Webhallen gaming-datorer", "label": "ad", "source": "synthetic"}
+{"text": "spår 5", "label": "non-ad", "source": "synthetic"}
+{"text": "VOI elsparkcykel ladda ner appen", "label": "ad", "source": "synthetic"}
+{"text": "Mäster Samuelsgatan 70", "label": "non-ad", "source": "synthetic"}
+{"text": "20:-/st", "label": "ad", "source": "real"}
+{"text": "vegansk meny nyhet", "label": "ad", "source": "synthetic"}
+{"text": "men lätt att sälja bilen på blocket", "label": "ad", "source": "real"}
+{"text": "lekande barn", "label": "non-ad", "source": "synthetic"}
+{"text": "spara till pensionen", "label": "ad", "source": "synthetic"}
+{"text": "stadsmissionen ingen ska behöva sova ute", "label": "socially beneficial", "source": "synthetic"}
+{"text": "sannegårdsstigen", "label": "non-ad", "source": "synthetic"}
+{"text": "Netflix nya serien strömmar nu", "label": "ad", "source": "synthetic"}
+{"text": "crazy days! Its crazy low!", "label": "ad", "source": "real"}
+{"text": "Spårvagn linje 7", "label": "non-ad", "source": "synthetic"}
+{"text": "mer sidor för mindre sedlar!", "label": "ad", "source": "real"}
+{"text": "Klarna tillgängligt här", "label": "ad", "source": "real"}
+{"text": "Trafikverket använd reflex i vinter", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Ruddalen södra", "label": "non-ad", "source": "synthetic"}
+{"text": "sporthall", "label": "non-ad", "source": "synthetic"}
+{"text": "Jobba hos göteborgs stad i sommar", "label": "socially beneficial", "source": "real"}
+{"text": "booli! Räcker", "label": "ad", "source": "real"}
+{"text": "Studieförbundet träffa nya grannar", "label": "socially beneficial", "source": "synthetic"}
+{"text": "spara 30% på färgserien lady", "label": "ad", "source": "real"}
+{"text": "ditt barn förtjänar rent vatten", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Arla ekologisk mjölk", "label": "ad", "source": "synthetic"}
+{"text": "fiskeförbudszon", "label": "non-ad", "source": "synthetic"}
+{"text": "10:-/st", "label": "ad", "source": "real"}
+{"text": "Kastanjegatan", "label": "non-ad", "source": "synthetic"}
+{"text": "Sandarna centrum", "label": "non-ad", "source": "synthetic"}
+{"text": "sakta farthinder", "label": "non-ad", "source": "synthetic"}
+{"text": "BK3", "label": "non-ad", "source": "real"}
+{"text": "medborgarskolan kurser för alla", "label": "socially beneficial", "source": "synthetic"}
+{"text": "hamnsplatsen 1", "label": "non-ad", "source": "synthetic"}
+{"text": "Hållplats Björkekärr", "label": "non-ad", "source": "synthetic"}
+{"text": "änggårdsallén", "label": "non-ad", "source": "synthetic"}
+{"text": "jorden behöver dig - klimatmarsch 20 sept", "label": "socially beneficial", "source": "synthetic"}
+{"text": "gratis SFI - lär dig svenska", "label": "socially beneficial", "source": "synthetic"}
+{"text": "H&M nya kollektionen ute nu", "label": "ad", "source": "synthetic"}
+{"text": "Farsta strand", "label": "non-ad", "source": "synthetic"}
+{"text": "1177 ge blod rädda liv", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Amnesty kämpar för mänskliga rättigheter", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Tegnérlunden", "label": "non-ad", "source": "synthetic"}
+{"text": "färjevägen 17", "label": "non-ad", "source": "synthetic"}
+{"text": "västra kajen 7", "label": "non-ad", "source": "synthetic"}
+{"text": "lärkkajen 1", "label": "non-ad", "source": "synthetic"}
+{"text": "biljettautomat", "label": "non-ad", "source": "synthetic"}
+{"text": "granallén 3", "label": "non-ad", "source": "synthetic"}
+{"text": "Länsförsäkringar Bank kort med bonuspoäng", "label": "ad", "source": "synthetic"}
+{"text": "Norrtullsgatan", "label": "non-ad", "source": "synthetic"}
+{"text": "fönsterputs boka online", "label": "ad", "source": "synthetic"}
+{"text": "Granngården allt för djur och trädgård", "label": "ad", "source": "synthetic"}
+{"text": "Länsstyrelsen vattenavstängning på onsdag", "label": "socially beneficial", "source": "synthetic"}
+{"text": "fler träd rotar sig i centrala Göteborg!", "label": "socially beneficial", "source": "real"}
+{"text": "rabatter på restauranger, skönhet och hälsa i göteborg!", "label": "ad", "source": "real"}
+{"text": "LG", "label": "ad", "source": "synthetic"}
+{"text": "Energimyndigheten matavfall blir biogas", "label": "socially beneficial", "source": "synthetic"}
+{"text": "lundbyplatsen 3", "label": "non-ad", "source": "synthetic"}
+{"text": "låga priser varje dag", "label": "ad", "source": "real"}
+{"text": "följ oss på Instagram", "label": "ad", "source": "synthetic"}
+{"text": "sjukhus huvudentré", "label": "non-ad", "source": "synthetic"}
+{"text": "Arbeta som sjuksköterska hos oss", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Mer plats att leka När små lösningar ger mer", "label": "socially beneficial", "source": "real"}
+{"text": "Swedbank", "label": "ad", "source": "synthetic"}
 {"text": "björkallén 8", "label": "non-ad", "source": "synthetic"}
+{"text": "Willys hemkörning från 39 kr", "label": "ad", "source": "synthetic"}
+{"text": "we brought underwear expertise to the beach", "label": "ad", "source": "real"}
+{"text": "Raw Comedy Club konsert på fredag", "label": "ad", "source": "synthetic"}
+{"text": "kålltorpsgatan 12", "label": "non-ad", "source": "synthetic"}
+{"text": "maxvikt 3,5 ton", "label": "non-ad", "source": "synthetic"}
+{"text": "välkommen till nya oddset. Större utbud, större upplevelse", "label": "ad", "source": "real"}
+{"text": "13 härlanda", "label": "non-ad", "source": "synthetic"}
+{"text": "beach friendly comfort since 1954", "label": "ad", "source": "real"}
+{"text": "anslutning vattenförsörjning trycksatt stigarledning maxtryck 7 bar", "label": "non-ad", "source": "real"}
+{"text": "risk för snöras, istappar", "label": "non-ad", "source": "real"}
+{"text": "ersättningsbuss", "label": "non-ad", "source": "synthetic"}
+{"text": "Scalateatern standup ikväll", "label": "ad", "source": "synthetic"}
+{"text": "surfplatta på kampanj", "label": "ad", "source": "synthetic"}
+{"text": "Brothers kostym från 2999:-", "label": "ad", "source": "synthetic"}
+{"text": "Odengatan 73", "label": "non-ad", "source": "synthetic"}
+{"text": "akademibokhandeln bokrea!", "label": "ad", "source": "synthetic"}
+{"text": "pensionsmyndigheten planera din pension", "label": "socially beneficial", "source": "synthetic"}
+{"text": "fler händer behövs i vården", "label": "socially beneficial", "source": "synthetic"}
+{"text": "take away meny", "label": "ad", "source": "synthetic"}
+{"text": "färjegatan 24", "label": "non-ad", "source": "synthetic"}
+{"text": "Så reser du i ABC", "label": "non-ad", "source": "real"}
+{"text": "regionen söker barnmorskor", "label": "socially beneficial", "source": "synthetic"}
+{"text": "bergsjön", "label": "non-ad", "source": "real"}
+{"text": "spår 2", "label": "non-ad", "source": "synthetic"}
+{"text": "solstigen 24", "label": "non-ad", "source": "synthetic"}
+{"text": "Kjell & Company dammsugare halva priset", "label": "ad", "source": "synthetic"}
+{"text": "sörgårdskajen 1", "label": "non-ad", "source": "synthetic"}
+{"text": "Vi söker förskolelärare i göteborg", "label": "socially beneficial", "source": "real"}
+{"text": "munkebäcksplatsen 8", "label": "non-ad", "source": "synthetic"}
+{"text": "konditori 3 bullar för 50:-", "label": "ad", "source": "synthetic"}
+{"text": "Volt stationer", "label": "ad", "source": "synthetic"}
+{"text": "linje 177 mot domkyrkan", "label": "non-ad", "source": "synthetic"}
+{"text": "akuten ingång", "label": "non-ad", "source": "synthetic"}
+{"text": "pensionärsträff på medborgarkontoret", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Rösta i EU-valet 9 juni", "label": "socially beneficial", "source": "synthetic"}
+{"text": "cykling förbjuden", "label": "non-ad", "source": "synthetic"}
+{"text": "linje 753 mot flatås", "label": "non-ad", "source": "synthetic"}
+{"text": "rökning förbjuden", "label": "non-ad", "source": "real"}
+{"text": "fri höjd 2,1m", "label": "non-ad", "source": "synthetic"}
+{"text": "Nästa hållplats: Brunnsparken", "label": "non-ad", "source": "synthetic"}
+{"text": "handla online hämta i butik", "label": "ad", "source": "synthetic"}
+{"text": "Biblioteket ny i sverige information", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Spårvagnstrafik", "label": "non-ad", "source": "real"}
+{"text": "linnévägen 31", "label": "non-ad", "source": "synthetic"}
+{"text": "se dig för vid spåret", "label": "socially beneficial", "source": "synthetic"}
+{"text": "majallén 8", "label": "non-ad", "source": "synthetic"}
+{"text": "kajbacken 31", "label": "non-ad", "source": "synthetic"}
+{"text": "linje 753 mot kvillebäcken", "label": "non-ad", "source": "synthetic"}
+{"text": "läge M", "label": "non-ad", "source": "synthetic"}
+{"text": "Exercisgatan 7", "label": "non-ad", "source": "synthetic"}
+{"text": "you dream it. We craft it.", "label": "ad", "source": "real"}
+{"text": "nödläge ring 112", "label": "non-ad", "source": "synthetic"}
+{"text": "Slottsparken", "label": "non-ad", "source": "synthetic"}
+{"text": "Jensens Bøfhus sushi 10 bitar 109:-", "label": "ad", "source": "synthetic"}
+{"text": "västra stigen 14", "label": "non-ad", "source": "synthetic"}
+{"text": "Järntorget", "label": "non-ad", "source": "real"}
+{"text": "erik dahbergsgatan", "label": "non-ad", "source": "real"}
+{"text": "stöd till brottsoffer ring 116 006", "label": "socially beneficial", "source": "synthetic"}
+{"text": "fjällbacken", "label": "non-ad", "source": "synthetic"}
+{"text": "Handelsbanken spara till pensionen", "label": "ad", "source": "synthetic"}
+{"text": "familjefavoriter till kampanjpris", "label": "ad", "source": "synthetic"}
+{"text": "Hamngatan 15", "label": "non-ad", "source": "synthetic"}
+{"text": "MPR-vaccin skyddar ditt barn", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Lyko", "label": "ad", "source": "real"}
+{"text": "nordic wellness", "label": "ad", "source": "real"}
+{"text": "Lindex", "label": "ad", "source": "synthetic"}
+{"text": "Bastard Burgers varmkorv 25:-", "label": "ad", "source": "synthetic"}
+{"text": "Power byt in din gamla mobil", "label": "ad", "source": "synthetic"}
+{"text": "boka gratis hälsoundersökning", "label": "socially beneficial", "source": "synthetic"}
+{"text": "laga dina grejer här.", "label": "ad", "source": "real"}
+{"text": "letsdeal.se", "label": "ad", "source": "real"}
+{"text": "ICA nära alltid nära dig", "label": "ad", "source": "synthetic"}
+{"text": "TUI hotellnatt från 699:-", "label": "ad", "source": "synthetic"}
+{"text": "skogsstigen 3", "label": "non-ad", "source": "synthetic"}
+{"text": "Göteborgs Stad tänk på oskyddade trafikanter", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Cubus rea upp till 50%", "label": "ad", "source": "synthetic"}
+{"text": "grekland. Just nu från 3998 kr", "label": "ad", "source": "real"}
+{"text": "753 heden", "label": "non-ad", "source": "real"}
+{"text": "stenplatsen 8", "label": "non-ad", "source": "synthetic"}
+{"text": "mpab 031-87 45 79", "label": "non-ad", "source": "real"}
+{"text": "krokodiltårar hjälper lite if… hjälper mycket", "label": "ad", "source": "real"}
+{"text": "besöks-p", "label": "non-ad", "source": "real"}
+{"text": "Polisen se dig för vid spåret", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Folkhälsomyndigheten ge blod rädda liv", "label": "socially beneficial", "source": "synthetic"}
+{"text": "kjell & company kablar tillbehör", "label": "ad", "source": "synthetic"}
+{"text": "fiskolja som inte smakar fisk", "label": "ad", "source": "real"}
+{"text": "taxi-plats", "label": "non-ad", "source": "real"}
+{"text": "Avis weekend-erbjudande", "label": "ad", "source": "synthetic"}
+{"text": "Elgiganten högtalare med extra bas", "label": "ad", "source": "synthetic"}
+{"text": "LG smartklocka med rabatt", "label": "ad", "source": "synthetic"}
+{"text": "Handelsbanken öppna sparkonto idag", "label": "ad", "source": "synthetic"}
+{"text": "förtidsröstning börjar idag", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Toltorpsdalen", "label": "non-ad", "source": "synthetic"}
+{"text": "salladsbar 89 kr", "label": "ad", "source": "synthetic"}
+{"text": "sök sommarjobb och slå på ditt work mode.", "label": "socially beneficial", "source": "real"}
+{"text": "seniorlunch på träffpunkten tisdag 12:00", "label": "socially beneficial", "source": "synthetic"}
+{"text": "39:-/st", "label": "ad", "source": "synthetic"}
+{"text": "ekplatsen 12", "label": "non-ad", "source": "synthetic"}
+{"text": "vasagatan 8", "label": "non-ad", "source": "synthetic"}
+{"text": "TUI solresor från 2995:-", "label": "ad", "source": "synthetic"}
+{"text": "Örebro södra", "label": "non-ad", "source": "synthetic"}
+{"text": "showstart 19.30", "label": "ad", "source": "synthetic"}
+{"text": "det e lunch!", "label": "ad", "source": "real"}
+{"text": "Valmyndigheten alla röster är viktiga", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Folksam säkra bilen smartare", "label": "ad", "source": "synthetic"}
+{"text": "krokslättsbacken 42", "label": "non-ad", "source": "synthetic"}
+{"text": "vaccin direkt sveriges ledande vaccinatör", "label": "socially beneficial", "source": "real"}
+{"text": "Blackeberg", "label": "non-ad", "source": "synthetic"}
+{"text": "Zoégas kaffe 500g 59:-", "label": "ad", "source": "synthetic"}
+{"text": "64 högsbohöjd", "label": "non-ad", "source": "real"}
+{"text": "krokslättsgränd 1", "label": "non-ad", "source": "synthetic"}
+{"text": "lisebergslinjen", "label": "non-ad", "source": "real"}
+{"text": "brostigen 12", "label": "non-ad", "source": "synthetic"}
+{"text": "Stora Essingen", "label": "non-ad", "source": "synthetic"}
+{"text": "Toyota Hybrid boka provkörning", "label": "ad", "source": "synthetic"}
+{"text": "Apple hemleverans på köpet", "label": "ad", "source": "synthetic"}
+{"text": "Cancerfonden gå på cellprov i tid", "label": "socially beneficial", "source": "synthetic"}
+{"text": "läs om hur staden utvecklas steg för steg", "label": "socially beneficial", "source": "real"}
+{"text": "festivalpass säljs nu", "label": "ad", "source": "synthetic"}
+{"text": "träning nära dig", "label": "ad", "source": "synthetic"}
+{"text": "naturreservat", "label": "non-ad", "source": "synthetic"}
+{"text": "myrgränd 1", "label": "non-ad", "source": "synthetic"}
+{"text": "majbacken", "label": "non-ad", "source": "synthetic"}
+{"text": "Mölndals stad rösta i eu-valet", "label": "socially beneficial", "source": "synthetic"}
+{"text": "0-35m", "label": "non-ad", "source": "real"}
+{"text": "Kristineberg", "label": "non-ad", "source": "synthetic"}
+{"text": "Telefonplan", "label": "non-ad", "source": "synthetic"}
+{"text": "akutmottagning", "label": "non-ad", "source": "synthetic"}
+{"text": "miljörum", "label": "non-ad", "source": "real"}
+{"text": "Göteborgs Stad översvämningsrisk i området", "label": "socially beneficial", "source": "synthetic"}
+{"text": "skogsplatsen 31", "label": "non-ad", "source": "synthetic"}
+{"text": "mer plats att stanna upp När små lösningar blir stora", "label": "socially beneficial", "source": "real"}
+{"text": "datumparkering jämna dagar", "label": "non-ad", "source": "synthetic"}
+{"text": "plocka skräp - håll din stad ren", "label": "socially beneficial", "source": "synthetic"}
+{"text": "dra", "label": "non-ad", "source": "synthetic"}
+{"text": "Friskis&Svettis prova på gratis", "label": "ad", "source": "synthetic"}
+{"text": "linje 1 mot Östra sjukhuset", "label": "non-ad", "source": "synthetic"}
+{"text": "Biblioteket träffa nya grannar", "label": "socially beneficial", "source": "synthetic"}
+{"text": "förhandsrösta på biblioteket", "label": "socially beneficial", "source": "synthetic"}
+{"text": "musikhjälpen ingen ska dö av hunger", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Norrköping resecentrum", "label": "non-ad", "source": "synthetic"}
+{"text": "willy:s hemma alla dagar till 23", "label": "ad", "source": "real"}
+{"text": "tillsammans mot cancer", "label": "socially beneficial", "source": "real"}
+{"text": "skolområde", "label": "non-ad", "source": "synthetic"}
+{"text": "praktikplats i regionen sök nu", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Samsung fri frakt över 499", "label": "ad", "source": "synthetic"}
+{"text": "smile2impress.com", "label": "ad", "source": "real"}
+{"text": "prästkajen 24", "label": "non-ad", "source": "synthetic"}
+{"text": "ålandsgatan", "label": "non-ad", "source": "real"}
+{"text": "om en ska äta alla ska äta", "label": "ad", "source": "real"}
+{"text": "Butikerna på lilla klädpressaregatan har öppet precis som vanligt. Välkommen!", "label": "socially beneficial", "source": "real"}
+{"text": "Subway burgare meny 99:-", "label": "ad", "source": "synthetic"}
+{"text": "omledning av trafik", "label": "non-ad", "source": "synthetic"}
+{"text": "reserverad för utryckningsfordon", "label": "non-ad", "source": "synthetic"}
+{"text": "bergvägen 6", "label": "non-ad", "source": "synthetic"}
+{"text": "Lackarebäck", "label": "non-ad", "source": "synthetic"}
+{"text": "yrkesutbildning som leder till jobb", "label": "socially beneficial", "source": "real"}
+{"text": "Dalagatan 28", "label": "non-ad", "source": "synthetic"}
+{"text": "camping förbjuden", "label": "non-ad", "source": "synthetic"}
+{"text": "Biblioteket gratis läxhjälp på torsdag", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Handelsbanken betala smartare med kort", "label": "ad", "source": "synthetic"}
+{"text": "Trollhättan station", "label": "non-ad", "source": "synthetic"}
+{"text": "mölndals parkerings ab", "label": "non-ad", "source": "real"}
+{"text": "Mölndals stad jobba natt i omsorgen", "label": "socially beneficial", "source": "synthetic"}
+{"text": "visa hänsyn i trafiken", "label": "socially beneficial", "source": "synthetic"}
+{"text": "dalstigen 12", "label": "non-ad", "source": "synthetic"}
+{"text": "det kan kännas tungt att ersätta sportbilen med en \"praktisk\" familjebil", "label": "ad", "source": "real"}
+{"text": "maxbredd 2,5 m", "label": "non-ad", "source": "synthetic"}
+{"text": "linje 72", "label": "non-ad", "source": "synthetic"}
+{"text": "Dina Försäkringar trygga hemmet från 99:-", "label": "ad", "source": "synthetic"}
+{"text": "78 sanatoriegatan", "label": "non-ad", "source": "synthetic"}
+{"text": "Hållplats Annedal", "label": "non-ad", "source": "synthetic"}
+{"text": "Avanza - börja investera", "label": "ad", "source": "synthetic"}
+{"text": "Ticket boka drömresan", "label": "ad", "source": "synthetic"}
+{"text": "laga din telefon eller surfplatta", "label": "ad", "source": "real"}
+{"text": "Göteborgs Stad lär dig mer om källkritik", "label": "socially beneficial", "source": "synthetic"}
+{"text": "Kalmar central", "label": "non-ad", "source": "synthetic"}
+{"text": "grangränd 6", "label": "non-ad", "source": "synthetic"}
+{"text": "SEB öppna sparkonto idag", "label": "ad", "source": "synthetic"}
+{"text": "Wavrinskys plats östra", "label": "non-ad", "source": "synthetic"}
+{"text": "gibraltar-gatan 14-22", "label": "non-ad", "source": "real"}
+{"text": "obehöriga äger ej tillträde", "label": "non-ad", "source": "synthetic"}
+{"text": "vasaplatsen 42", "label": "non-ad", "source": "synthetic"}
+{"text": "400m", "label": "non-ad", "source": "real"}
+{"text": "Sveavägen", "label": "non-ad", "source": "synthetic"}
+{"text": "Kungssten", "label": "non-ad", "source": "synthetic"}
+{"text": "sprängningsarbete pågår", "label": "non-ad", "source": "synthetic"}
+{"text": "Viaplay sport halvår 499:-", "label": "ad", "source": "synthetic"}
+{"text": "Swedbank få bättre ränta", "label": "ad", "source": "synthetic"}
+{"text": "Gilla läget!", "label": "ad", "source": "real"}
