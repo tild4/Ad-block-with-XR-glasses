@@ -27,6 +27,10 @@ public class BlockVisualization : MonoBehaviour
     [SerializeField]
     private Transform labelTransform;
 
+    [Header("Materials")]
+    [SerializeField] private Material defaultMaterial;
+    [SerializeField] private Material imageMaterial;
+
     [Header("Pop-in Animation")]
     [SerializeField]
     private float popInDuration = 0.15f;
@@ -35,6 +39,9 @@ public class BlockVisualization : MonoBehaviour
     [SerializeField]
     private float positionSmoothSpeed = 4f;
     private float scaleSmooothSpeed = 3f;
+
+    [Header("Image Override")]
+    [SerializeField] private Renderer quadRenderer;
 
     private Transform _cameraTransform;
     private Vector3 _targetScale;
@@ -102,6 +109,7 @@ public class BlockVisualization : MonoBehaviour
         {
             idText.text = $"ID: {id}";
         }
+        ApplyImageOverride();
     }
 
     public void UpdateTargetScale(Vector3 newScale)
@@ -115,6 +123,7 @@ public class BlockVisualization : MonoBehaviour
 
     public void SetTargetTransform(Vector3 position, Quaternion rotation, Vector3 scale)
     {
+        Debug.Log($"[BlockVis] SetTargetTransform called, scale: {scale}, initialized: {_initialized}");
         if (!_initialized)
         {
             transform.position = position;
@@ -124,5 +133,30 @@ public class BlockVisualization : MonoBehaviour
         }
         _targetPosition = position;
         _targetScale = scale;
+    }
+
+    public void ApplyImageOverride()
+    {
+        if (quadRenderer == null)
+        {
+            Debug.LogWarning("[BlockVis] quadRenderer is null");
+            return;
+        }
+
+        if (BlockerImageSettings.SelectedSprite != null && imageMaterial != null)
+        {
+
+            Material mat = new Material(imageMaterial);
+            mat.SetTexture("_BaseMap", BlockerImageSettings.SelectedSprite.texture);
+            quadRenderer.material = mat;
+            Debug.Log($"[BlockVis] Texture null? {mat.mainTexture == null}, mat shader: {mat.shader.name}");
+
+        }
+        else if (defaultMaterial != null)
+        {
+            quadRenderer.material = defaultMaterial;
+            Debug.Log($"[BlockVis] No image override, using default material");
+        }
+
     }
 }

@@ -288,7 +288,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BlockVisualization
   idText: {fileID: 6072752453429996002}
   labelTransform: {fileID: 5521670562766676301}
+  defaultMaterial: {fileID: 2100000, guid: d7464a011bd330c479a3f5a8fe3c4394, type: 2}
+  imageMaterial: {fileID: 2100000, guid: 60d1041a2ee66904099013ae91b27c9a, type: 2}
   popInDuration: 0.15
+  positionSmoothSpeed: 4
+  quadRenderer: {fileID: 6633018006973229808}
 --- !u!1 &8281895715489650820
 GameObject:
   m_ObjectHideFlags: 0

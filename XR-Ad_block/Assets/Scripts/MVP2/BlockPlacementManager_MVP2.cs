@@ -448,4 +448,13 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
             RemoveBlock(id);
         }
     }
+
+    public void ClearAllBlocks()
+    {
+        var allIds = new List<int>(activeBlocks.Keys);
+        foreach (int id in allIds)
+        {
+            RemoveBlock(id);
+        }
+    }
 }
