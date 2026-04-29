@@ -1086,7 +1086,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DecisionManager
   textRecognitionInference: {fileID: 2015934784}
   nlpClassifier: {fileID: 2015934788}
-  useNLPClassifier: 1
 --- !u!114 &1318934551
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1801,6 +1800,8 @@ MonoBehaviour:
   viewCroppedImage: {fileID: 1756318393}
   textDetectionInference: {fileID: 2015934786}
   maskThreshold: 0.05
+  boxScoreThreshold: 0.6
+  unclipRatio: 1.5
   tensorTargetHeight: 48
   tensorTargetWidth: 320
   cropMaterial: {fileID: 2100000, guid: ac1ddba664915451b8b511e4a3544091, type: 2}
@@ -1845,8 +1846,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb9340e915d03414db1a9cedf87119ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NLPClassifier_MVP2
-  modelAsset: {fileID: 5022602860645237092, guid: 93d005b698a95459d8ffd9640e830f3b, type: 3}
-  vocabAsset: {fileID: 4900000, guid: 137fbc363851b48bfb1593e8f7d5b1e0, type: 3}
+  modelAsset: {fileID: 5022602860645237092, guid: ae70b3767250b4ac5b65c74d34269bf7, type: 3}
+  vocabAsset: {fileID: 4900000, guid: c4b89d000c46d42b68c0244f34eb6505, type: 3}
   maxLength: 64
 --- !u!1 &2017825786
 GameObject:
