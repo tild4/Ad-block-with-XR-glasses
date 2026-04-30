@@ -35,7 +35,7 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/Prototype2.unity
     guid: 97819c6257f8947ffaed6d84600b434a
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/MVP2/MVP2_viewCrop.unity
     guid: c73f6270337794400996c7b741db194d
   m_configObjects:
