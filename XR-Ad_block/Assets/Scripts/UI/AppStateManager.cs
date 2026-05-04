@@ -49,6 +49,9 @@ public class AppStateManager : MonoBehaviour
     [SerializeField]
     private HUDController hudController;
 
+    [Header("Controller")]
+    [SerializeField] private ControllerRay controllerRay;
+
     public static AppStateManager Instance { get; private set; }
     public AppState CurrentState { get; private set; } = AppState.StartScreen;
 
@@ -94,10 +97,33 @@ public class AppStateManager : MonoBehaviour
         startScreenUI.gameObject.SetActive(newState == AppState.StartScreen);
         confirmStopUI.gameObject.SetActive(newState == AppState.ConfirmStop);
 
+        // Ray visible in menus and confirm dialouge, hidden while running
+        if (controllerRay != null)
+        {
+            controllerRay.enabled = newState != AppState.Running;
+        }
+
         if (newState == AppState.Running)
         {
-            hudController.gameObject.SetActive(true);
-            StartCoroutine(hudController.ShowToast("Press B any time to stop blocking", 4f));
+            StartCoroutine(ShowRayDuringToast());
+        }
+    }
+
+    private IEnumerator ShowRayDuringToast()
+    {
+        // Show ray while toast is visible
+        if (controllerRay != null)
+        {
+            controllerRay.enabled = true;
+        }
+
+        hudController.gameObject.SetActive(true);
+        yield return StartCoroutine(hudController.ShowToast("Press B any time to stop blocking", 4f));
+
+        // Hide ray after toast completes
+        if (controllerRay != null)
+        {
+            controllerRay.enabled = false;
         }
     }
 
