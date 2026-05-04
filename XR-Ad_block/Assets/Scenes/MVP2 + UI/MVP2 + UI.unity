@@ -4289,7 +4289,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TrackingManager_MVP2
   yoloPostProcessor: {fileID: 540478702}
   decisionManager: {fileID: 1145407268}
-  textDetectionInference: {fileID: 0}
+  textDetectionInference: {fileID: 1145609324}
   timeToLive: 2
   iouThreshold: 0.5
   logAssociationMisses: 0
