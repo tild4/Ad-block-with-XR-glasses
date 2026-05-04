@@ -7891,8 +7891,8 @@ MonoBehaviour:
   decisionManager: {fileID: 1598762291}
   textDetectionInference: {fileID: 1646127924}
   instantYOLOThreshold: 0.75
-  timeToLive: 2
-  iouThreshold: 0.7
+  timeToLive: 10
+  iouThreshold: 0.5
   logAssociationMisses: 0
   maxTrackedObjects: 5
 --- !u!114 &1219656917
