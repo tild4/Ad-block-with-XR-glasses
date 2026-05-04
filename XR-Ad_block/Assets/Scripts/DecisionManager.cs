@@ -17,6 +17,9 @@ public class DecisionManager : MonoBehaviour
     [SerializeField]
     private NLPClassifier_MVP2 nlpClassifier;
 
+    [SerializeField, Range(0f, 1f)]
+    private float nlpThreshold = 0.5f;
+
 
     // Event invoked when a decision is made for a tracked object: (obj, concatenatedText, shouldBlock)
     public event Action<TrackedObject, string, bool> onDecisionMade;
@@ -65,7 +68,7 @@ public class DecisionManager : MonoBehaviour
         float ocrConfidence, string text
     )
     {
-        bool shouldBlock = ocrConfidence < 0.5f;
+        bool shouldBlock = ocrConfidence < nlpThreshold;
         Debug.Log($"[Decision] Evaluating: '{text}' with P(non-ad+beneficial)={ocrConfidence:F2} → shouldBlock={shouldBlock}");
         return (shouldBlock, ocrConfidence);
     }
