@@ -8,8 +8,12 @@ from pathlib import Path
 from optimum.exporters.onnx import main_export
 
 NLP_DIR = Path(__file__).resolve().parent
-SAVED_MODEL_DIR = NLP_DIR / "saved_model"
-MODELS_DIR = NLP_DIR / "models"
+
+# "clean" → Model A, "augmented" → Model B
+MODE = "clean"
+
+SAVED_MODEL_DIR = NLP_DIR / "saved_model" / MODE
+MODELS_DIR = NLP_DIR / "models" / MODE
 
 # Unity Sentis docs recommend ONNX opset 15 for best compatibility.
 ONNX_OPSET = 15

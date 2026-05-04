@@ -1,24 +1,13 @@
 /*
     TrackedObject
 
-    PURPOSE:
-    A persistent data class that represents a unique object (ad) over its entire
-    lifecycle. It maintains identity and state across multiple video frames.
-
-    ARCHITECTURE:
-    - Identity: Stores the unique 'id' assigned by the TrackingManager.
-    - Persistence: Uses 'timeToLive' (TTL) to keep the object alive even if
-      detections are momentarily lost (grace period).
-    - State Management:
-        1. isAnalyzed: Tracks if the object has already been processed by OCR/AI.
-        2. text: Stores the recognized content of the ad.
-        3. shouldBlock: A boolean flag used by the PlacementManager to
-           decide if a 3D block should be rendered.
-
-    IMPORTANT:
-    This is a 'class' (reference type), allowing multiple managers to point
-    to the same object and update its state (e.g., OCR updating the text
-    while TrackingManager updates the position).
+    This class represents an object that is being tracked in the AR environment. It contains:
+    - id: A unique identifier for the tracked object.
+    - lastDetection: The most recent detection data for this object (YOLO bbox + confidence + frame pose/texture + optional ROI data for OCR).
+    - timeToLive: A timer that indicates how long the object should be kept in the tracking system without receiving new detections. This helps to remove objects that are no longer visible or relevant.
+    - isAnalyzed: A flag to indicate whether the object has been analyzed for text recognition or other processing.
+    - text: The recognized text associated with the object, if any.
+    - shouldBlock: A flag to indicate whether a blocking visual should be placed for this object.
 */
 
 using System;

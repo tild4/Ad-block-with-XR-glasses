@@ -1,18 +1,22 @@
+// Copyright (c). All rights reserved.
+//
+// This file contains code inspired by samples from Meta Platforms, Inc.
+// It is not a direct copy of Meta source; the implementation and
+// copyright belong to this project unless otherwise stated.
+//
 /*
     YOLOPostProcessor
 
-    PURPOSE:
-    Receives raw YOLO detections, removes overlapping boxes with NMS,
-    crops each surviving ROI, converts it to a tensor, and forwards the
-    batch to OCR text detection.
+    This script processes raw YOLO detections from SentisInferenceManager and prepares them for OCR text detection.
+    It performs the following steps:
+    1. Converts raw detections into a structured format (DetectionData).
+    2. Applies Non-Maximum Suppression (NMS) to filter overlapping detections.
+    3. Crops the detected regions from the original frame, preserving aspect ratio.
+    4. Converts the cropped regions into tensors suitable for OCR input.
+    5. Emits the processed detections with associated tensors for downstream OCR processing.
 
-    CURRENT FLOW:
-    SentisInferenceManager -> THIS -> TextDetectionInference
-
-    NOTE:
-    Emitted tensor is the cropped ROI of the ad
+    The script also includes debug functionality to preview cropped regions and adjust NMS thresholds.
 */
-
 using System;
 using System.Collections.Generic;
 using Unity.InferenceEngine;
@@ -25,20 +29,15 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
     [SerializeField]
     private SentisInferenceManager sentisInferenceManager;
 
-    /*
-    ============================== UI ==============================
-    [SerializeField] private ViewCroppedImage viewCroppedImage;
+    [SerializeField]
+    private ViewCroppedImage viewCroppedImage;
+
     private RenderTexture debugPreviewRT;
-    ===================================================================
-    */
 
     [SerializeField]
     private Material cropMaterial;
 
     [Header("Post-Processing Settings")]
-    [SerializeField, Range(0f, 1f)]
-    private float confidenceThreshold = 0.5f;
-
     [SerializeField, Range(0f, 1f)]
     private float iouThreshold = 0.4f;
 
@@ -49,20 +48,25 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
     [SerializeField]
     private int tensorTargetWidth = 640;
 
-    // List of processed detections
+    // List of processed detections ready for OCR, with cropped ROI tensors assigned
     private List<DetectionData> processedDetections = new List<DetectionData>();
 
-    // Reusable buffer to avoid per-frame allocations when building detection list
+    // Buffer list to avoid allocations when converting raw detections to DetectionData
     private List<DetectionData> detectionDataBuffer;
 
-    // Reused GPU resources for crop + tensor conversion.
+    // Reused GPU resources for tensor conversion.
+    // NOTE: Crop currently uses temporary RenderTextures; 'croppedROI' is legacy (kept for compatibility) and not used by the current crop path.
     private RenderTexture croppedROI;
     private RenderTexture convertRenderTexture;
     private CommandBuffer commandBuffer;
 
-    // Event sent to OCR text detection.
+    // Event sent to OCR text detection (invoked even when the list is empty).
     public event Action<List<DetectionData>> onProcessedDetections;
 
+    /*
+        Initialization:
+        - Create necessary RenderTextures and CommandBuffer.
+    */
     private void Awake()
     {
         if (sentisInferenceManager == null || cropMaterial == null)
@@ -92,8 +96,6 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
         processedDetections = new List<DetectionData>();
         detectionDataBuffer = new List<DetectionData>();
 
-        /*
-        ============================== UI ==============================
         debugPreviewRT = new RenderTexture(
             tensorTargetWidth,
             tensorTargetHeight,
@@ -102,10 +104,11 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
         );
 
         debugPreviewRT.Create();
-        ===================================================================
-        */
     }
 
+    /*
+        Subscribe to SentisInferenceManager's onDetectionsReady event to receive raw YOLO detections.
+    */
     private void OnEnable()
     {
         if (sentisInferenceManager != null)
@@ -114,6 +117,9 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
         }
     }
 
+    /*
+        Unsubscribe from events to prevent memory leaks.
+    */
     private void OnDisable()
     {
         if (sentisInferenceManager != null)
@@ -123,56 +129,56 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
     }
 
     /*
-        Handles one raw YOLO detection batch.
-
-        FLOW:
-        1. Convert raw detections into DetectionData.
-        2. Apply NMS.
-        3. Crop and tensorize each surviving ROI.
-        4. Emit the processed ROI tensor batch.
+        Main handler for raw detections from YOLO:
+        - Step 1: Convert raw detections to DetectionData list
+        - Step 2: Apply Non-Maximum Suppression (NMS)
+        - Step 3: Build processed detection batch with cropped ROI tensors
+        - Step 4: Emit processed detections for OCR text detection
     */
     private void HandleRawDetections(
         List<(Rect boundingBox, float confidence, FrameData frame)> rawDetections
     )
     {
         processedDetections.Clear();
-
+        // Early exit if no detections, but still invoke event to signal completion
         if (rawDetections == null || rawDetections.Count == 0)
         {
             onProcessedDetections?.Invoke(processedDetections);
             return;
         }
-
+        // Step 1: Convert raw detections to DetectionData list
         List<DetectionData> detectionDataList = BuildDetectionDataList(rawDetections);
+        // Step 2: Apply Non-Maximum Suppression (NMS)
         List<DetectionData> nmsResults = ApplyNMS(detectionDataList);
+        // Step 3: Build processed detection batch with cropped ROI tensors
         BuildProcessedDetectionBatch(nmsResults);
 
         Debug.Log(
             $"Post-processed {rawDetections.Count} raw detections → {processedDetections.Count} final detections"
         );
 
-        // Send a copy of the DetectionData list (with RoiTensor set)
+        // Step 4: Emit processed detections for OCR text detection
         var sendDetections = new List<DetectionData>(processedDetections);
         onProcessedDetections?.Invoke(sendDetections);
     }
 
+    /*
+        Converts raw YOLO detections into structured DetectionData
+    */
     private List<DetectionData> BuildDetectionDataList(
         List<(Rect boundingBox, float confidence, FrameData frame)> rawDetections
     )
     {
         detectionDataBuffer.Clear();
-
+        // Convert each raw detection into DetectionData
         foreach (var (bbox, conf, frame) in rawDetections)
         {
-            if (conf < confidenceThreshold)
-                continue;
             DetectionData data = new DetectionData
             {
                 bboxNormalized = bbox,
-                bboxMinMaxNormalized = new Vector4(bbox.xMin, bbox.yMin, bbox.xMax, bbox.yMax),
-                bboxPixels = ConvertToPixelCoordinates(bbox, frame.currentResolution),
                 confidence = conf,
                 frame = frame,
+                RoiContentRectNormalized = new Rect(0f, 0f, 1f, 1f),
             };
 
             detectionDataBuffer.Add(data);
@@ -188,7 +194,6 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
     3. Convert the cropped ROI to a tensor
     4. Add it to sending batch
     */
-
     private void BuildProcessedDetectionBatch(List<DetectionData> nmsResults)
     {
         Debug.Log("Number of items to be processed : " + nmsResults.Count);
@@ -207,31 +212,72 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
                 continue;
             }
 
-            if (!TextureCropper.CropBoundingBox(bbox, texture, croppedROI, cropMaterial))
+            // Crop at the ad's natural pixel resolution to preserve aspect ratio.
+            // Previously we cropped into the fixed 640×640 croppedROI, which
+            // stretched non-square ads and distorted the text (making it blurry
+            // and harder for OCR to recognize). Now we crop at native resolution
+            // first, then BlitWithAspectPad pads it into 640×640 with black bars.
+            int naturalW = Mathf.Max(1, Mathf.RoundToInt(bbox.width * texture.width));
+            int naturalH = Mathf.Max(1, Mathf.RoundToInt(bbox.height * texture.height));
+            RenderTexture naturalCrop = RenderTexture.GetTemporary(
+                naturalW,
+                naturalH,
+                0,
+                RenderTextureFormat.ARGB32
+            );
+
+            if (!TextureCropper.CropBoundingBoxTopLeft(bbox, texture, naturalCrop, cropMaterial))
             {
+                RenderTexture.ReleaseTemporary(naturalCrop);
                 continue;
             }
 
+            Graphics.Blit(naturalCrop, debugPreviewRT);
+            //viewCroppedImage?.Show(debugPreviewRT);
+            //viewCroppedImage?.SetDetectedWord(string.Empty);
+
+            // Save a persistent copy of the ROI crop for OCR.
+            // BlitWithAspectPad scales the
+            // natural-resolution crop to fit inside 640×640 while preserving
+            // aspect ratio, with black padding around the shorter dimension.
+            RenderTexture snapshot = new RenderTexture(
+                tensorTargetWidth,
+                tensorTargetHeight,
+                0,
+                RenderTextureFormat.ARGB32
+            );
+            snapshot.Create();
+            Rect contentRect = ConvertToTensor.BlitWithAspectPad(
+                naturalCrop,
+                snapshot,
+                commandBuffer
+            );
+            RenderTexture.ReleaseTemporary(naturalCrop);
+
             PipelineProfiler.set("TensorContext", "YOLOPost");
+            PipelineProfiler.begin("OCR Prep 1 BGR ToTensor");
             Tensor<float> roiTensor = ConvertToTensor.convert(
-                croppedROI,
+                snapshot,
                 convertRenderTexture,
                 tensorTargetHeight,
                 tensorTargetWidth,
-                commandBuffer
+                commandBuffer,
+                ConvertToTensor.BgrChannelTransform
             );
+            PipelineProfiler.end("OCR Prep 1 BGR ToTensor");
 
             if (roiTensor != null)
             {
+                result.bboxNormalized = bbox;
                 result.RoiTensor = roiTensor;
-                // update min/max normalized in case ClampNormalizedRect adjusted values
-                result.bboxMinMaxNormalized = new Vector4(
-                    bbox.xMin,
-                    bbox.yMin,
-                    bbox.xMax,
-                    bbox.yMax
-                );
+                result.RoiSnapshot = snapshot;
+                result.RoiContentRectNormalized = contentRect;
                 processedDetections.Add(result);
+            }
+            else
+            {
+                snapshot.Release();
+                Destroy(snapshot);
             }
         }
     }
@@ -244,18 +290,21 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
     */
     private List<DetectionData> ApplyNMS(List<DetectionData> detections)
     {
+        // Early exit if no detections
         if (detections.Count == 0)
         {
             return new List<DetectionData>();
         }
-
+        // Sort detections by confidence in descending order
         detections.Sort((a, b) => b.confidence.CompareTo(a.confidence));
 
         List<DetectionData> results = new List<DetectionData>();
         bool[] suppressed = new bool[detections.Count];
 
+        // Iterate through detections, applying NMS
         for (int i = 0; i < detections.Count; i++)
         {
+            // Skip if this detection has already been suppressed
             if (suppressed[i])
             {
                 continue;
@@ -263,18 +312,20 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
 
             results.Add(detections[i]);
 
+            // Compare this detection with the remaining ones
             for (int j = i + 1; j < detections.Count; j++)
             {
+                // Skip if the j-th detection has already been suppressed
                 if (suppressed[j])
                 {
                     continue;
                 }
-
+                // Calculate IOU between the current detection and the j-th detection
                 float iou = CalculateIOU(
                     detections[i].bboxNormalized,
                     detections[j].bboxNormalized
                 );
-
+                // Suppress the j-th detection if IOU exceeds the threshold
                 if (iou > iouThreshold)
                 {
                     suppressed[j] = true;
@@ -286,6 +337,9 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
         return results;
     }
 
+    /*
+        Calculate Intersection over Union (IOU) between two rectangles.
+    */
     private float CalculateIOU(Rect a, Rect b)
     {
         float xOverlap = Mathf.Max(0, Mathf.Min(a.xMax, b.xMax) - Mathf.Max(a.xMin, b.xMin));
@@ -296,16 +350,9 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
         return unionArea == 0 ? 0f : intersectionArea / unionArea;
     }
 
-    private Rect ConvertToPixelCoordinates(Rect normalized, Vector2Int resolution)
-    {
-        return new Rect(
-            normalized.x * resolution.x,
-            normalized.y * resolution.y,
-            normalized.width * resolution.x,
-            normalized.height * resolution.y
-        );
-    }
-
+    /*
+        Clamp normalized rectangle coordinates to ensure they are within [0, 1] range and have valid dimensions.
+    */
     private Rect ClampNormalizedRect(Rect rect)
     {
         float xMin = Mathf.Clamp01(rect.xMin);
@@ -324,16 +371,25 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
         return new Rect(xMin, yMin, width, height);
     }
 
+    /*
+        Returns the currently configured IOU threshold used by NMS.
+    */
     public float GetIouThreshold()
     {
         return iouThreshold;
     }
 
+    /*
+        Sets the IOU threshold used by NMS (clamped to [0,1]).
+    */
     public void SetIouThreshold(float value)
     {
         iouThreshold = Mathf.Clamp01(value);
     }
 
+    /*
+        Clean up GPU resources to prevent memory leaks.
+    */
     private void OnDestroy()
     {
         if (processedDetections != null)
@@ -341,6 +397,11 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
             foreach (var item in processedDetections)
             {
                 item.RoiTensor?.Dispose();
+                if (item.RoiSnapshot != null)
+                {
+                    item.RoiSnapshot.Release();
+                    Destroy(item.RoiSnapshot);
+                }
             }
 
             processedDetections.Clear();
@@ -366,15 +427,11 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
             croppedROI = null;
         }
 
-        /*
-        ============================== UI ==============================
         if (debugPreviewRT != null)
         {
             debugPreviewRT.Release();
             Destroy(debugPreviewRT);
             debugPreviewRT = null;
         }
-        ===================================================================
-        */
     }
 }

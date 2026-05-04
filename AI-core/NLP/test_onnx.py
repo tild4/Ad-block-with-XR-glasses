@@ -14,6 +14,7 @@ from pathlib import Path
 import numpy as np
 import onnxruntime as ort
 import torch
+from label_schema import LABELS
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 NLP_DIR = Path(__file__).resolve().parent
@@ -21,15 +22,12 @@ SAVED_MODEL_DIR = NLP_DIR / "saved_model"
 MODELS_DIR = NLP_DIR / "models"
 ONNX_MODEL_PATH = MODELS_DIR / "model.onnx"
 
-LABELS = ["inte reklam", "reklam", "skadlig", "samhällsnyttig"]
-
 # A small set of test sentences — one per class plus a noisy OCR-style one.
 TEST_SENTENCES = [
-    "Imorgon öppnar biblioteket klockan nio",            # inte reklam
-    "Halva priset på alla laptops denna vecka!",         # reklam
-    "DITt K0nt0 spÄrrAs iN0m 24 timmR klicka här",       # skadlig
-    "Vaccinationen mot influensa är gratis i höst",      # samhällsnyttig
-    "B0ka b0rd nu h0s Café S01 till halva priset",       # noisy / blandad
+    "Imorgon öppnar biblioteket klockan nio",            # non-ad
+    "Vaccinationen mot influensa är gratis i höst",      # socially beneficial
+    "Halva priset på alla laptops denna vecka!",         # ad
+    "B0ka b0rd nu h0s Café S01 till halva priset",       # noisy / mixed
 ]
 
 

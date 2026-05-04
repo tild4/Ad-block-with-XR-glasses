@@ -33,9 +33,9 @@ public class NLPClassifier_MVP2 : MonoBehaviour
     private WordPieceTokenizer tokenizer;
     private bool isProcessing = false;
 
-    // Must match train_model.py LABELS order
+    // Must match label_schema.py LABELS order
     private static readonly string[] Labels =
-        { "inte reklam", "reklam", "skadlig", "samhällsnyttig" };
+        { "non-ad", "socially beneficial", "ad" };
 
     private void Awake()
     {
