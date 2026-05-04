@@ -10,7 +10,7 @@
     POLICY:
     - Starts one OCR text-detection inference at a time.
     - Always emits a completion event, even on early exits or failures.
-    - Owns the ROI snapshot after detaching it from the tracked object's latest detection.
+    - Owns the ROI tensor/snapshot after detaching them from the tracked object's latest detection.
 
     NOTE:
     Emitted tensor is a "heat map" of where text bounds might be relative to the cropped ad
@@ -18,7 +18,6 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using Unity.InferenceEngine;
 using UnityEngine;
 
@@ -49,8 +48,29 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
             return;
         }
 
-        var ocrModel = ModelLoader.Load(modelAsset);
+        var ocrModel = BuildPPOCRPreprocessedModel(ModelLoader.Load(modelAsset));
         worker = new Worker(ocrModel, BackendType.CPU);
+    }
+
+    private Model BuildPPOCRPreprocessedModel(Model sourceModel)
+    {
+        var graph = new FunctionalGraph();
+        FunctionalTensor bgrInput = graph.AddInput(sourceModel, 0);
+
+        FunctionalTensor mean = Functional.Constant(
+            new TensorShape(1, 3, 1, 1),
+            new[] { 0.485f, 0.456f, 0.406f }
+        );
+        FunctionalTensor std = Functional.Constant(
+            new TensorShape(1, 3, 1, 1),
+            new[] { 0.229f, 0.224f, 0.225f }
+        );
+
+        FunctionalTensor normalizedInput = (bgrInput - mean) / std;
+        FunctionalTensor[] outputs = Functional.Forward(sourceModel, normalizedInput);
+        graph.AddOutputs(outputs);
+
+        return graph.Compile();
     }
 
     private void OnEnable()
@@ -154,6 +174,9 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
             roiContentRect = advertisement.lastDetection.RoiContentRectNormalized;
             roiSnapshot = advertisement.lastDetection.RoiSnapshot;
             yoloBounds = advertisement.lastDetection.bboxNormalized;
+            // Transfer tensor/snapshot ownership to this coroutine so tracking can
+            // safely update the object while OCR is running.
+            advertisement.lastDetection.RoiTensor = null;
             // Setting RoiSnapshot to null transfers ownership to the OCR pipeline.
             advertisement.lastDetection.RoiSnapshot = null;
         }
@@ -166,6 +189,7 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
 
         if (inputTensor == null || worker == null)
         {
+            inputTensor?.Dispose();
             if (roiSnapshot != null)
             {
                 roiSnapshot.Release();
@@ -179,27 +203,37 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
             yield break;
         }
 
-        Tensor<float> normalizedInput = null;
         Tensor<float> outputTensor = null;
         bool inferenceSucceeded = false;
 
-        // PP-OCR expects BGR channel order + ImageNet normalization.
-        // Unity's tensor conversion produces RGB values in [0,1].
-        // FIX: Wrapped in try/catch — if the input tensor was disposed by
-        // TrackingManager between the null-check above and this point
-        // (race with TTL expiry), ReadbackAndClone inside NormalizeForPPOCR
-        // would throw. We catch it and signal completion to keep the pipeline alive.
+        // The hot-path PPOCR preprocessing is now split between:
+        // - ConvertToTensor.BgrChannelTransform in YOLOPostProcessor_MVP2
+        // - the FunctionalGraph wrapper created in Awake for (pixel - mean) / std
+        PipelineProfiler.begin("OCR Preprocess");
+        PipelineProfiler.end("OCR Preprocess");
+
+        Tensor<float> scheduledOutput = null;
+        Awaitable<Tensor<float>> outputReadback;
         try
         {
-            PipelineProfiler.begin("OCR Preprocess");
-            normalizedInput = NormalizeForPPOCR(inputTensor);
-            PipelineProfiler.end("OCR Preprocess");
+            PipelineProfiler.begin("OCR TextDetect");
+            worker.Schedule(inputTensor);
+            scheduledOutput = worker.PeekOutput(0) as Tensor<float>;
+
+            if (scheduledOutput == null)
+            {
+                throw new InvalidOperationException("OCR text detection output tensor was null.");
+            }
+
+            outputReadback = scheduledOutput.ReadbackAndCloneAsync();
         }
         catch (Exception e)
         {
+            PipelineProfiler.end("OCR TextDetect");
             Debug.LogWarning(
-                $"[TextDetect] Preprocessing failed for Object {advertisement.id}: {e.Message}"
+                $"[TextDetect] Inference scheduling failed for Object {advertisement.id}: {e.Message}"
             );
+            inputTensor.Dispose();
             if (roiSnapshot != null)
             {
                 roiSnapshot.Release();
@@ -211,12 +245,7 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
             yield break;
         }
 
-        PipelineProfiler.begin("OCR TextDetect");
-        worker.Schedule(normalizedInput);
-
-        var outputAwaiter = (worker.PeekOutput(0) as Tensor<float>)
-            .ReadbackAndCloneAsync()
-            .GetAwaiter();
+        var outputAwaiter = outputReadback.GetAwaiter();
 
         while (!outputAwaiter.IsCompleted)
         {
@@ -224,7 +253,7 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         }
 
         PipelineProfiler.end("OCR TextDetect");
-        normalizedInput.Dispose();
+        inputTensor.Dispose();
 
         // FIX: Wrapped GetResult in try/catch — the async readback can fail
         // if the GPU resource was released during the wait (e.g. scene unload).
@@ -305,51 +334,6 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         Debug.Log(
             $"[TextDetect] Heatmap generated for Object {advertisement.id}. Sending to ProcessOCRDetection."
         );
-    }
-
-    /*
-        Normalizes an RGB [0,1] tensor for PP-OCR text detection.
-        PP-OCR expects BGR channel order + ImageNet normalization:
-        output = (pixel - mean) / std
-    */
-    private Tensor<float> NormalizeForPPOCR(Tensor<float> rgbTensor)
-    {
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-
-        Tensor<float> cpuTensor = rgbTensor.ReadbackAndClone();
-
-        int height = cpuTensor.shape[2];
-        int width = cpuTensor.shape[3];
-
-        const float meanB = 0.485f;
-        const float meanG = 0.456f;
-        const float meanR = 0.406f;
-        const float stdB = 0.229f;
-        const float stdG = 0.224f;
-        const float stdR = 0.225f;
-
-        Tensor<float> result = new Tensor<float>(new TensorShape(1, 3, height, width));
-
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                float r = cpuTensor[0, 0, y, x];
-                float g = cpuTensor[0, 1, y, x];
-                float b = cpuTensor[0, 2, y, x];
-
-                result[0, 0, y, x] = (b - meanB) / stdB;
-                result[0, 1, y, x] = (g - meanG) / stdG;
-                result[0, 2, y, x] = (r - meanR) / stdR;
-            }
-        }
-
-        cpuTensor.Dispose();
-
-        Debug.Log(
-            $"[OCR Preprocess] Normalized {height}x{width} RGB->BGR tensor in {sw.ElapsedMilliseconds}ms"
-        );
-        return result;
     }
 
     private void OnDestroy()

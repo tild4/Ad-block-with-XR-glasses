@@ -52,12 +52,12 @@
   <Project Path="Unity.Burst.CodeGen.csproj" />
   <Project Path="Meta.XR.BuildingBlocks.AIBlocks.csproj" />
   <Project Path="Unity.VisualScripting.Flow.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.PerformanceTesting.csproj" />
   <Project Path="Unity.TextMeshPro.csproj" />
   <Project Path="Unity.TextMeshPro.Editor.csproj" />
   <Project Path="Unity.AppUI.Navigation.Editor.csproj" />
   <Project Path="Oculus.Interaction.OVR.Editor.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.Burst.Editor.csproj" />
   <Project Path="Meta.XR.Editor.Tags.csproj" />
   <Project Path="Unity.Rider.Editor.csproj" />

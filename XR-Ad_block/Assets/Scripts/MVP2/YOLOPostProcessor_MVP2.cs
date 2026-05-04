@@ -255,13 +255,16 @@ public class YOLOPostProcessor_MVP2 : MonoBehaviour
             RenderTexture.ReleaseTemporary(naturalCrop);
 
             PipelineProfiler.set("TensorContext", "YOLOPost");
+            PipelineProfiler.begin("OCR Prep 1 BGR ToTensor");
             Tensor<float> roiTensor = ConvertToTensor.convert(
                 snapshot,
                 convertRenderTexture,
                 tensorTargetHeight,
                 tensorTargetWidth,
-                commandBuffer
+                commandBuffer,
+                ConvertToTensor.BgrChannelTransform
             );
+            PipelineProfiler.end("OCR Prep 1 BGR ToTensor");
 
             if (roiTensor != null)
             {

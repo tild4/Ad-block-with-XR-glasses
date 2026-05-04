@@ -28,6 +28,9 @@ public class TrackingManager_MVP2 : MonoBehaviour
     [SerializeField]
     private TextDetectionInference_MVP2 textDetectionInference;
 
+    [SerializeField]
+    private float instantYOLOThreshold = 0.8f;
+
     [Header("Tracking Settings")]
     [SerializeField]
     private float timeToLive = 2.0f; // Seconds before object expires
@@ -272,7 +275,7 @@ public class TrackingManager_MVP2 : MonoBehaviour
             timeToLive = timeToLive,
             isAnalyzed = false,
             text = string.Empty,
-            shouldBlock = detection.confidence >= 0.8f,
+            shouldBlock = detection.confidence >= instantYOLOThreshold,
         };
 
         trackedObjects.Add(newObj);
