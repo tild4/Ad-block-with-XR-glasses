@@ -14528,7 +14528,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d66707d704ab544a985c754b4ce33cf2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SentisInferenceManager
-  modelAsset: {fileID: 5022602860645237092, guid: 07179dc606e0daa4788da56f88c069b7, type: 3}
+  modelAsset: {fileID: 5022602860645237092, guid: 414029680810042a09a60e625032a16a, type: 3}
   confidenceThreshold: 0.5
   captureCameraFrame: {fileID: 1375867292}
 --- !u!4 &2111414575
