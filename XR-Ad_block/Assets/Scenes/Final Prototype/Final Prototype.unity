@@ -5914,6 +5914,7 @@ MonoBehaviour:
   startScreenUI: {fileID: 1906228730}
   confirmStopUI: {fileID: 1493904863}
   hudController: {fileID: 1565327988}
+  controllerRay: {fileID: 1687709716}
 --- !u!4 &938440492
 Transform:
   m_ObjectHideFlags: 0
