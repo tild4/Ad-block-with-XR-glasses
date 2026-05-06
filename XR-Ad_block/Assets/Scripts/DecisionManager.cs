@@ -56,6 +56,9 @@ public class DecisionManager : MonoBehaviour
             // ocrConfidence = P(non-ad) + P(socially beneficial)
             float ocrConfidence = probs[0] + probs[1];
 
+            // Store NLP scores on the tracked object for debug visualization
+            textsPerAd.trackedObject.nlpScores = probs;
+
             var decision = DecisionResult(ocrConfidence, combined);
             onDecisionMade?.Invoke(textsPerAd.trackedObject, combined, decision.shouldBlock);
 

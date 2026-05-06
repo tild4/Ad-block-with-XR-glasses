@@ -22,4 +22,10 @@ public class TrackedObject
     public bool isAnalyzed;
     public string text;
     public bool shouldBlock;
+
+    // Debug: decision-tracking fields
+    public bool initialShouldBlock;
+    public string decisionSource;
+    public bool decisionChanged;
+    public float[] nlpScores; // [P(non-ad), P(socially-beneficial), P(ad)] — null until NLP runs
 }
