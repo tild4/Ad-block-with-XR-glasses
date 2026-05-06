@@ -22,6 +22,9 @@ using UnityEngine.Rendering;
 
 public static class ConvertToTensor
 {
+    public static TextureTransform BgrChannelTransform =>
+        new TextureTransform().SetChannelSwizzle(ChannelSwizzle.BGRA);
+
     private static Rect RecordAspectPadBlit(
         Texture texture,
         RenderTexture renderTexture,
@@ -107,7 +110,8 @@ public static class ConvertToTensor
         RenderTexture renderTexture,
         int targetHeight,
         int targetWidth,
-        CommandBuffer commandBuffer
+        CommandBuffer commandBuffer,
+        TextureTransform transform = default
     )
     {
         PipelineProfiler.begin("Texture To Tensor (GPU)");
@@ -119,7 +123,7 @@ public static class ConvertToTensor
         /*
         Allocate tensor:
         Shape = (Batch, Channels, Height, Width)
-        Channels = 3 (RGB)
+        Channels = 3 (RGB by default; callers may pass a swizzle transform)
         */
 
         Tensor<float> tensor = new Tensor<float>(new TensorShape(1, 3, targetHeight, targetWidth));
@@ -137,7 +141,7 @@ public static class ConvertToTensor
         - Channel extraction
         - Layout formatting
         */
-        commandBuffer.ToTensor(renderTexture, tensor);
+        commandBuffer.ToTensor(renderTexture, tensor, transform);
 
         // Execute all recorded GPU commands
         Graphics.ExecuteCommandBuffer(commandBuffer);
@@ -157,7 +161,8 @@ public static class ConvertToTensor
         int targetHeight,
         int targetWidth,
         int targetBatchNr,
-        CommandBuffer commandBuffer
+        CommandBuffer commandBuffer,
+        TextureTransform transform = default
     )
     {
         if (texture == null)
@@ -171,7 +176,7 @@ public static class ConvertToTensor
 
         commandBuffer.Clear();
         commandBuffer.Blit(texture, renderTexture);
-        commandBuffer.ToTensor(renderTexture, tensor);
+        commandBuffer.ToTensor(renderTexture, tensor, transform);
         Graphics.ExecuteCommandBuffer(commandBuffer);
             GL.Flush();
 

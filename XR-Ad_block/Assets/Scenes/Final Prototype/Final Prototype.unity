@@ -7890,7 +7890,8 @@ MonoBehaviour:
   yoloPostProcessor: {fileID: 2111414573}
   decisionManager: {fileID: 1598762291}
   textDetectionInference: {fileID: 1646127924}
-  timeToLive: 2
+  instantYOLOThreshold: 0.75
+  timeToLive: 10
   iouThreshold: 0.5
   logAssociationMisses: 0
   maxTrackedObjects: 5
@@ -9173,7 +9174,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CaptureCameraFrame
   cameraAccess: {fileID: 1375867291}
-  processingInterval: 0.15
+  processingInterval: 0.5
 --- !u!114 &1375867293
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11311,6 +11312,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DecisionManager
   textRecognitionInference: {fileID: 1646127926}
   nlpClassifier: {fileID: 1646127925}
+  nlpThreshold: 0.9
 --- !u!114 &1598762292
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11647,8 +11649,8 @@ MonoBehaviour:
   viewCroppedImage: {fileID: 0}
   textDetectionInference: {fileID: 1646127924}
   maskThreshold: 0.05
-  boxScoreThreshold: 0.6
-  unclipRatio: 1.5
+  boxScoreThreshold: 0.5
+  unclipRatio: 2
   tensorTargetHeight: 48
   tensorTargetWidth: 320
   cropMaterial: {fileID: 2100000, guid: ac1ddba664915451b8b511e4a3544091, type: 2}
@@ -14528,8 +14530,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d66707d704ab544a985c754b4ce33cf2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SentisInferenceManager
-  modelAsset: {fileID: 5022602860645237092, guid: 07179dc606e0daa4788da56f88c069b7, type: 3}
-  confidenceThreshold: 0.5
+  modelAsset: {fileID: 5022602860645237092, guid: 414029680810042a09a60e625032a16a, type: 3}
+  confidenceThreshold: 0.3
   captureCameraFrame: {fileID: 1375867292}
 --- !u!4 &2111414575
 Transform:
