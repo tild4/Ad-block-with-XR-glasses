@@ -18,20 +18,24 @@ public class FloatingDebugText : MonoBehaviour
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = Color.red;
         tmp.sortingOrder = 100;
+        tmp.richText = true;
         tmp.rectTransform.sizeDelta = new Vector2(4f, 2f);
+
+        const string BG = "<mark=#000000AA padding=\"2,2,2,2\">";
+        const string BG_END = "</mark>";
 
         string shortText = string.IsNullOrEmpty(obj.text) ? "(no text)"
             : (obj.text.Length > 25 ? obj.text.Substring(0, 25) + "..." : obj.text);
 
         if (obj.nlpScores != null && obj.nlpScores.Length >= 3)
         {
-            tmp.text = $"CHANGED -> UNBLOCKED\n"
+            tmp.text = $"{BG}CHANGED -> UNBLOCKED\n"
                 + $"non-ad:{obj.nlpScores[0]:F2} benef:{obj.nlpScores[1]:F2} ad:{obj.nlpScores[2]:F2}\n"
-                + $"\"{shortText}\"";
+                + $"\"{shortText}\"{BG_END}";
         }
         else
         {
-            tmp.text = $"CHANGED -> UNBLOCKED\n{obj.decisionSource}\n\"{shortText}\"";
+            tmp.text = $"{BG}CHANGED -> UNBLOCKED\n{obj.decisionSource}\n\"{shortText}\"{BG_END}";
         }
 
         var fdt = go.AddComponent<FloatingDebugText>();

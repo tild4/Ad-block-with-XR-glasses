@@ -135,6 +135,9 @@ public class BlockVisualization : MonoBehaviour
         _targetScale = scale;
     }
 
+    private const string BG = "<mark=#000000AA padding=\"2,2,2,2\">";
+    private const string BG_END = "</mark>";
+
     public void UpdateDecisionDebug(TrackedObject obj)
     {
         if (idText == null) return;
@@ -142,7 +145,7 @@ public class BlockVisualization : MonoBehaviour
         if (!obj.isAnalyzed)
         {
             // Stage 1: YOLO only, OCR/NLP hasn't returned yet
-            idText.text = $"ID:{obj.id} [YOLO] block={obj.shouldBlock}\nconf={obj.lastDetection.confidence:F2}";
+            idText.text = $"{BG}ID:{obj.id} [YOLO] block={obj.shouldBlock}\nconf={obj.lastDetection.confidence:F2}{BG_END}";
             idText.color = Color.yellow;
         }
         else if (obj.nlpScores != null && obj.nlpScores.Length >= 3)
@@ -151,16 +154,16 @@ public class BlockVisualization : MonoBehaviour
             string status = obj.decisionChanged ? "CHANGED" : "CONFIRMED";
             string shortText = string.IsNullOrEmpty(obj.text) ? "(no text)"
                 : (obj.text.Length > 20 ? obj.text.Substring(0, 20) + "..." : obj.text);
-            idText.text = $"ID:{obj.id} [{status}]\n"
+            idText.text = $"{BG}ID:{obj.id} [{status}]\n"
                 + $"non-ad:{obj.nlpScores[0]:F2} benef:{obj.nlpScores[1]:F2} ad:{obj.nlpScores[2]:F2}\n"
-                + $"\"{shortText}\"";
+                + $"\"{shortText}\"{BG_END}";
             idText.color = obj.decisionChanged ? Color.red : Color.green;
         }
         else
         {
             // Early exit: no NLP scores (no text detected)
             string status = obj.decisionChanged ? "CHANGED" : "CONFIRMED";
-            idText.text = $"ID:{obj.id} [{status}]\n{obj.decisionSource} (no text detected)";
+            idText.text = $"{BG}ID:{obj.id} [{status}]\n{obj.decisionSource} (no text detected){BG_END}";
             idText.color = obj.decisionChanged ? Color.red : Color.green;
         }
     }
