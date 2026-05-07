@@ -154,9 +154,12 @@ def main():
     # ── Confusion matrix (full set) ──────────────────────────────────
     cm = confusion_matrix(true_ids, predicted_ids, labels=LABEL_IDS)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=LABELS)
-    disp.plot(cmap="Blues", values_format="d")
-    plt.title("Confusion Matrix")
-    plt.tight_layout()
+    fig, ax = plt.subplots(figsize=(8, 6))
+    disp.plot(cmap="Blues", values_format="d", ax=ax)
+    ax.set_title("Confusion Matrix")
+    ax.set_ylabel("True label")
+    ax.set_xlabel("Predicted label")
+    fig.tight_layout()
     plots_dir = NLP_DIR / "plots" / MODE
     plots_dir.mkdir(parents=True, exist_ok=True)
     cm_path = plots_dir / "confusion_matrix.png"
