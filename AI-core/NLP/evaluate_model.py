@@ -163,7 +163,7 @@ def main():
     plots_dir = NLP_DIR / "plots" / MODE
     plots_dir.mkdir(parents=True, exist_ok=True)
     cm_path = plots_dir / "confusion_matrix.png"
-    plt.savefig(cm_path, dpi=120)
+    plt.savefig(cm_path, dpi=120, bbox_inches="tight")
     plt.close()
     print(f"Saved confusion matrix to {cm_path}")
 
