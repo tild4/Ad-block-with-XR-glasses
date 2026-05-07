@@ -33,12 +33,23 @@ from transformers import (
 
 NLP_DIR = Path(__file__).resolve().parent
 
-# "clean" → Model A, "augmented" → Model B
-MODE = "clean"
+# "clean" → no OCR noise, "augmented" → OCR noise
+MODE = "augmented"
 
-TEST_FILE = NLP_DIR / "dataset" / ("test_augmented_v2.jsonl" if MODE == "augmented" else "test_clean.jsonl")
-SAVED_MODEL_DIR = NLP_DIR / "saved_model" / MODE
-RESULTS_DIR = NLP_DIR / "results" / MODE
+# "mixed" → real + synthetic, "real_only" → ablation baseline
+DATASET = "real_only"
+
+_TEST_FILES = {
+    ("mixed", "augmented"): "test_augmented_v2.jsonl",
+    ("mixed", "clean"): "test_clean.jsonl",
+    ("real_only", "augmented"): "test_real_only_augmented.jsonl",
+    ("real_only", "clean"): "test_real_only.jsonl",
+}
+
+TEST_FILE = NLP_DIR / "dataset" / _TEST_FILES[(DATASET, MODE)]
+RUN_TAG = f"{DATASET}_{MODE}"
+SAVED_MODEL_DIR = NLP_DIR / "saved_model" / RUN_TAG
+RESULTS_DIR = NLP_DIR / "results" / RUN_TAG
 
 
 def encode_label(example):

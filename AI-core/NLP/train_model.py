@@ -2,29 +2,34 @@
 Fine-tunes KBLab/electra-small-swedish-cased-discriminator for Swedish
 ad-classification (3 classes: "non-ad", "socially beneficial", "ad").
 
-=== Two training modes ===
+=== Training modes (MODE) ===
 
-Model A — Baseline (MODE = "clean"):
-  Trains on clean text only (train_clean.jsonl).
-  Evaluates on clean test data (test_clean.jsonl).
+"clean":
+  Trains on clean text only. Evaluates on clean test data.
   Shows the model's base performance without OCR-noise robustness.
 
-Model B — Production (MODE = "augmented"):
+"augmented":
   Trains with on-the-fly OCR-noise augmentation: each epoch, every example
   has a probability AUGMENT_PROB of being corrupted by add_noise() from
-  augment_ocr_noise.py. This gives the model fresh noise patterns every
-  epoch instead of memorising fixed noisy copies.
-  Evaluates on test_augmented_v2.jsonl (during training and final evaluation).
+  augment_ocr_noise.py. Evaluates on augmented test data.
+
+=== Dataset configs (DATASET) ===
+
+"mixed" (default):
+  Trains on real + synthetic data. This is the production configuration.
+
+"real_only" (ablation baseline):
+  Trains on real data only, using the same real train/test split as "mixed".
+  Used to measure whether synthetic data augmentation helps.
 
 === Dataset origin ===
-train_clean.jsonl and test_clean.jsonl are created by create_dataset_split.py,
-which pools:
-  - Real data from test_original.jsonl (430 manually collected examples)
+All dataset files are created by create_dataset_split.py, which pools:
+  - Real data from test_original.jsonl (479 manually collected examples)
   - Synthetic data from (Claude + GPT)generated_examples.jsonl (1994 examples)
 and performs a stratified split with source-tagging ("real"/"synthetic").
+The real train/test split is identical in both "mixed" and "real_only" sets.
 
-Toggle MODE below to switch between Model A and B.
-Adjust hyperparameters (learning_rate, weight_decay, etc.) for tuning runs.
+Toggle MODE and DATASET below to select the experiment configuration.
 """
 
 import random
@@ -51,18 +56,36 @@ from augment_ocr_noise import CHAR_NOISE_PROB, add_noise
 # ── Mode switch ───────────────────────────────────────────────────────
 # "clean"     → Model A: no augmentation, eval on clean test data
 # "augmented" → Model B: on-the-fly OCR noise, eval on augmented test data
-MODE = "clean"
+MODE = "augmented"
+
+# ── Dataset switch ────────────────────────────────────────────────────
+# "mixed"     → real + synthetic data (production configuration)
+# "real_only" → real data only (ablation baseline)
+DATASET = "real_only"
 
 # ── Augmentation config (only used when MODE = "augmented") ──────────
 AUGMENT_PROB = 0.5  # probability of applying OCR noise to each example per epoch
 
-# ── Paths (derived from MODE) ────────────────────────────────────────
+# ── Paths (derived from MODE and DATASET) ─────────────────────────────
 NLP_DIR = Path(__file__).resolve().parent
-TRAIN_FILE = NLP_DIR / "dataset" / "train_clean.jsonl"
-TEST_FILE = NLP_DIR / "dataset" / ("test_augmented_v2.jsonl" if MODE == "augmented" else "test_clean.jsonl")
-RESULTS_DIR = NLP_DIR / "results" / MODE
-SAVED_MODEL_DIR = NLP_DIR / "saved_model" / MODE
-PLOTS_DIR = NLP_DIR / "plots" / MODE
+
+_TRAIN_FILES = {
+    "mixed": "train_clean.jsonl",
+    "real_only": "train_real_only.jsonl",
+}
+_TEST_FILES = {
+    ("mixed", "augmented"): "test_augmented_v2.jsonl",
+    ("mixed", "clean"): "test_clean.jsonl",
+    ("real_only", "augmented"): "test_real_only_augmented.jsonl",
+    ("real_only", "clean"): "test_real_only.jsonl",
+}
+
+TRAIN_FILE = NLP_DIR / "dataset" / _TRAIN_FILES[DATASET]
+TEST_FILE = NLP_DIR / "dataset" / _TEST_FILES[(DATASET, MODE)]
+RUN_TAG = f"{DATASET}_{MODE}"
+RESULTS_DIR = NLP_DIR / "results" / RUN_TAG
+SAVED_MODEL_DIR = NLP_DIR / "saved_model" / RUN_TAG
+PLOTS_DIR = NLP_DIR / "plots" / RUN_TAG
 
 # ── Model ─────────────────────────────────────────────────────────────
 MODEL_NAME = "KBLab/electra-small-swedish-cased-discriminator"
@@ -216,6 +239,7 @@ def main():
     print("=== Run Configuration ===")
     print(f"  model: {MODEL_NAME}")
     print(f"  mode: {MODE}")
+    print(f"  dataset: {DATASET}")
     print(f"  augment_prob: {AUGMENT_PROB}")
     print(f"  char_noise_prob: {CHAR_NOISE_PROB}")
     print(f"  learning_rate: {args.learning_rate}")
