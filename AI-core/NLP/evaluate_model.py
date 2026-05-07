@@ -33,12 +33,23 @@ from transformers import (
 
 NLP_DIR = Path(__file__).resolve().parent
 
-# "clean" → Model A, "augmented" → Model B
-MODE = "clean"
+# "clean" → no OCR noise, "augmented" → OCR noise
+MODE = "augmented"
 
-TEST_FILE = NLP_DIR / "dataset" / ("test_augmented_v2.jsonl" if MODE == "augmented" else "test_clean.jsonl")
-SAVED_MODEL_DIR = NLP_DIR / "saved_model" / MODE
-RESULTS_DIR = NLP_DIR / "results" / MODE
+# "mixed" → real + synthetic, "real_only" → ablation baseline
+DATASET = "mixed"
+
+_TEST_FILES = {
+    ("mixed", "augmented"): "test_augmented_v2.jsonl",
+    ("mixed", "clean"): "test_clean.jsonl",
+    ("real_only", "augmented"): "test_real_only_augmented.jsonl",
+    ("real_only", "clean"): "test_real_only.jsonl",
+}
+
+TEST_FILE = NLP_DIR / "dataset" / _TEST_FILES[(DATASET, MODE)]
+RUN_TAG = f"{DATASET}_{MODE}"
+SAVED_MODEL_DIR = NLP_DIR / "saved_model" / RUN_TAG
+RESULTS_DIR = NLP_DIR / "results" / RUN_TAG
 
 
 def encode_label(example):
@@ -143,13 +154,16 @@ def main():
     # ── Confusion matrix (full set) ──────────────────────────────────
     cm = confusion_matrix(true_ids, predicted_ids, labels=LABEL_IDS)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=LABELS)
-    disp.plot(cmap="Blues", values_format="d")
-    plt.title("Confusion Matrix")
-    plt.tight_layout()
+    fig, ax = plt.subplots(figsize=(8, 6))
+    disp.plot(cmap="Blues", values_format="d", ax=ax)
+    ax.set_title("Confusion Matrix")
+    ax.set_ylabel("True label")
+    ax.set_xlabel("Predicted label")
+    fig.tight_layout()
     plots_dir = NLP_DIR / "plots" / MODE
     plots_dir.mkdir(parents=True, exist_ok=True)
     cm_path = plots_dir / "confusion_matrix.png"
-    plt.savefig(cm_path, dpi=120)
+    plt.savefig(cm_path, dpi=120, bbox_inches="tight")
     plt.close()
     print(f"Saved confusion matrix to {cm_path}")
 
