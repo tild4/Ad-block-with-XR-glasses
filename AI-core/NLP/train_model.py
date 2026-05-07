@@ -61,7 +61,7 @@ MODE = "augmented"
 # ── Dataset switch ────────────────────────────────────────────────────
 # "mixed"     → real + synthetic data (production configuration)
 # "real_only" → real data only (ablation baseline)
-DATASET = "real_only"
+DATASET = "mixed"
 
 # ── Augmentation config (only used when MODE = "augmented") ──────────
 AUGMENT_PROB = 0.5  # probability of applying OCR noise to each example per epoch

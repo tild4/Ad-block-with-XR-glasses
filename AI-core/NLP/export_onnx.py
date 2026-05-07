@@ -9,11 +9,15 @@ from optimum.exporters.onnx import main_export
 
 NLP_DIR = Path(__file__).resolve().parent
 
-# "clean" → Model A, "augmented" → Model B
-MODE = "clean"
+# "clean" → no OCR noise, "augmented" → OCR noise
+MODE = "augmented"
 
-SAVED_MODEL_DIR = NLP_DIR / "saved_model" / MODE
-MODELS_DIR = NLP_DIR / "models" / MODE
+# "mixed" → real + synthetic, "real_only" → ablation baseline
+DATASET = "mixed"
+
+RUN_TAG = f"{DATASET}_{MODE}"
+SAVED_MODEL_DIR = NLP_DIR / "saved_model" / RUN_TAG
+MODELS_DIR = NLP_DIR / "models" / RUN_TAG
 
 # Unity Sentis docs recommend ONNX opset 15 for best compatibility.
 ONNX_OPSET = 15

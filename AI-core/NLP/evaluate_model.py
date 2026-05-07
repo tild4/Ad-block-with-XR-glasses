@@ -37,7 +37,7 @@ NLP_DIR = Path(__file__).resolve().parent
 MODE = "augmented"
 
 # "mixed" → real + synthetic, "real_only" → ablation baseline
-DATASET = "real_only"
+DATASET = "mixed"
 
 _TEST_FILES = {
     ("mixed", "augmented"): "test_augmented_v2.jsonl",
