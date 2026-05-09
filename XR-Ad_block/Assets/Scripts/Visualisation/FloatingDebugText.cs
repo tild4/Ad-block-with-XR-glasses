@@ -12,15 +12,25 @@ public class FloatingDebugText : MonoBehaviour
     public static void Spawn(Vector3 position, TrackedObject obj)
     {
         var go = new GameObject($"FloatingDebug_{obj.id}");
-        go.transform.position = position;
+        // Place at same direction as block but pushed out to ~10m from camera
+        var cam = Camera.main;
+        if (cam != null)
+        {
+            Vector3 dir = (position - cam.transform.position).normalized;
+            go.transform.position = cam.transform.position + dir * 10f;
+        }
+        else
+        {
+            go.transform.position = position;
+        }
 
         var tmp = go.AddComponent<TextMeshPro>();
-        tmp.fontSize = 6f;
+        tmp.fontSize = 6.0f;
         tmp.fontStyle = FontStyles.Bold;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = Color.red;
         tmp.sortingOrder = 100;
-        tmp.rectTransform.sizeDelta = new Vector2(24f, 10f);
+        tmp.rectTransform.sizeDelta = new Vector2(10f, 5f);
 
         string ocrText = string.IsNullOrEmpty(obj.text) ? "(no text)" : obj.text;
 
