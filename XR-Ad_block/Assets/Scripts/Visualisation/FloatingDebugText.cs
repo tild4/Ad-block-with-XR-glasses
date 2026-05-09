@@ -17,7 +17,7 @@ public class FloatingDebugText : MonoBehaviour
         if (cam != null)
         {
             Vector3 dir = (position - cam.transform.position).normalized;
-            go.transform.position = cam.transform.position + dir * 10f;
+            go.transform.position = cam.transform.position + dir * 20f;
         }
         else
         {
