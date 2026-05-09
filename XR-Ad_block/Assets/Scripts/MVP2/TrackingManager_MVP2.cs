@@ -276,6 +276,10 @@ public class TrackingManager_MVP2 : MonoBehaviour
             isAnalyzed = false,
             text = string.Empty,
             shouldBlock = detection.confidence >= instantYOLOThreshold,
+            initialShouldBlock = detection.confidence >= instantYOLOThreshold,
+            decisionSource = "YOLO",
+            decisionChanged = false,
+            nlpScores = null,
         };
 
         trackedObjects.Add(newObj);
@@ -408,12 +412,15 @@ public class TrackingManager_MVP2 : MonoBehaviour
 
         if (tracked != null)
         {
+            tracked.decisionChanged = (tracked.initialShouldBlock != shouldBlock);
+            tracked.decisionSource = string.IsNullOrEmpty(text) ? "EARLY_EXIT" : "OCR/NLP";
             tracked.text = text;
             tracked.shouldBlock = shouldBlock;
             tracked.isAnalyzed = true;
 
             Debug.Log(
-                $"Updated OCR result for object {obj.id}: '{text}', shouldBlock={shouldBlock}"
+                $"Updated OCR result for object {obj.id}: '{text}', shouldBlock={shouldBlock}, "
+                + $"initialWas={tracked.initialShouldBlock}, changed={tracked.decisionChanged}"
             );
 
             // Notify subscribers

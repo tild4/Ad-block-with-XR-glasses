@@ -234,6 +234,12 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
             // If the object should not be blocked but we have an active block, remove it
             if (!obj.shouldBlock && activeBlocks.ContainsKey(obj.id))
             {
+                // Spawn floating debug text if OCR/NLP overrode the YOLO decision
+                if (obj.decisionChanged)
+                {
+                    Vector3 blockPos = activeBlocks[obj.id].transform.position;
+                    FloatingDebugText.Spawn(blockPos, obj);
+                }
                 RemoveBlock(obj.id);
                 return;
             }
@@ -346,6 +352,7 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
         if (vis != null)
         {
             vis.SetBlockData(obj.id);
+            vis.UpdateDecisionDebug(obj);
             vis.SetTargetTransform(position, rotation, worldScale);
         }
         else
@@ -395,6 +402,7 @@ public class BlockPlacementManager_MVP2 : MonoBehaviour
         BlockVisualization vis = block.GetComponent<BlockVisualization>();
         if (vis != null)
         {
+            vis.UpdateDecisionDebug(obj);
             vis.SetTargetTransform(position, rotation, worldScale);
         }
         else
