@@ -7891,9 +7891,9 @@ MonoBehaviour:
   yoloPostProcessor: {fileID: 2111414573}
   decisionManager: {fileID: 1598762291}
   textDetectionInference: {fileID: 1646127924}
-  instantYOLOThreshold: 0.75
-  timeToLive: 10
-  iouThreshold: 0.5
+  instantYOLOThreshold: 0.8
+  timeToLive: 5
+  iouThreshold: 0.15
   logAssociationMisses: 0
   maxTrackedObjects: 5
 --- !u!114 &1219656917
@@ -9833,6 +9833,52 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 106177627}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1437399467
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1437399469}
+  - component: {fileID: 1437399468}
+  m_Layer: 0
+  m_Name: GlobalClock
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1437399468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1437399467}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe9de1c8c894b49c1b6124d4e7ea1152, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GlobalClock
+  positionOffset: {x: 0.25, y: -0.18, z: 0.5}
+  fontSize: 6
+--- !u!4 &1437399469
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1437399467}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1453634469
 GameObject:
@@ -14516,7 +14562,7 @@ MonoBehaviour:
   sentisInferenceManager: {fileID: 2111414574}
   viewCroppedImage: {fileID: 0}
   cropMaterial: {fileID: 2100000, guid: ac1ddba664915451b8b511e4a3544091, type: 2}
-  iouThreshold: 0.4
+  iouThreshold: 0.15
   tensorTargetHeight: 640
   tensorTargetWidth: 640
 --- !u!114 &2111414574
@@ -14827,3 +14873,4 @@ SceneRoots:
   - {fileID: 1646127928}
   - {fileID: 1718127368}
   - {fileID: 938440492}
+  - {fileID: 1437399469}

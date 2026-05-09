@@ -49,6 +49,7 @@ public class BlockVisualization : MonoBehaviour
     private bool _isPopping = true;
     private Vector3 _targetPosition;
     private bool _initialized = false;
+    private GameObject _debugBg;
 
     private void Awake()
     {
@@ -135,37 +136,65 @@ public class BlockVisualization : MonoBehaviour
         _targetScale = scale;
     }
 
-    private const string BG = "<mark=#000000AA padding=\"2,2,2,2\">";
-    private const string BG_END = "</mark>";
-
     public void UpdateDecisionDebug(TrackedObject obj)
     {
         if (idText == null) return;
 
+        // Make text larger and bold
+        idText.fontSize = 6;
+        idText.fontStyle = FontStyles.Bold;
+        idText.rectTransform.sizeDelta = new Vector2(24f, 10f);
+
         if (!obj.isAnalyzed)
         {
-            // Stage 1: YOLO only, OCR/NLP hasn't returned yet
-            idText.text = $"{BG}ID:{obj.id} [YOLO] block={obj.shouldBlock}\nconf={obj.lastDetection.confidence:F2}{BG_END}";
+            idText.text = $"ID:{obj.id} [YOLO] block={obj.shouldBlock}\nconf={obj.lastDetection.confidence:F2}";
             idText.color = Color.yellow;
         }
         else if (obj.nlpScores != null && obj.nlpScores.Length >= 3)
         {
-            // Stage 2: OCR/NLP decision arrived with scores
             string status = obj.decisionChanged ? "CHANGED" : "CONFIRMED";
-            string shortText = string.IsNullOrEmpty(obj.text) ? "(no text)"
-                : (obj.text.Length > 20 ? obj.text.Substring(0, 20) + "..." : obj.text);
-            idText.text = $"{BG}ID:{obj.id} [{status}]\n"
+            string ocrText = string.IsNullOrEmpty(obj.text) ? "(no text)" : obj.text;
+            idText.text = $"ID:{obj.id} [{status}]\n"
                 + $"non-ad:{obj.nlpScores[0]:F2} benef:{obj.nlpScores[1]:F2} ad:{obj.nlpScores[2]:F2}\n"
-                + $"\"{shortText}\"{BG_END}";
+                + $"\"{ocrText}\"";
             idText.color = obj.decisionChanged ? Color.red : Color.green;
         }
         else
         {
-            // Early exit: no NLP scores (no text detected)
             string status = obj.decisionChanged ? "CHANGED" : "CONFIRMED";
-            idText.text = $"{BG}ID:{obj.id} [{status}]\n{obj.decisionSource} (no text detected){BG_END}";
+            idText.text = $"ID:{obj.id} [{status}]\n{obj.decisionSource} (no text detected)";
             idText.color = obj.decisionChanged ? Color.red : Color.green;
         }
+
+        // Create/update solid black background quad behind text
+        EnsureDebugBackground();
+    }
+
+    private void EnsureDebugBackground()
+    {
+        if (_debugBg == null)
+        {
+            _debugBg = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            _debugBg.name = "DebugBG";
+            Destroy(_debugBg.GetComponent<Collider>());
+            _debugBg.transform.SetParent(idText.transform, false);
+            _debugBg.transform.localPosition = new Vector3(0f, 0f, 0.05f);
+            _debugBg.transform.localRotation = Quaternion.identity;
+
+            var rend = _debugBg.GetComponent<Renderer>();
+            rend.material = new Material(Shader.Find("Sprites/Default"));
+            rend.material.color = new Color(0f, 0f, 0f, 0.9f);
+        }
+
+        // Size and position background to match actual text bounds
+        idText.ForceMeshUpdate();
+        Vector2 rendered = idText.GetRenderedValues(true);
+        float pad = 1.5f;
+        _debugBg.transform.localScale = new Vector3(rendered.x + pad, rendered.y + pad, 1f);
+
+        // Center background on the rendered text area
+        var bounds = idText.textBounds;
+        _debugBg.transform.localPosition = new Vector3(bounds.center.x, bounds.center.y, 0.05f);
     }
 
     public void ApplyImageOverride()

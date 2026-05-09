@@ -7,6 +7,7 @@ public class FloatingDebugText : MonoBehaviour
     private float elapsed;
     private Transform cameraTransform;
     private TextMeshPro tmp;
+    private Renderer bgRenderer;
 
     public static void Spawn(Vector3 position, TrackedObject obj)
     {
@@ -14,32 +15,47 @@ public class FloatingDebugText : MonoBehaviour
         go.transform.position = position;
 
         var tmp = go.AddComponent<TextMeshPro>();
-        tmp.fontSize = 1.5f;
+        tmp.fontSize = 6f;
+        tmp.fontStyle = FontStyles.Bold;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = Color.red;
         tmp.sortingOrder = 100;
-        tmp.richText = true;
-        tmp.rectTransform.sizeDelta = new Vector2(4f, 2f);
+        tmp.rectTransform.sizeDelta = new Vector2(24f, 10f);
 
-        const string BG = "<mark=#000000AA padding=\"2,2,2,2\">";
-        const string BG_END = "</mark>";
-
-        string shortText = string.IsNullOrEmpty(obj.text) ? "(no text)"
-            : (obj.text.Length > 25 ? obj.text.Substring(0, 25) + "..." : obj.text);
+        string ocrText = string.IsNullOrEmpty(obj.text) ? "(no text)" : obj.text;
 
         if (obj.nlpScores != null && obj.nlpScores.Length >= 3)
         {
-            tmp.text = $"{BG}CHANGED -> UNBLOCKED\n"
+            tmp.text = "CHANGED -> UNBLOCKED\n"
                 + $"non-ad:{obj.nlpScores[0]:F2} benef:{obj.nlpScores[1]:F2} ad:{obj.nlpScores[2]:F2}\n"
-                + $"\"{shortText}\"{BG_END}";
+                + $"\"{ocrText}\"";
         }
         else
         {
-            tmp.text = $"{BG}CHANGED -> UNBLOCKED\n{obj.decisionSource}\n\"{shortText}\"{BG_END}";
+            tmp.text = $"CHANGED -> UNBLOCKED\n{obj.decisionSource}\n\"{ocrText}\"";
         }
+
+        // Solid background quad
+        var bg = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        bg.name = "BG";
+        Destroy(bg.GetComponent<Collider>());
+        bg.transform.SetParent(tmp.transform, false);
+        bg.transform.localRotation = Quaternion.identity;
+        var bgRend = bg.GetComponent<Renderer>();
+        bgRend.material = new Material(Shader.Find("Sprites/Default"));
+        bgRend.material.color = new Color(0f, 0f, 0f, 0.9f);
+
+        // Size and center background on rendered text
+        tmp.ForceMeshUpdate();
+        Vector2 rendered = tmp.GetRenderedValues(true);
+        float pad = 1.5f;
+        bg.transform.localScale = new Vector3(rendered.x + pad, rendered.y + pad, 1f);
+        var bounds = tmp.textBounds;
+        bg.transform.localPosition = new Vector3(bounds.center.x, bounds.center.y, 0.05f);
 
         var fdt = go.AddComponent<FloatingDebugText>();
         fdt.tmp = tmp;
+        fdt.bgRenderer = bgRend;
     }
 
     private void Awake()
@@ -67,10 +83,13 @@ public class FloatingDebugText : MonoBehaviour
         }
 
         // Fade out over the last second
-        if (tmp != null && elapsed > lifetime - 1f)
+        if (elapsed > lifetime - 1f)
         {
             float alpha = Mathf.Clamp01((lifetime - elapsed) / 1f);
-            tmp.color = new Color(tmp.color.r, tmp.color.g, tmp.color.b, alpha);
+            if (tmp != null)
+                tmp.color = new Color(tmp.color.r, tmp.color.g, tmp.color.b, alpha);
+            if (bgRenderer != null)
+                bgRenderer.material.color = new Color(0f, 0f, 0f, alpha);
         }
     }
 }
