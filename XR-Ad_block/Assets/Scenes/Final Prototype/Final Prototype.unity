@@ -9863,7 +9863,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe9de1c8c894b49c1b6124d4e7ea1152, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GlobalClock
-  positionOffset: {x: 0.25, y: -0.18, z: 0.5}
+  positionOffset: {x: 15, y: -15, z: 30}
   fontSize: 6
 --- !u!4 &1437399469
 Transform:
@@ -9873,9 +9873,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1437399467}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.0001, y: 0.0001, z: 0.0001}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -11359,7 +11359,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DecisionManager
   textRecognitionInference: {fileID: 1646127926}
   nlpClassifier: {fileID: 1646127925}
-  nlpThreshold: 0.9
+  nlpThreshold: 0.8
 --- !u!114 &1598762292
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14577,8 +14577,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d66707d704ab544a985c754b4ce33cf2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SentisInferenceManager
-  modelAsset: {fileID: 5022602860645237092, guid: 414029680810042a09a60e625032a16a, type: 3}
-  confidenceThreshold: 0.3
+  modelAsset: {fileID: 5022602860645237092, guid: 5d26aae3a67e5794e81a0712fd7cde94, type: 3}
+  confidenceThreshold: 0.5
   captureCameraFrame: {fileID: 1375867292}
 --- !u!4 &2111414575
 Transform:
