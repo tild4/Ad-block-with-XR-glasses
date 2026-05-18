@@ -123,6 +123,7 @@ public class AppStateManager : MonoBehaviour
         // Hide ray after toast completes
         if (controllerRay != null)
         {
+            Debug.Log("[AppState] Hiding controller ray after toast");
             controllerRay.enabled = false;
         }
     }
