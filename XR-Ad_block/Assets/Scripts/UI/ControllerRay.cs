@@ -74,4 +74,16 @@ public class ControllerRay : MonoBehaviour
         _line.SetPosition(0, origin);
         _line.SetPosition(1, origin + direction * endDistance);
     }
+
+    private void OnDisable()
+    {
+        _line.enabled = false;
+        _dot.SetActive(false);
+    }
+
+    private void OnEnable()
+    {
+        _line.enabled = true;
+        _dot.SetActive(true);
+    }
 }
