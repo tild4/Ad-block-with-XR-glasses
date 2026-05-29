@@ -4,6 +4,8 @@ A mixed reality application for the Meta Quest 3 that detects and blocks adverti
 The app runs directly on the headset, using the passthrough camera feed provided by Meta to identify ads and overlay a visual blocker on top of them in your physical environment.
 
 ![Demo preview](README_images/blocker_gif.gif)
+
+[Watch the full demo](youtube.com/watch?is=KtQ9os42Zb6LblLz&v=aZfVJgJ8UlE&feature=youtu.be)
 ## Setting up the Unity environment
 
 ### Prerequisites
