@@ -5,7 +5,7 @@ The app runs directly on the headset, using the passthrough camera feed provided
 
 ![Demo preview](README_images/blocker_gif.gif)
 
-[Watch the full demo](youtube.com/watch?is=KtQ9os42Zb6LblLz&v=aZfVJgJ8UlE&feature=youtu.be)
+[Watch the full demo](https://youtube.com/watch?is=KtQ9os42Zb6LblLz&v=aZfVJgJ8UlE&feature=youtu.be)
 ## Setting up the Unity environment
 
 ### Prerequisites
