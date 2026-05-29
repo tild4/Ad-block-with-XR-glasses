@@ -1,9 +1,32 @@
+/*
+    BlockerImageImporter
+
+    PURPOSE:
+    Automatically configures any texture imported into the
+    Resources/BlockerImages folder with the correct settings
+    for use as a UI sprite in the Options menu.
+
+    ARCHITECTURE:
+    - Extends AssetPostprocessor which Unity calls automatically
+      on every asset import.
+    - Checks if the imported asset is inside Resources/BlockerImages.
+    - If so, sets Texture Type to Sprite (2D and UI) and
+      Sprite Mode to Single before the import completes.
+    - Runs in the Editor only — no runtime overhead.
+
+    SETUP:
+    - Place this script in any folder named Editor inside Assets.
+    - No further configuration needed. Drop images into
+      Assets/Resources/BlockerImages and they will be
+      automatically configured on import.
+*/
+
 using UnityEngine;
 using UnityEditor;
 
 public class BlockerImageImporter : AssetPostprocessor
 {
-    private const string TargetFolder = "Assets/BlockerImages";
+    private const string TargetFolder = "Resources/BlockerImages";
 
     void OnPreprocessTexture()
     {

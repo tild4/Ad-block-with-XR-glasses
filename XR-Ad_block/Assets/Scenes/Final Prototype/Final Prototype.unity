@@ -5914,6 +5914,7 @@ MonoBehaviour:
   startScreenUI: {fileID: 1906228730}
   confirmStopUI: {fileID: 1493904863}
   hudController: {fileID: 1565327988}
+  controllerRay: {fileID: 1687709716}
 --- !u!4 &938440492
 Transform:
   m_ObjectHideFlags: 0
@@ -7891,8 +7892,8 @@ MonoBehaviour:
   decisionManager: {fileID: 1598762291}
   textDetectionInference: {fileID: 1646127924}
   instantYOLOThreshold: 0.75
-  timeToLive: 2
-  iouThreshold: 0.7
+  timeToLive: 10
+  iouThreshold: 0.5
   logAssociationMisses: 0
   maxTrackedObjects: 5
 --- !u!114 &1219656917
@@ -11612,8 +11613,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb9340e915d03414db1a9cedf87119ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NLPClassifier_MVP2
-  modelAsset: {fileID: 5022602860645237092, guid: ae70b3767250b4ac5b65c74d34269bf7, type: 3}
-  vocabAsset: {fileID: 4900000, guid: c4b89d000c46d42b68c0244f34eb6505, type: 3}
+  modelAsset: {fileID: 5022602860645237092, guid: 978313e21621543c491437c0605d4da3, type: 3}
+  vocabAsset: {fileID: 4900000, guid: dd346602187234bb4b915cd7ddf1512e, type: 3}
   maxLength: 64
 --- !u!114 &1646127926
 MonoBehaviour:

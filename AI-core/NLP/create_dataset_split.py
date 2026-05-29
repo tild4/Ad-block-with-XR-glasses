@@ -2,10 +2,11 @@
 Creates the train/test split for the Swedish ad-classification model.
 
 === Data sources ===
-1. test_original.jsonl (430 examples, 428 unique after deduplication)
+
+1. test_original.jsonl (479 examples)
    - Manually collected REAL examples from photos of Swedish street signs,
-     storefronts, and public-service notices. 
-   - Labels: 142 "non-ad", 21 "socially beneficial", 267 "ad"
+     storefronts, and public-service notices.
+   - Labels: 154 "non-ad", 28 "socially beneficial", 297 "ad"
    - This is the ONLY source of real (non-synthetic) data.
 
 2. (Claude + GPT)generated_examples.jsonl (1994 examples)
@@ -16,19 +17,29 @@ Creates the train/test split for the Swedish ad-classification model.
 === Split strategy ===
 We pool both sources and create a stratified train/test split so that:
   - Real data appears in BOTH training and test (reduces domain gap).
-  - All 21 real "socially beneficial" examples go to the TEST set because
-    there are too few to split meaningfully — the model relies on
-    synthetic socially beneficial for training instead.
-  - For the other two real-data classes, 80% goes to train / 20% to test.
+  - All three real-data classes are split: 80/20 for non-ad and ad,
+    50/50 for socially beneficial (28 examples: 14 train / 14 test).
+    The 50/50 split ensures the real-only ablation model has training
+    examples for all classes, while keeping enough in test for meaningful
+    evaluation.
   - Synthetic data is split 85/15 (stratified by label).
   - Every example is tagged with "source": "real" or "synthetic" so that
     evaluation can report metrics per provenance.
 
 === Output files ===
-  dataset/train_clean.jsonl   — Training data (real + synthetic, clean text)
-  dataset/test_clean.jsonl    — Test data (real + synthetic, clean text)
-  dataset/test_augmented_v2.jsonl — Test data with OCR-noise copies added
-                                    (for evaluating the augmented model B)
+Mixed (real + synthetic):
+  dataset/train_clean.jsonl          — Training data (real + synthetic)
+  dataset/test_clean.jsonl           — Test data (real + synthetic)
+  dataset/test_augmented_v2.jsonl    — Test data with OCR-noise copies
+
+Real-only (ablation baseline — same real split, no synthetic data):
+  dataset/train_real_only.jsonl      — Training data (real only)
+  dataset/test_real_only.jsonl       — Test data (real only)
+  dataset/test_real_only_augmented.jsonl — Test data (real only) with OCR-noise copies
+
+The real train/test split is IDENTICAL in both sets, so the only difference
+is whether synthetic data is included. This enables a fair ablation to
+measure the effect of synthetic data augmentation.
 
 The training set is NOT pre-augmented; Model B applies OCR noise on-the-fly
 during training via AugmentedDataset in train_model.py.
@@ -56,10 +67,15 @@ DATASET_DIR = NLP_DIR / "dataset"
 REAL_FILE = DATASET_DIR / "test_original.jsonl"
 SYNTHETIC_FILE = DATASET_DIR / "(Claude + GPT)generated_examples.jsonl"
 
-# Output files
+# Output files — mixed (real + synthetic)
 TRAIN_CLEAN_FILE = DATASET_DIR / "train_clean.jsonl"
 TEST_CLEAN_FILE = DATASET_DIR / "test_clean.jsonl"
 TEST_AUGMENTED_FILE = DATASET_DIR / "test_augmented_v2.jsonl"
+
+# Output files — real-only (ablation baseline)
+TRAIN_REAL_ONLY_FILE = DATASET_DIR / "train_real_only.jsonl"
+TEST_REAL_ONLY_FILE = DATASET_DIR / "test_real_only.jsonl"
+TEST_REAL_ONLY_AUGMENTED_FILE = DATASET_DIR / "test_real_only_augmented.jsonl"
 
 RANDOM_SEED = 42
 
@@ -87,6 +103,20 @@ def write_jsonl(path, examples):
     with open(path, "w", encoding="utf-8") as f:
         for ex in examples:
             f.write(json.dumps(ex, ensure_ascii=False) + "\n")
+
+
+def make_augmented_test(test_examples, rng):
+    """Create an augmented test set: clean examples + one OCR-noisy copy each."""
+    test_augmented = list(test_examples)
+    for ex in test_examples:
+        noisy_text = add_noise(ex["text"])
+        test_augmented.append({
+            "text": noisy_text,
+            "label": ex["label"],
+            "source": ex["source"],
+        })
+    rng.shuffle(test_augmented)
+    return test_augmented
 
 
 def print_distribution(name, examples):
@@ -129,24 +159,33 @@ def main():
     print(f"Loaded {len(synthetic_examples)} synthetic examples from {SYNTHETIC_FILE.name}")
 
     # ── Split real data ───────────────────────────────────────────────
-    # All 21 real socially beneficial → test (too few to split).
-    # The remaining classes are split 80/20 stratified.
+    # Socially beneficial: 50/50 split (14 train / 14 test) because the
+    # class is too small for 80/20 but we need training examples for the
+    # real-only ablation experiment.
+    # Non-ad and ad: 80/20 stratified split.
     real_samhallsnyttig = [ex for ex in real_examples if ex["label"] == "socially beneficial"]
     real_other = [ex for ex in real_examples if ex["label"] != "socially beneficial"]
 
     real_other_labels = [ex["label"] for ex in real_other]
-    real_train, real_test = train_test_split(
+    real_other_train, real_other_test = train_test_split(
         real_other,
         test_size=0.2,
         stratify=real_other_labels,
         random_state=RANDOM_SEED,
     )
 
-    # Samhällsnyttig: all 12 go to test
-    real_test.extend(real_samhallsnyttig)
+    # Socially beneficial: 50/50 split
+    samh_train, samh_test = train_test_split(
+        real_samhallsnyttig,
+        test_size=0.5,
+        random_state=RANDOM_SEED,
+    )
+
+    real_train = real_other_train + samh_train
+    real_test = real_other_test + samh_test
 
     print(f"\nReal split: {len(real_train)} train / {len(real_test)} test "
-          f"(incl. {len(real_samhallsnyttig)} socially beneficial → test)")
+          f"(socially beneficial: {len(samh_train)} train / {len(samh_test)} test)")
 
     # ── Split synthetic data ──────────────────────────────────────────
     synthetic_labels = [ex["label"] for ex in synthetic_examples]
@@ -159,35 +198,44 @@ def main():
 
     print(f"Synthetic split: {len(synthetic_train)} train / {len(synthetic_test)} test")
 
-    # ── Combine and shuffle ───────────────────────────────────────────
-    train_all = real_train + synthetic_train
-    test_all = real_test + synthetic_test
+    # ── Mixed: combine and shuffle ────────────────────────────────────
+    train_mixed = real_train + synthetic_train
+    test_mixed = real_test + synthetic_test
 
-    random.shuffle(train_all)
-    random.shuffle(test_all)
+    random.shuffle(train_mixed)
+    random.shuffle(test_mixed)
 
-    # ── Create augmented test set (static, for reproducible evaluation) ──
-    # Each clean test example gets one OCR-noisy copy appended.
-    test_augmented = list(test_all)  # start with all clean examples
-    for ex in test_all:
-        noisy_text = add_noise(ex["text"])
-        test_augmented.append({
-            "text": noisy_text,
-            "label": ex["label"],
-            "source": ex["source"],
-        })
-    random.shuffle(test_augmented)
+    test_mixed_augmented = make_augmented_test(test_mixed, random)
+
+    # ── Real-only: same real split, no synthetic ──────────────────────
+    train_real_only = list(real_train)
+    test_real_only = list(real_test)
+
+    random.shuffle(train_real_only)
+    random.shuffle(test_real_only)
+
+    test_real_only_augmented = make_augmented_test(test_real_only, random)
 
     # ── Write output files ────────────────────────────────────────────
-    write_jsonl(TRAIN_CLEAN_FILE, train_all)
-    write_jsonl(TEST_CLEAN_FILE, test_all)
-    write_jsonl(TEST_AUGMENTED_FILE, test_augmented)
+    write_jsonl(TRAIN_CLEAN_FILE, train_mixed)
+    write_jsonl(TEST_CLEAN_FILE, test_mixed)
+    write_jsonl(TEST_AUGMENTED_FILE, test_mixed_augmented)
+
+    write_jsonl(TRAIN_REAL_ONLY_FILE, train_real_only)
+    write_jsonl(TEST_REAL_ONLY_FILE, test_real_only)
+    write_jsonl(TEST_REAL_ONLY_AUGMENTED_FILE, test_real_only_augmented)
 
     # ── Summary ───────────────────────────────────────────────────────
-    print("\n=== Output Files ===")
-    print_distribution(f"train_clean.jsonl", train_all)
-    print_distribution(f"test_clean.jsonl", test_all)
-    print_distribution(f"test_augmented_v2.jsonl", test_augmented)
+    print("\n=== Mixed (real + synthetic) ===")
+    print_distribution("train_clean.jsonl", train_mixed)
+    print_distribution("test_clean.jsonl", test_mixed)
+    print_distribution("test_augmented_v2.jsonl", test_mixed_augmented)
+
+    print("\n=== Real-only (ablation baseline) ===")
+    print_distribution("train_real_only.jsonl", train_real_only)
+    print_distribution("test_real_only.jsonl", test_real_only)
+    print_distribution("test_real_only_augmented.jsonl", test_real_only_augmented)
+
     print(f"\nFiles written to {DATASET_DIR}/")
 
 
