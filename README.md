@@ -2,6 +2,8 @@
 
 A mixed reality application for the Meta Quest 3 that detects and blocks advertisements in real time using computer vision and a custom trained YOLOv8/v11 object detection model.
 The app runs directly on the headset, using the passthrough camera feed provided by Meta to identify ads and overlay a visual blocker on top of them in your physical environment.
+
+![Demo preview](README_images/blocker_gif.gif)
 ## Setting up the Unity environment
 
 ### Prerequisites
