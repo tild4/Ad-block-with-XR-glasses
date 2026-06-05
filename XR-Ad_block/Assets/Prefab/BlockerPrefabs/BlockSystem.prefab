@@ -42,16 +42,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 7808133812041614520}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bc53b9ab035ada148a9c911f5e579aef, type: 3}
+  m_Script: {fileID: 11500000, guid: 2546b3990c3d84146a340b5cd85e852b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockPlacementManager
   cameraAccess: {fileID: 0}
-  raycastManager: {fileID: 6515282892264298947}
+  realRaycastManager: {fileID: 0}
   cameraRig: {fileID: 0}
-  inferenceManager: {fileID: 0}
-  blockPrefab: {fileID: 3110484428955521754, guid: 84dd6ad79215cf0488d23c9989157aa3, type: 3}
-  confidenceThreshold: 0.6
-  persistenceDuration: 0.5
+  trackingManager: {fileID: 0}
+  blockPrefab: {fileID: 0}
+  useSpatialAnchors: 1
+  useCameraPlanePlacement: 1
+  placementPlaneOffsetMeters: 0.01
+  logRaycastMisses: 0
 --- !u!114 &6515282892264298947
 MonoBehaviour:
   m_ObjectHideFlags: 0
