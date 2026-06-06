@@ -1,3 +1,9 @@
+/*
+    Summary:
+    Groups recognized OCR strings with the tracked object they belong to
+    before final block/no-block classification.
+*/
+
 using System.Collections.Generic;
 
 public readonly struct TextsPerAd

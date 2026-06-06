@@ -1,21 +1,10 @@
 /*
+    Summary:
+    Converts OCR text into WordPiece token IDs and attention masks for the
+    ELECTRA NLP classifier.
 
-    PURPOSE:
-    Converts a raw string (from OCR) into token IDs for the NLP model (ELECTRA ONNX) 
-    becasue the model expects Tensor<int> input, not raw text. 
-
-
-    CURRENT FLOW:
-    
-
-    POLICY:
-    - Latest batch wins.
-    - The class owns incoming tensors and disposes dropped or consumed ones.
-    - Processing yields during heavy CPU work to avoid monopolizing the frame.
-
-    NOTE:
-    
-
+    Pipeline:
+    NLPClassifier -> WordPieceTokenizer -> NLPClassifier tensors
 */
 
 using System.Collections.Generic;
@@ -65,29 +54,27 @@ public class WordPieceTokenizer
         clsId = LookupOrThrow("[CLS]");
         sepId = LookupOrThrow("[SEP]");
 
-        Debug.Log($"[WordPiece] Loaded {vocab.Count} tokens. PAD={padId}, UNK={unkId}, CLS={clsId}, SEP={sepId}");
+        Debug.Log(
+            $"[WordPiece] Loaded {vocab.Count} tokens. PAD={padId}, UNK={unkId}, CLS={clsId}, SEP={sepId}"
+        );
     }
 
     public TokenizedResult Tokenize(string text)
     {
-        // 1. Splitta till ord
         List<string> words = PreTokenize(text);
 
-        // 2. WordPiece varje ord → samla alla token-IDs
         var allIds = new List<int>();
         foreach (string word in words)
         {
             allIds.AddRange(WordPieceTokenizeWord(word));
         }
 
-        // 3. Trunkera om för långt (behåll plats för [CLS] och [SEP])
         int maxTokens = maxLength - 2;
         if (allIds.Count > maxTokens)
         {
             allIds.RemoveRange(maxTokens, allIds.Count - maxTokens);
         }
 
-        // 4. Bygg sekvensen: [CLS] tokens... [SEP] [PAD] [PAD]...
         int[] inputIds = new int[maxLength];
         int[] attentionMask = new int[maxLength];
 
@@ -104,7 +91,6 @@ public class WordPieceTokenizer
         inputIds[sepPos] = sepId;
         attentionMask[sepPos] = 1;
 
-        // Resten är redan 0 (padId=0, attentionMask=0) tack vare int[] default
         return new TokenizedResult(inputIds, attentionMask);
     }
 
@@ -133,7 +119,6 @@ public class WordPieceTokenizer
                 continue;
             }
 
-            // Punctuation becomes its own token
             if (char.IsPunctuation(c) || char.IsSymbol(c))
             {
                 words.Add(c.ToString());
@@ -141,10 +126,13 @@ public class WordPieceTokenizer
                 continue;
             }
 
-            // Collect consecutive letters/digits as one word
             int start = i;
-            while (i < text.Length && !char.IsWhiteSpace(text[i])
-                    && !char.IsPunctuation(text[i]) && !char.IsSymbol(text[i]))
+            while (
+                i < text.Length
+                && !char.IsWhiteSpace(text[i])
+                && !char.IsPunctuation(text[i])
+                && !char.IsSymbol(text[i])
+            )
             {
                 i++;
             }
@@ -164,12 +152,10 @@ public class WordPieceTokenizer
             int end = word.Length;
             bool found = false;
 
-            // Greedy longest-match
             while (start < end)
             {
                 string substr = word.Substring(start, end - start);
 
-                // All partial matches get the "##" prefix, except the very first one
                 if (start > 0)
                 {
                     substr = "##" + substr;
@@ -185,7 +171,6 @@ public class WordPieceTokenizer
                 end--;
             }
 
-            // If no match found, use [UNK] 
             if (!found)
             {
                 tokenIds.Add(unkId);
@@ -197,10 +182,4 @@ public class WordPieceTokenizer
 
         return tokenIds;
     }
-
 }
-
-
-
-
-

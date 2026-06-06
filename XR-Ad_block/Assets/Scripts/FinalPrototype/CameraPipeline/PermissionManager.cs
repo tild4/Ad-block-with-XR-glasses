@@ -1,3 +1,9 @@
+/*
+    Summary:
+    Requests the Quest headset camera and scene permissions after the app is
+    focused so passthrough capture and environment raycasts can run.
+*/
+
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Android;

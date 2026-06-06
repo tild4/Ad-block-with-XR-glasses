@@ -1,19 +1,10 @@
 /*
-    TextDetectionInference
+    Summary:
+    Runs PP-OCR text detection on YOLO ROI tensors and emits heatmaps for
+    text box extraction.
 
-    PURPOSE:
-    Runs OCR text detection on ROI tensors delivered by the OCR pipeline manager.
-
-    CURRENT FLOW:
-    OCRPipelineManager_MVP2 -> THIS -> ProcessOCRDetection_MVP2
-
-    POLICY:
-    - Starts one OCR text-detection inference at a time.
-    - Always emits a completion event, even on early exits or failures.
-    - Owns the ROI tensor/snapshot after detaching them from the tracked object's latest detection.
-
-    NOTE:
-    Emitted tensor is a "heat map" of where text bounds might be relative to the cropped ad
+    Pipeline:
+    OCRPipelineManager -> TextDetectionInference -> ProcessOCRDetection
 */
 
 using System;
@@ -21,24 +12,19 @@ using System.Collections;
 using Unity.InferenceEngine;
 using UnityEngine;
 
-public class TextDetectionInference_MVP2 : MonoBehaviour
+public class TextDetectionInference : MonoBehaviour
 {
     [SerializeField]
     private ModelAsset modelAsset;
 
     [SerializeField]
-    private OCRPipelineManager_MVP2 ocrPipelineManager;
-
-    [SerializeField]
-    private TrackingManager_MVP2 trackingManager;
-
-    private bool isProcessing = false;
+    private OCRPipelineManager ocrPipelineManager;
 
     private Worker worker;
 
     public event Action<DetectionsPerAd> findTextRegions;
 
-    public event Action<TrackedObject, string, bool> onEarlyExitRequired; // Notify exit early if no text
+    public event Action<TrackedObject, string, bool> onEarlyExitRequired;
 
     private void Awake()
     {
@@ -89,9 +75,7 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         }
     }
 
-    // Allows external managers to ensure this component is subscribed to an OCR pipeline manager.
-    // This makes wiring resilient if inspector fields weren't set in the scene.
-    public void EnsureSubscribedTo(OCRPipelineManager_MVP2 mgr)
+    public void EnsureSubscribedTo(OCRPipelineManager mgr)
     {
         if (mgr == null)
             return;
@@ -108,7 +92,7 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         ocrPipelineManager.onReadyForOCR += HandleNewTrackedObject;
     }
 
-    public void UnregisterFrom(OCRPipelineManager_MVP2 mgr)
+    public void UnregisterFrom(OCRPipelineManager mgr)
     {
         if (mgr == null)
             return;
@@ -120,21 +104,12 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         }
     }
 
-    /*
-        Handles one tracked object that is ready for OCR text detection.
-        If the ROI tensor is missing, it still emits an empty result so the
-        OCR pipeline manager can clear its busy state and continue.
-    */
     private void HandleNewTrackedObject(TrackedObject advertisement)
     {
         if (advertisement == null || advertisement.lastDetection.RoiTensor == null)
         {
-            // Signal completion with an empty result so that
-            // OCRPipelineManager.OnOcrFinished resets isProcessing.
             Debug.LogWarning($"[TextDetect] Skipping null/disposed object, signalling completion.");
-            findTextRegions?.Invoke(
-                new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero)
-            );
+            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null));
             return;
         }
         StartCoroutine(RunOCRDetection(advertisement));
@@ -142,42 +117,21 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
 
     private IEnumerator RunOCRDetection(TrackedObject advertisement)
     {
-        // Prevents nested coroutines
-        isProcessing = true;
-
         yield return RunInference(advertisement);
-
-        isProcessing = false;
     }
 
     private IEnumerator RunInference(TrackedObject advertisement)
     {
         Tensor<float> inputTensor = null;
         RenderTexture roiSnapshot = null;
-        Rect roiContentRect = Rect.zero;
-        Rect yoloBounds = Rect.zero;
 
-        // Capture values immediately before any yield.
-        // TrackedObject.lastDetection is updated every YOLO frame (it's a shared
-        // reference), so we freeze snapshot/bounds/tensor NOW while they still
-        // correspond to each other. After a yield, lastDetection may already
-        // point to a newer frame's data.
-        //
-        // FIX: Wrapped in try/catch because TrackedObject may have expired
-        // (TTL) between being dequeued and reaching this point. In that case
-        // its tensor could be disposed, causing an ObjectDisposedException.
-        // Without this catch the coroutine would die silently and
-        // findTextRegions would never fire, deadlocking the pipeline.
+        // Capture the current tensor and snapshot before yielding; tracking can
+        // update the same object while OCR is running.
         try
         {
             inputTensor = advertisement.lastDetection.RoiTensor;
-            roiContentRect = advertisement.lastDetection.RoiContentRectNormalized;
             roiSnapshot = advertisement.lastDetection.RoiSnapshot;
-            yoloBounds = advertisement.lastDetection.bboxNormalized;
-            // Transfer tensor/snapshot ownership to this coroutine so tracking can
-            // safely update the object while OCR is running.
             advertisement.lastDetection.RoiTensor = null;
-            // Setting RoiSnapshot to null transfers ownership to the OCR pipeline.
             advertisement.lastDetection.RoiSnapshot = null;
         }
         catch (Exception e)
@@ -195,20 +149,15 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
                 roiSnapshot.Release();
                 Destroy(roiSnapshot);
             }
-            // Always signal completion so OCRPipelineManager.OnOcrFinished
-            // resets isProcessing. Without this the pipeline permanently deadlocks.
-            findTextRegions?.Invoke(
-                new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero)
-            );
+
+            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null));
             yield break;
         }
 
         Tensor<float> outputTensor = null;
         bool inferenceSucceeded = false;
 
-        // The hot-path PPOCR preprocessing is now split between:
-        // - ConvertToTensor.BgrChannelTransform in YOLOPostProcessor_MVP2
-        // - the FunctionalGraph wrapper created in Awake for (pixel - mean) / std
+        // PPOCR normalization is wrapped into the model graph in Awake.
         PipelineProfiler.begin("OCR Preprocess");
         PipelineProfiler.end("OCR Preprocess");
 
@@ -239,9 +188,7 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
                 roiSnapshot.Release();
                 Destroy(roiSnapshot);
             }
-            findTextRegions?.Invoke(
-                new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero)
-            );
+            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null));
             yield break;
         }
 
@@ -255,9 +202,6 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
         PipelineProfiler.end("OCR TextDetect");
         inputTensor.Dispose();
 
-        // FIX: Wrapped GetResult in try/catch — the async readback can fail
-        // if the GPU resource was released during the wait (e.g. scene unload).
-        // On failure we signal completion to prevent pipeline deadlock.
         try
         {
             outputTensor = outputAwaiter.GetResult();
@@ -272,7 +216,6 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
 
         if (inferenceSucceeded)
         {
-            // check if heatmap contains any value above threshold to determine if text is likely present
             bool hasText = false;
             float[] tensorData = outputTensor.DownloadToArray();
 
@@ -291,7 +234,6 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
                     $"[Early Exit] Early Exit for ID {advertisement.id} - no text found in heatmap."
                 );
 
-                // Dispose the output tensor immediately since we're not sending it to OCR, to free up resources.
                 outputTensor.Dispose();
                 if (roiSnapshot != null)
                 {
@@ -299,35 +241,27 @@ public class TextDetectionInference_MVP2 : MonoBehaviour
                     Destroy(roiSnapshot);
                 }
 
-                // Notify tracking manager
                 onEarlyExitRequired?.Invoke(advertisement, "", true);
 
-                // Signal with an empty result to reset isProcessing and move on to the next item
-                findTextRegions?.Invoke(
-                    new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero)
-                );
+                findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null));
                 yield break;
             }
         }
-        else // On inference failed completely
+        else
         {
             if (roiSnapshot != null)
             {
                 roiSnapshot.Release();
                 Destroy(roiSnapshot);
             }
-            findTextRegions?.Invoke(
-                new DetectionsPerAd(advertisement, null, null, Rect.zero, Rect.zero)
-            );
+            findTextRegions?.Invoke(new DetectionsPerAd(advertisement, null, null));
             yield break;
         }
 
         DetectionsPerAd findDetections = new DetectionsPerAd(
             advertisement,
             outputTensor,
-            roiSnapshot,
-            yoloBounds,
-            roiContentRect
+            roiSnapshot
         );
 
         findTextRegions?.Invoke(findDetections);

@@ -1,11 +1,14 @@
-using System;
+/*
+    Summary:
+    Carries a sampled camera texture, pose, and resolution through the
+    detection and tracking pipeline.
+*/
+
 using UnityEngine;
 
 public struct FrameData
 {
     public Texture currentTexture;
     public Pose currentPose;
-    public Ray currentRay;
     public Vector2Int currentResolution;
-    public DateTime currentTimestamp;
 }

@@ -1,19 +1,16 @@
 /*
-    CaptureCameraFrame
+    Summary:
+    Samples the Meta Quest passthrough camera at a fixed interval and emits
+    camera texture data for the detection pipeline.
 
-    PURPOSE:
-    Reads camera data from Meta Quest passthrough camera
-    Packages relevant data into a FrameData struct
-    Emits it through an event (newFrame)
+    Pipeline:
+    PassthroughCameraAccess -> CaptureCameraFrame -> YOLOInferenceManager
 
-    ARCHITECTURE:
-    - Polls hardware state in Update()
-    - If valid new frame exists → creates FrameData
-    - Broadcasts it via event
+    Note:
+    This project uses and adapts sample code provided through the Meta XR SDK.
 
-    IMPORTANT:
-    This class does NOT process images.
-    It only collects and distributes camera frame data.
+    Copyright © Meta Platform Technologies, LLC and its affiliates.
+    All rights reserved.
 */
 using System;
 using Meta.XR;
@@ -27,26 +24,10 @@ public class CaptureCameraFrame : MonoBehaviour
     [SerializeField]
     private float processingInterval = 0.15f;
 
-    // Used by ViewportPointToRay indicates the center of input camera
-    private Vector2 normalizedViewportPoint = new Vector2(0.5f, 0.5f);
-
     private float lastProcessTime = 0f;
 
-    /*
-    public struct FrameData
-    {
-        public Texture currentTexture;
-        public Pose currentPose;
-        public Ray currentRay;
-        public Vector2Int currentResolution;
-        public DateTime currentTimestamp;
-    }
-    */
-
-    // Event-based architecture
     public event Action<FrameData> newFrame;
 
-    // Update every frame
     private void Update()
     {
         if (Time.time - lastProcessTime < processingInterval)
@@ -56,35 +37,25 @@ public class CaptureCameraFrame : MonoBehaviour
 
         lastProcessTime = Time.time;
 
-        // Guard rail
         if (cameraAccess == null || !cameraAccess.enabled || !cameraAccess.IsPlaying)
         {
             Debug.Log("failed frame");
             return;
         }
 
-        //PassthroughCameraAccess.CameraIntrinsics intrinsics = cameraAccess.Intrinsics; *vet ej om detta behövs*
-
-        // Contruct frame
         PipelineProfiler.begin("1. Capture Camera Data");
 
         FrameData frame = new FrameData
         {
             currentTexture = cameraAccess.GetTexture(),
             currentPose = cameraAccess.GetCameraPose(),
-            currentRay = cameraAccess.ViewportPointToRay(normalizedViewportPoint),
             currentResolution = cameraAccess.CurrentResolution,
-            currentTimestamp = cameraAccess.Timestamp,
         };
 
         PipelineProfiler.set("Cam Res", $"{frame.currentResolution.x}x{frame.currentResolution.y}");
 
         PipelineProfiler.end("1. Capture Camera Data");
 
-        // Invokes event -> new frame ready to be utilized
-
         newFrame?.Invoke(frame);
-
-        Debug.Log("frame invoked");
     }
 }

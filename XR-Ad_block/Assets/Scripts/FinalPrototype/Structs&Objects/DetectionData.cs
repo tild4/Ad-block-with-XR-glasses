@@ -1,6 +1,7 @@
 /*
-    DetectionData
-    Struct to hold data for each detected object, including bounding box, confidence, frame info, and ROI data for OCR.
+    Summary:
+    Carries one YOLO detection through tracking and OCR preparation,
+    including the ROI tensor/snapshot owned by downstream OCR stages.
 */
 
 using Unity.InferenceEngine;
@@ -14,6 +15,5 @@ public struct DetectionData
     public float confidence;
     public FrameData frame;
     public Tensor<float> RoiTensor;
-    public RenderTexture RoiSnapshot; // Persistent copy of the YOLO ROI crop for OCR
-    public Rect RoiContentRectNormalized; // Content rect inside RoiSnapshot after aspect padding
+    public RenderTexture RoiSnapshot;
 }

@@ -1,19 +1,10 @@
 /*
-    ScrollViewThumbstick
+    Summary:
+    Scrolls the options image list with the right thumbstick while the
+    options panel is active.
 
-    PURPOSE:
-    Enables scrolling through the Options image ScrollView using the
-    right thumbstick on the Meta Quest controller without requiring
-    the user to first focus the scroll view with the ray.
-
-    ARCHITECTURE:
-    - Reads OVRInput right thumbstick Y axis each Update frame.
-    - Applies scroll directly to the ScrollRect's vertical position.
-    - Dead zone prevents drift from slight thumbstick movement.
-
-    SETUP:
-    - Attach to the ImageScroller GameObject.
-    - Assign the ScrollRect reference in the Inspector.
+    Pipeline:
+    OVRInput -> ScrollViewThumbstick -> ScrollRect
 */
 
 using UnityEngine;
@@ -35,7 +26,6 @@ public class ScrollViewThumbstick : MonoBehaviour
         if (scrollRect == null)
             return;
 
-        // Only scroll when Options panel is active
         if (!gameObject.activeInHierarchy)
             return;
 

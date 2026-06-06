@@ -1,24 +1,18 @@
-  /*
+/*
+    Summary:
+    Classifies combined OCR text with a fine-tuned ELECTRA ONNX model and
+    returns category probabilities to the decision stage.
 
-      PURPOSE:
-      Classifies OCR text as one of four categories using the fine-tuned
-      ELECTRA ONNX model. Called by DecisionManager to replace the
-      simple heuristic with an actual NLP prediction.
-
-      CURRENT FLOW:
-      DecisionManager -> THIS (classify combined text) -> returns result
-
-      POLICY:
-      - Synchronous tokenization, async ONNX inference via coroutine.
-  */
-
+    Pipeline:
+    DecisionManager -> NLPClassifier -> DecisionManager callback
+*/
 
 using System;
 using System.Collections;
 using Unity.InferenceEngine;
 using UnityEngine;
 
-public class NLPClassifier_MVP2 : MonoBehaviour
+public class NLPClassifier : MonoBehaviour
 {
     [SerializeField]
     private ModelAsset modelAsset;
@@ -33,9 +27,7 @@ public class NLPClassifier_MVP2 : MonoBehaviour
     private WordPieceTokenizer tokenizer;
     private bool isProcessing = false;
 
-    // Must match label_schema.py LABELS order
-    private static readonly string[] Labels =
-        { "non-ad", "socially beneficial", "ad" };
+    private static readonly string[] Labels = { "non-ad", "socially beneficial", "ad" };
 
     private void Awake()
     {
@@ -52,9 +44,6 @@ public class NLPClassifier_MVP2 : MonoBehaviour
         Debug.Log("[NLPClassifier] Ready.");
     }
 
-
-
-    // Classifies combined OCR text. Calls onResult(label, confidence) when done.
     public void Classify(string text, Action<string, float[]> onResult)
     {
         if (isProcessing || worker == null)
@@ -69,23 +58,19 @@ public class NLPClassifier_MVP2 : MonoBehaviour
     {
         isProcessing = true;
 
-        // 1. Tokenize (synchronous)
         TokenizedResult tokens = tokenizer.Tokenize(text);
 
-        // 2. Build tensors: shape [1, maxLength]
         var shape = new TensorShape(1, maxLength);
         var inputIds = new Tensor<int>(shape, tokens.inputIds);
         var attentionMask = new Tensor<int>(shape, tokens.attentionMask);
-        var tokenTypeIds = new Tensor<int>(shape, new int[maxLength]); // all zeros
+        var tokenTypeIds = new Tensor<int>(shape, new int[maxLength]);
 
-        // 3. Schedule inference
         PipelineProfiler.begin("NLP Classify");
         worker.SetInput("input_ids", inputIds);
         worker.SetInput("attention_mask", attentionMask);
         worker.SetInput("token_type_ids", tokenTypeIds);
         worker.Schedule();
 
-        // 4. Async readback 
         var outputAwaiter = (worker.PeekOutput(0) as Tensor<float>)
             .ReadbackAndCloneAsync()
             .GetAwaiter();
@@ -97,12 +82,10 @@ public class NLPClassifier_MVP2 : MonoBehaviour
 
         PipelineProfiler.end("NLP Classify");
 
-        // 5. Dispose input tensors
         inputIds.Dispose();
         attentionMask.Dispose();
         tokenTypeIds.Dispose();
 
-        // 6. Parse output logits to softmax
         Tensor<float> output = outputAwaiter.GetResult();
         if (output == null)
         {
@@ -132,17 +115,13 @@ public class NLPClassifier_MVP2 : MonoBehaviour
                 bestLabel = Labels[i];
         }
 
-        Debug.Log($"[NLPClassifier] '{text}' → {bestLabel} ({probs[System.Array.IndexOf(Labels, bestLabel)]:P0})");
+        Debug.Log(
+            $"[NLPClassifier] '{text}' -> {bestLabel} ({probs[System.Array.IndexOf(Labels, bestLabel)]:P0})"
+        );
         onResult?.Invoke(bestLabel, probs);
 
         isProcessing = false;
     }
-
-
-
-
-
-
 
     private void OnDestroy()
     {

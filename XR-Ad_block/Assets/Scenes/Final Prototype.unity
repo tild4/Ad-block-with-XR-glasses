@@ -5909,7 +5909,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AppStateManager
   captureCameraFrame: {fileID: 1375867292}
-  sentisInferenceManager: {fileID: 2111414574}
+  yoloInferenceManager: {fileID: 2111414574}
   blockPlacementManager: {fileID: 1598762290}
   startScreenUI: {fileID: 1906228730}
   confirmStopUI: {fileID: 1493904863}
@@ -7887,7 +7887,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 38a1621b9886041f89352e46a9cd27dc, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TrackingManager_MVP2
+  m_EditorClassIdentifier: Assembly-CSharp::TrackingManager
   yoloPostProcessor: {fileID: 2111414573}
   decisionManager: {fileID: 1598762291}
   textDetectionInference: {fileID: 1646127924}
@@ -7907,7 +7907,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5ec03f23d721d48c79eb74d9e1d9c124, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::OCRPipelineManager_MVP2
+  m_EditorClassIdentifier: Assembly-CSharp::OCRPipelineManager
   trackingManager: {fileID: 1219656916}
   textDetectionInference: {fileID: 1646127924}
 --- !u!4 &1219656918
@@ -11289,7 +11289,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2546b3990c3d84146a340b5cd85e852b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BlockPlacementManager_MVP2
+  m_EditorClassIdentifier: Assembly-CSharp::BlockPlacementManager
   cameraAccess: {fileID: 1375867291}
   realRaycastManager: {fileID: 1598762292}
   cameraRig: {fileID: 1375867290}
@@ -11597,7 +11597,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 58d448df9893c482da21ecf510edb901, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TextDetectionInference_MVP2
+  m_EditorClassIdentifier: Assembly-CSharp::TextDetectionInference
   modelAsset: {fileID: 5022602860645237092, guid: 01e4f6ce9063d4fdcb2e8ec1e3e46d8d, type: 3}
   ocrPipelineManager: {fileID: 1219656917}
   trackingManager: {fileID: 0}
@@ -11612,7 +11612,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eb9340e915d03414db1a9cedf87119ac, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NLPClassifier_MVP2
+  m_EditorClassIdentifier: Assembly-CSharp::NLPClassifier
   modelAsset: {fileID: 5022602860645237092, guid: 978313e21621543c491437c0605d4da3, type: 3}
   vocabAsset: {fileID: 4900000, guid: dd346602187234bb4b915cd7ddf1512e, type: 3}
   maxLength: 64
@@ -11627,7 +11627,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a216096a3c14dbda7a11c7827f78de, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TextRecognitionInference_MVP2
+  m_EditorClassIdentifier: Assembly-CSharp::TextRecognitionInference
   getROIText: {fileID: 1646127927}
   tensorTargetHeight: 48
   tensorTargetWidth: 320
@@ -11645,7 +11645,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 48dd46d9bbb9c4a72910e3ac234663a0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProcessOCRDetection_MVP2
+  m_EditorClassIdentifier: Assembly-CSharp::ProcessOCRDetection
   debugPreviewRT: {fileID: 0}
   textDetectionInference: {fileID: 1646127924}
   maskThreshold: 0.05
@@ -14511,8 +14511,8 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a64f7b353cba34f098cb91920c0d5f37, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::YOLOPostProcessor_MVP2
-  sentisInferenceManager: {fileID: 2111414574}
+  m_EditorClassIdentifier: Assembly-CSharp::YOLOPostProcessor
+  yoloInferenceManager: {fileID: 2111414574}
   cropMaterial: {fileID: 2100000, guid: ac1ddba664915451b8b511e4a3544091, type: 2}
   iouThreshold: 0.2
   tensorTargetHeight: 640
@@ -14528,7 +14528,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f679bc1355c5d46a3b984e4b8623dccf, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SentisInferenceManager
+  m_EditorClassIdentifier: Assembly-CSharp::YOLOInferenceManager
   modelAsset: {fileID: 5022602860645237092, guid: 414029680810042a09a60e625032a16a, type: 3}
   confidenceThreshold: 0.5
   captureCameraFrame: {fileID: 1375867292}

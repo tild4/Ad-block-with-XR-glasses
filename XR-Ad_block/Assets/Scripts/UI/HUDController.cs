@@ -1,16 +1,9 @@
 /*
-    HUDController
+    Summary:
+    Shows the temporary HUD toast used when the blocking pipeline starts.
 
-    PURPOSE:
-    Manages the heads-up display toast notification shown to the user
-    when the blocking pipeline starts. Fades a message in, holds it,
-    then fades it out over a configurable duration.
-
-    ARCHITECTURE:
-    - Driven by AppStateManager via ShowToast coroutine.
-    - Uses TMPro for text rendering.
-    - Alpha is animated per-frame using MoveTowards for consistent speed
-      regardless of frame rate.
+    Pipeline:
+    AppStateManager -> HUDController
 */
 
 using System.Collections;
@@ -41,7 +34,6 @@ public class HUDController : MonoBehaviour
     {
         toastText.text = message;
 
-        //Fade in
         float alpha = 0f;
         Color c = toastText.color;
         while (alpha < 1f)
@@ -53,7 +45,6 @@ public class HUDController : MonoBehaviour
 
         yield return new WaitForSeconds(duration);
 
-        //Fade out
         while (alpha > 0f)
         {
             alpha = Mathf.MoveTowards(alpha, 0f, Time.deltaTime * fadeSpeed);
@@ -62,6 +53,6 @@ public class HUDController : MonoBehaviour
         }
 
         toastText.text = "";
-        gameObject.SetActive(false); // hide HUD after toast completes
+        gameObject.SetActive(false);
     }
 }

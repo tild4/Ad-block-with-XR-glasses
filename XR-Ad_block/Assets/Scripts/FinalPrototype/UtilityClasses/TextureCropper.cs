@@ -1,3 +1,9 @@
+/*
+    Summary:
+    Crops normalized texture regions into render textures using the shared
+    crop material used by YOLO and OCR preprocessing.
+*/
+
 using UnityEngine;
 
 public static class TextureCropper
@@ -8,7 +14,6 @@ public static class TextureCropper
         return new Rect(topLeftRect.x, uvY, topLeftRect.width, topLeftRect.height);
     }
 
-    //crops the region corresponding to a bounding box
     public static bool CropBoundingBox(
         Rect boundingBox,
         Texture source,
@@ -43,7 +48,6 @@ public static class TextureCropper
         return true;
     }
 
-    // Crops a box expressed in top-left-origin normalized image coordinates.
     public static bool CropBoundingBoxTopLeft(
         Rect boundingBox,
         Texture source,

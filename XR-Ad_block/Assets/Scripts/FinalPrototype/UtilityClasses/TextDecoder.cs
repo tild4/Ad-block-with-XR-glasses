@@ -1,20 +1,11 @@
 /*
-    TextDecoder.cs
+    Summary:
+    Decodes a PP-OCR recognition output tensor into text using the
+    character dictionary from the model YAML file.
 
-    PURPOSE:
-    Converts a PaddleOCR output tensor into a human-readable string.
-    
-    ARCHITECTURE:
-    - Uses a Tensor<float> from TextRecognition.cs
-    - Uses a yml file to map class indices to characters
-    - Decodes the tensor into a string based on the highest confidence class at each position
-    
-
-    IMPORTANT:
-    
+    Pipeline:
+    TextRecognitionInference -> TextDecoder -> recognized string
 */
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using Unity.InferenceEngine;
@@ -30,12 +21,8 @@ public class TextDecoder
         this.indexToChar = parseYml(file);
     }
 
-    // Check size for debug purposes, remove later
-    public int DictionarySize => indexToChar.Count;
-
     public string decode(Tensor<float> tensor)
     {
-        // The output tensor shape is (1, sequence_length, num_classes)
         int numClasses = tensor.shape[2];
         int sequenceLength = tensor.shape[1];
 
@@ -50,7 +37,6 @@ public class TextDecoder
         var decodedString = new StringBuilder(sequenceLength);
         int previousIndex = -1;
 
-        // For each position in the sequence, find the class with the highest confidence
         for (int i = 0; i < sequenceLength; i++)
         {
             float maxConfidence = float.MinValue;
@@ -66,14 +52,12 @@ public class TextDecoder
                 }
             }
 
-            // Skip consecutive duplicates
             if (maxIndex == previousIndex)
             {
                 continue;
             }
             previousIndex = maxIndex;
 
-            // Skip blank token (index 0)
             if (maxIndex == 0)
             {
                 continue;
@@ -84,7 +68,6 @@ public class TextDecoder
                 continue;
             }
 
-            // Map the class index to a character and append to the decoded string
             if (indexToChar.TryGetValue(maxIndex, out char character))
             {
                 decodedString.Append(character);
@@ -98,9 +81,6 @@ public class TextDecoder
         return decodedString.ToString();
     }
 
-    // Parses the inference.yml character_dict section.
-    // Each entry is a YAML list item like "  - A" or "  - '!'"
-    // Index 0 in the model output is reserved for "blank", so the first entry maps to index 1.
     private Dictionary<int, char> parseYml(TextAsset file)
     {
         var map = new Dictionary<int, char>();
@@ -122,18 +102,14 @@ public class TextDecoder
             if (!inDict)
                 continue;
 
-            // Stop when we hit a line that isn't a list item (new YAML section or end of file)
             if (!line.StartsWith("  -"))
                 break;
 
-            // Extract the character after "  - "
             string value = line.Substring(4).Trim();
 
-            // Remove YAML quoting: '!' → !
             if (value.Length >= 2 && value[0] == '\'' && value[value.Length - 1] == '\'')
             {
                 value = value.Substring(1, value.Length - 2);
-                // Handle escaped single quote: '''' becomes '
                 value = value.Replace("''", "'");
             }
 

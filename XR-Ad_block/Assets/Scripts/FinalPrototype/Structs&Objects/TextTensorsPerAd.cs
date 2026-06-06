@@ -1,3 +1,9 @@
+/*
+    Summary:
+    Groups cropped text-region tensors with the tracked object they came
+    from before OCR recognition.
+*/
+
 using System.Collections.Generic;
 
 public readonly struct TextTensorsPerAd

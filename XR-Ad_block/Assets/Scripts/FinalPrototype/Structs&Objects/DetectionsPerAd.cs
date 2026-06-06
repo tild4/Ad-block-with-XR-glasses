@@ -1,3 +1,9 @@
+/*
+    Summary:
+    Carries one text-detection result from OCR inference into OCR
+    post-processing, along with the ROI snapshot used for word crops.
+*/
+
 using Unity.InferenceEngine;
 using UnityEngine;
 
@@ -6,22 +12,12 @@ public readonly struct DetectionsPerAd
 {
     public readonly TrackedObject trackedObject;
     public readonly Tensor<float> findTextTensor;
-    public readonly RenderTexture roiSnapshot; // Frozen ROI crop for text region cropping
-    public readonly Rect yoloBounds;           // YOLO bbox at time of snapshot
-    public readonly Rect roiContentRectNormalized; // Content rect inside roiSnapshot after aspect padding
+    public readonly RenderTexture roiSnapshot;
 
-    public DetectionsPerAd(
-        TrackedObject ad,
-        Tensor<float> tensor,
-        RenderTexture snapshot,
-        Rect bounds,
-        Rect contentRectNormalized
-    )
+    public DetectionsPerAd(TrackedObject ad, Tensor<float> tensor, RenderTexture snapshot)
     {
         trackedObject = ad;
         findTextTensor = tensor;
         roiSnapshot = snapshot;
-        yoloBounds = bounds;
-        roiContentRectNormalized = contentRectNormalized;
     }
 }

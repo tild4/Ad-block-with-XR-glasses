@@ -1,64 +1,58 @@
-// Copyright (c). All rights reserved.
-//
-// This file contains code inspired by samples from Meta Platforms, Inc.
-// It is not a direct copy of Meta source; the implementation and
-// copyright belong to this project unless otherwise stated.
-//
 /*
-    TrackingManager
-    - Maintains a list of currently tracked objects based on YOLO detections.
-    - Matches new detections to existing objects using IOU and reprojection.
-    - Assigns unique IDs to objects and tracks their time to live (TTL).
-    - Fires events when new OCR candidates are created and when tracked objects are updated.
+    Summary:
+    Tracks YOLO detections over time, associates new detections with active
+    objects, and emits updates for OCR and block placement.
+
+    Pipeline:
+    YOLOPostProcessor -> TrackingManager -> OCRPipelineManager,
+    DecisionManager, BlockPlacementManager
+
+    Note:
+    This project uses and adapts sample code provided through the Meta XR SDK.
+
+    Copyright © Meta Platform Technologies, LLC and its affiliates.
+    All rights reserved.
 */
 
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TrackingManager_MVP2 : MonoBehaviour
+public class TrackingManager : MonoBehaviour
 {
     [Header("Dependencies")]
     [SerializeField]
-    private YOLOPostProcessor_MVP2 yoloPostProcessor;
+    private YOLOPostProcessor yoloPostProcessor;
 
     [SerializeField]
     private DecisionManager decisionManager;
 
     [SerializeField]
-    private TextDetectionInference_MVP2 textDetectionInference;
+    private TextDetectionInference textDetectionInference;
 
     [SerializeField]
     private float instantYOLOThreshold = 0.8f;
 
     [Header("Tracking Settings")]
     [SerializeField]
-    private float timeToLive = 2.0f; // Seconds before object expires
+    private float timeToLive = 2.0f;
 
     [SerializeField]
-    private float iouThreshold = 0.5f; // Threshold for matching detections
+    private float iouThreshold = 0.5f;
 
     [Header("Debug")]
     [SerializeField]
     private bool logAssociationMisses;
 
     [SerializeField]
-    private int maxTrackedObjects = 5; // Limit to prevent overload for testing
+    private int maxTrackedObjects = 5;
 
-    // List of currently tracked objects
     private List<TrackedObject> trackedObjects = new List<TrackedObject>();
-
-    // ID counter for new objects
     private int nextId = 0;
 
-    // Events
     public event Action<TrackedObject> onNewOCRCandidate;
     public event Action<List<TrackedObject>> onTrackedObjectsUpdated;
 
-    /*
-        Subscribes to events from YOLO post-processor, DecisionManager,
-        and (optionally) the OCR pipeline early-exit signal.
-    */
     private void OnEnable()
     {
         if (yoloPostProcessor != null)
@@ -75,9 +69,6 @@ public class TrackingManager_MVP2 : MonoBehaviour
         }
     }
 
-    /*
-        Unsubscribe from events to prevent memory leaks and unintended behavior when disabled.
-    */
     private void OnDisable()
     {
         if (yoloPostProcessor != null)
@@ -94,34 +85,20 @@ public class TrackingManager_MVP2 : MonoBehaviour
         }
     }
 
-    /*
-        Update is called once per frame.
-        - Decreases the time to live for all tracked objects.
-        - Removes any objects whose TTL has expired.
-    */
     private void Update()
     {
-        // Decrease time to live for all objects
         foreach (var obj in trackedObjects)
         {
             obj.timeToLive -= Time.deltaTime;
         }
 
-        // Remove expired objects
         RemoveExpired();
     }
 
-    /*
-        Main method to update tracking with new detections.
-        - For each new detection, tries to match it with an existing tracked object using IOU.
-        - If a match is found, updates the existing object; if not, creates a new tracked object.
-        - Resets the TTL for matched objects and sends new candidates for OCR analysis.
-    */
     private void UpdateDetections(List<DetectionData> detections)
     {
         Debug.Log($"[Tracking] Received {detections.Count} new detections from YOLO.");
 
-        // Check if we're at capacity before processing detections
         bool suppressNewObjects = trackedObjects.Count >= maxTrackedObjects;
         if (suppressNewObjects)
         {
@@ -132,7 +109,6 @@ public class TrackingManager_MVP2 : MonoBehaviour
 
         foreach (var detection in detections)
         {
-            // Try to match with existing tracked object
             bool allowCreate = !suppressNewObjects && trackedObjects.Count < maxTrackedObjects;
             bool wasNewlyCreated;
             TrackedObject matchedObject = MatchOrCreate(
@@ -143,11 +119,9 @@ public class TrackingManager_MVP2 : MonoBehaviour
 
             if (matchedObject == null)
             {
-                // At capacity and no match found - ignore this detection.
                 continue;
             }
 
-            // Dispose previous tensor if it's different from the incoming one
             var prevTensor = matchedObject.lastDetection.RoiTensor;
             if (prevTensor != null && prevTensor != detection.RoiTensor)
             {
@@ -158,7 +132,6 @@ public class TrackingManager_MVP2 : MonoBehaviour
                 catch (Exception) { }
             }
 
-            // Release old ROI snapshot if still present (OCR pipeline didn't claim it)
             var prevSnapshot = matchedObject.lastDetection.RoiSnapshot;
             if (prevSnapshot != null && prevSnapshot != detection.RoiSnapshot)
             {
@@ -166,11 +139,9 @@ public class TrackingManager_MVP2 : MonoBehaviour
                 Destroy(prevSnapshot);
             }
 
-            // Update the object
             matchedObject.lastDetection = detection;
-            matchedObject.timeToLive = timeToLive; // Reset TTL
+            matchedObject.timeToLive = timeToLive;
 
-            // Analyzed objects don't need OCR; release snapshot immediately
             if (matchedObject.isAnalyzed && matchedObject.lastDetection.RoiSnapshot != null)
             {
                 matchedObject.lastDetection.RoiSnapshot.Release();
@@ -178,23 +149,15 @@ public class TrackingManager_MVP2 : MonoBehaviour
                 matchedObject.lastDetection.RoiSnapshot = null;
             }
 
-            // If this is a new object, fire the event to trigger OCR analysis
             if (wasNewlyCreated)
             {
                 onNewOCRCandidate?.Invoke(matchedObject);
             }
         }
 
-        // Notify subscribers that tracking has been updated
         onTrackedObjectsUpdated?.Invoke(trackedObjects);
     }
 
-    /*
-        Tries to match a new detection to an existing tracked object using IOU and reprojection.
-        If a match is found above the threshold, returns the matched object.
-        If no match is found and allowCreate is true, creates a new tracked object and returns it.
-        Otherwise, returns null.
-    */
     private TrackedObject MatchOrCreate(
         DetectionData detection,
         bool allowCreate,
@@ -207,7 +170,6 @@ public class TrackingManager_MVP2 : MonoBehaviour
         Camera cam = Camera.main;
 
         // YOLO bboxes are top-left-origin; Unity viewport is bottom-left-origin.
-        // For any viewport-based reprojection/IOU, we must compare in the same coordinate system.
         Rect detectionViewportRect = ToViewportRect(detection.bboxNormalized);
 
         foreach (var obj in trackedObjects)
@@ -225,8 +187,6 @@ public class TrackingManager_MVP2 : MonoBehaviour
                     cam
                 );
 
-                // Reprojection can produce an empty/invalid rect (e.g., corners behind camera).
-                // In that case, fall back to a simple IOU in the current viewport space.
                 if (reprojected.width <= 0f || reprojected.height <= 0f)
                 {
                     iou = CalculateIOU(detectionViewportRect, trackedViewportRect);
@@ -238,7 +198,6 @@ public class TrackingManager_MVP2 : MonoBehaviour
             }
             else
             {
-                // Fallback without camera: raw IOU in the YOLO coordinate system.
                 iou = CalculateIOU(detection.bboxNormalized, obj.lastDetection.bboxNormalized);
             }
 
@@ -267,7 +226,6 @@ public class TrackingManager_MVP2 : MonoBehaviour
             return null;
         }
 
-        // No match - create new tracked object
         TrackedObject newObj = new TrackedObject
         {
             id = nextId++,
@@ -286,14 +244,8 @@ public class TrackingManager_MVP2 : MonoBehaviour
         return newObj;
     }
 
-    /*
-        Converts a YOLO normalized bounding box (x, y, width, height) with top-left origin
-        to a Unity viewport rectangle with bottom-left origin.
-    */
     private static Rect ToViewportRect(Rect yoloNormalizedRect)
     {
-        // YOLO: (x, y) = top-left. Viewport: (x, y) = bottom-left.
-        // Keep width/height unchanged; only Y origin flips.
         float viewportYMin = 1f - yoloNormalizedRect.yMax;
         return new Rect(
             yoloNormalizedRect.xMin,
@@ -303,21 +255,13 @@ public class TrackingManager_MVP2 : MonoBehaviour
         );
     }
 
-    /*
-        Reprojects a bounding box from an old camera pose to a new camera pose.
-        This accounts for camera movement between frames and can help maintain tracking of objects even when the camera moves.
-        If the reprojected box is invalid (e.g., all corners behind the camera), returns an empty rect.
-    */
     private static Rect ReprojectBbox(Rect oldViewportRect, Pose oldPose, Pose newPose, Camera cam)
     {
-        // Relative rotation from old frame to new frame
         Quaternion relativeRot = Quaternion.Inverse(newPose.rotation) * oldPose.rotation;
 
-        // Current camera rotation (used as intermediate reference, cancels out)
         Quaternion camRot = cam.transform.rotation;
         Quaternion invCamRot = Quaternion.Inverse(camRot);
 
-        // 4 corners of old bbox in viewport space
         Vector2 bottomLeft = new Vector2(oldViewportRect.xMin, oldViewportRect.yMin);
         Vector2 bottomRight = new Vector2(oldViewportRect.xMax, oldViewportRect.yMin);
         Vector2 topRight = new Vector2(oldViewportRect.xMax, oldViewportRect.yMax);
@@ -333,25 +277,17 @@ public class TrackingManager_MVP2 : MonoBehaviour
 
         foreach (var corner in corners)
         {
-            // Viewport → world ray direction (depends on current cam rotation + FOV)
             Ray ray = cam.ViewportPointToRay(new Vector3(corner.x, corner.y, 0f));
 
-            // World direction → camera-local direction (removes current cam rotation)
             Vector3 localDir = invCamRot * ray.direction;
-
-            // Apply relative rotation (old frame → new frame)
             Vector3 newLocalDir = relativeRot * localDir;
 
-            // Skip corners that end up behind the camera
             if (newLocalDir.z <= 0f)
             {
                 continue;
             }
 
-            // Camera-local → world direction (re-applies current cam rotation)
             Vector3 newWorldDir = camRot * newLocalDir;
-
-            // Project back to viewport: use a point along the direction
             Vector3 worldPoint = cam.transform.position + newWorldDir * 10f;
             Vector3 vp = cam.WorldToViewportPoint(worldPoint);
 
@@ -362,7 +298,6 @@ public class TrackingManager_MVP2 : MonoBehaviour
             anyVisible = true;
         }
 
-        // If no corners are visible, return empty rect (no match possible)
         if (!anyVisible)
         {
             return new Rect(0, 0, 0, 0);
@@ -371,23 +306,16 @@ public class TrackingManager_MVP2 : MonoBehaviour
         return new Rect(minX, minY, maxX - minX, maxY - minY);
     }
 
-    /*
-        Calculates the Intersection over Union (IOU) between two rectangles.
-        Returns a value between 0 and 1, where 0 means no overlap and 1 means perfect overlap.
-    */
     private float CalculateIOU(Rect a, Rect b)
     {
-        // Calculate intersection
         float xOverlap = Mathf.Max(0, Mathf.Min(a.xMax, b.xMax) - Mathf.Max(a.xMin, b.xMin));
         float yOverlap = Mathf.Max(0, Mathf.Min(a.yMax, b.yMax) - Mathf.Max(a.yMin, b.yMin));
         float intersectionArea = xOverlap * yOverlap;
 
-        // Calculate union
         float aArea = a.width * a.height;
         float bArea = b.width * b.height;
         float unionArea = aArea + bArea - intersectionArea;
 
-        // Avoid division by zero
         if (unionArea == 0)
         {
             return 0f;
@@ -396,14 +324,8 @@ public class TrackingManager_MVP2 : MonoBehaviour
         return intersectionArea / unionArea;
     }
 
-    /*
-        Called by DecisionManager (and optionally by TextDetectionInference early-exit)
-        with OCR results and blocking decision. Updates the TrackedObject with text,
-        shouldBlock flag, and marks it as analyzed.
-    */
     public void UpdateOCRResult(TrackedObject obj, string text, bool shouldBlock)
     {
-        // Find the object in our list
         TrackedObject tracked = trackedObjects.Find(t => t.id == obj.id);
 
         if (tracked != null)
@@ -416,10 +338,9 @@ public class TrackingManager_MVP2 : MonoBehaviour
                 $"Updated OCR result for object {obj.id}: '{text}', shouldBlock={shouldBlock}"
             );
 
-            // Notify subscribers
             Debug.Log(
                 $"[Tracking] Firing onTrackedObjectsUpdated, subscribers: {onTrackedObjectsUpdated?.GetInvocationList()?.Length ?? 0}"
-            ); // Pontus Debugging
+            );
             onTrackedObjectsUpdated?.Invoke(trackedObjects);
         }
         else
@@ -430,13 +351,8 @@ public class TrackingManager_MVP2 : MonoBehaviour
         }
     }
 
-    /*
-        Removes objects whose time to live has expired.
-        Logs how many objects were removed and notifies subscribers if any were removed.
-    */
     private void RemoveExpired()
     {
-        // Find expired objects first so we can dispose their tensors
         var expired = new List<TrackedObject>();
         foreach (var obj in trackedObjects)
         {
@@ -470,13 +386,8 @@ public class TrackingManager_MVP2 : MonoBehaviour
         onTrackedObjectsUpdated?.Invoke(trackedObjects);
     }
 
-    /*
-        OnDestroy is called when the object is being destroyed.
-        We use it to clean up any tensors or snapshots that are still held by tracked objects to prevent memory leaks.
-    */
     private void OnDestroy()
     {
-        // Dispose any tensors and snapshots still held by tracked objects
         foreach (var obj in trackedObjects)
         {
             try
@@ -493,12 +404,8 @@ public class TrackingManager_MVP2 : MonoBehaviour
         }
     }
 
-    /*
-        Public method to get a copy of the current list of tracked objects.
-        This can be used by other components (e.g., for visualization) without risking modification of the internal list.
-    */
     public List<TrackedObject> GetTrackedObjects()
     {
-        return new List<TrackedObject>(trackedObjects); // Return a copy
+        return new List<TrackedObject>(trackedObjects);
     }
 }

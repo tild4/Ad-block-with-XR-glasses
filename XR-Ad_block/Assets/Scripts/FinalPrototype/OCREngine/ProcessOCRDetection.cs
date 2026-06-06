@@ -1,22 +1,10 @@
 /*
-    ProcessOCRDetection_MVP2
+    Summary:
+    Converts OCR text-detection heatmaps into cropped text ROI tensors for
+    text recognition.
 
-    PURPOSE:
-    Post-processes OCR text-detection output masks into word boxes,
-    crops those word ROIs from the original frame, converts them to
-    recognition tensors, and forwards them to OCR recognition.
-
-    CURRENT FLOW:
-    TextDetectionInference_MVP2 -> THIS -> TextRecognitionInference_MVP2
-
-    POLICY:
-    - Processes one OCR detection result at a time.
-    - The class owns incoming detection tensors and ROI snapshots once processing starts.
-    - Processing yields during heavy CPU work to avoid monopolizing the frame.
-
-    NOTE:
-    Emits cropped recognition tensors plus their associated tracked object.
-
+    Pipeline:
+    TextDetectionInference -> ProcessOCRDetection -> TextRecognitionInference
 */
 
 using System;
@@ -27,11 +15,10 @@ using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class ProcessOCRDetection_MVP2 : MonoBehaviour
+public class ProcessOCRDetection : MonoBehaviour
 {
     private const int MaskSize = 640;
 
-    // private const long FrameBudgetMs = 3; // Removed: BFS now runs synchronously
     private const int MinBoxWidth = 10;
     private const int MinBoxHeight = 10;
     private const int PaddingX = 4;
@@ -41,13 +28,8 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
     private const float MaxMergedAspectRatio = 6.0f;
 
     [SerializeField]
-    //private ViewCroppedImage viewCroppedImage;
-    private RenderTexture debugPreviewRT;
+    private TextDetectionInference textDetectionInference;
 
-    [SerializeField]
-    private TextDetectionInference_MVP2 textDetectionInference;
-
-    // Reused threshold mask for OCR text-detection output.
     private readonly bool[,] mask = new bool[MaskSize, MaskSize];
     private readonly float[,] scoreMap = new float[MaskSize, MaskSize];
 
@@ -60,31 +42,11 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
     [SerializeField]
     private float unclipRatio = 1.5f;
 
-    /*
-        OCR recognition model input:
-        [DynamicDimension.0, 3, 48, DynamicDimension.1] in NCHW format.
-
-        Width can vary, though multiples of 32 are recommended.
-        Batch remains 1 per ROI.
-    */
-    [SerializeField]
-    private int tensorTargetHeight = 48;
-
-    [SerializeField]
-    private int tensorTargetWidth = 320;
-
-    /*
-    [SerializeField]
-    private int cropTargetHeight = 128;
-
-    [SerializeField]
-    private int cropTargetWidth = 512;
-    */
-
     [SerializeField]
     private Material cropMaterial;
 
-    // Reusable GPU resources
+    private const int TensorTargetHeight = 48;
+    private const int TensorTargetWidth = 320;
     private RenderTexture convertRenderTexture;
     private CommandBuffer commandBuffer;
     private bool isProcessing = false;
@@ -100,8 +62,8 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         }
 
         convertRenderTexture = new RenderTexture(
-            tensorTargetWidth,
-            tensorTargetHeight,
+            TensorTargetWidth,
+            TensorTargetHeight,
             0,
             RenderTextureFormat.ARGB32
         );
@@ -109,14 +71,6 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         convertRenderTexture.Create();
 
         commandBuffer = new CommandBuffer();
-
-        debugPreviewRT = new RenderTexture(
-            tensorTargetWidth,
-            tensorTargetHeight,
-            0,
-            RenderTextureFormat.ARGB32
-        );
-        debugPreviewRT.Create();
     }
 
     private void OnEnable()
@@ -135,39 +89,24 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         }
     }
 
-    /*
-        Receives a new OCR text-detection batch.
-
-        FLOW:
-        1. Ignore empty input.
-        2. Start processing immediately if this component is idle.
-    */
-    private void HandleNewTrackedObject(DetectionsPerAd advertisment)
+    private void HandleNewTrackedObject(DetectionsPerAd advertisement)
     {
-        if (advertisment.trackedObject == null || advertisment.findTextTensor == null)
+        if (advertisement.trackedObject == null || advertisement.findTextTensor == null)
         {
             UnityEngine.Debug.Log(
-                $"[ProcessOCR] Early Exit for ID {advertisment.trackedObject?.id}. Skip OCR."
+                $"[ProcessOCR] Early Exit for ID {advertisement.trackedObject?.id}. Skip OCR."
             );
             return;
         }
 
-        if (advertisment.trackedObject == null)
-            return;
-
         if (!isProcessing)
         {
-            StartCoroutine(ProcessDPA(advertisment));
+            StartCoroutine(ProcessDPA(advertisement));
         }
     }
 
-    /*
-        Processes one advertisement's OCR-detection result.
-        This coroutine acts as the re-entrancy guard for the component.
-    */
     private IEnumerator ProcessDPA(DetectionsPerAd advertisement)
     {
-        // Prevents nested coroutines
         isProcessing = true;
 
         yield return ProcessDetectionOCR(advertisement);
@@ -175,34 +114,16 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         isProcessing = false;
     }
 
-    /*
-        Handles one OCR text-detection tensor.
-
-        FLOW:
-        1. Build the threshold mask.
-        2. Find connected text boxes.
-        3. Dispose the consumed detection tensor.
-        4. Crop each text ROI and convert it to a recognition tensor.
-        5. Emit the cropped ROI tensors for recognition.
-    */
     private IEnumerator ProcessDetectionOCR(DetectionsPerAd advertisement)
     {
         Tensor<float> tensor = advertisement.findTextTensor;
         RenderTexture roiSnapshot = advertisement.roiSnapshot;
-        Rect yoloBounds = advertisement.yoloBounds;
-        Rect roiContentRect = advertisement.roiContentRectNormalized;
 
         if (tensor == null || roiSnapshot == null)
         {
             tensor?.Dispose();
             yield break;
         }
-
-        /*
-        From "heat map" tensor:
-        1. Build text region bounding boxes
-        2. Save all boundning boxes
-        */
 
         PipelineProfiler.begin("OCR ProcessBFS");
         UnityEngine.Debug.Log($"[OCR] findTextTensor shape: {tensor.shape}");
@@ -212,24 +133,15 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
         tensor.Dispose();
 
-        // Merge nearby boxes on the same text line into full words/sentences
         boundingBoxes = MergeBoxesOnSameLine(boundingBoxes);
 
         if (boundingBoxes == null || boundingBoxes.Count == 0)
         {
             UnityEngine.Debug.Log("[OCR] No text boxes found in current ad crop.");
-            //viewCroppedImage?.SetDetectedWord("No text detected");
         }
 
-        // Takes the list of bounds and crops the text regions from the frozen ROI snapshot
-        List<TextTensor> croppedRois = BuildCroppedRecognitionRois(
-            boundingBoxes,
-            roiSnapshot,
-            yoloBounds,
-            roiContentRect
-        );
+        List<TextTensor> croppedRois = BuildCroppedRecognitionRois(boundingBoxes, roiSnapshot);
 
-        // Release the snapshot now that all text regions have been cropped
         roiSnapshot.Release();
         Destroy(roiSnapshot);
 
@@ -266,28 +178,12 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
         );
     }
 
-    /*
-    NOTE :
-    These bounding boxes are relative to the 640×640 ROI from YOLO.
-    We crop directly from the frozen ROI snapshot using local coordinates.
-    Full-frame coordinates are only computed for debug visualization.
-    */
     private List<TextTensor> BuildCroppedRecognitionRois(
         List<Rect> boundingBoxes,
-        RenderTexture roiSnapshot,
-        Rect yoloBounds,
-        Rect roiContentRectNormalized
+        RenderTexture roiSnapshot
     )
     {
         List<TextTensor> croppedRois = new List<TextTensor>();
-
-        /*
-        For each detected text region in the ad:
-        1. Normalize coordinates for TextureCropper
-        2. Crop from the frozen ROI snapshot (not the live camera frame)
-        3. Convert it to a tensor
-        4. Compute full-frame bounds for debug visualization
-        */
 
         if (boundingBoxes == null || boundingBoxes.Count == 0)
         {
@@ -306,7 +202,6 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                 bounds.height / MaskSize
             );
 
-            // Crop from the frozen ROI snapshot (640×640) instead of the live camera frame
             int cropW = Mathf.Max(1, Mathf.RoundToInt(normalizedLocal.width * roiSnapshot.width));
             int cropH = Mathf.Max(1, Mathf.RoundToInt(normalizedLocal.height * roiSnapshot.height));
             RenderTexture tempCrop = RenderTexture.GetTemporary(
@@ -329,16 +224,12 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
                 continue;
             }
 
-            Graphics.Blit(tempCrop, debugPreviewRT);
-            //viewCroppedImage?.Show(debugPreviewRT);
-
-            // Scale uniformly into 48×320 with black padding to preserve aspect ratio
             PipelineProfiler.set("TensorContext", "OCR");
             Tensor<float> roiTensor = ConvertToTensor.convertWithAspectPad(
                 tempCrop,
                 convertRenderTexture,
-                tensorTargetHeight,
-                tensorTargetWidth,
+                TensorTargetHeight,
+                TensorTargetWidth,
                 commandBuffer
             );
 
@@ -346,16 +237,7 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
             if (roiTensor != null)
             {
-                // Full-frame coordinates for debug visualization
-                Rect normalizedContentRect = ConvertModelRectToContentRect(
-                    normalizedLocal,
-                    roiContentRectNormalized
-                );
-                Rect normalizedFullFrame = ConvertLocalToFullFrameBounds(
-                    normalizedContentRect,
-                    yoloBounds
-                );
-                croppedRois.Add(new TextTensor(roiTensor, normalizedFullFrame));
+                croppedRois.Add(new TextTensor(roiTensor));
             }
         }
 
@@ -363,49 +245,14 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
             $"[OCR Crop] Successfully cropped {croppedRois.Count} word regions from the ad."
         );
 
-        if (croppedRois.Count == 0)
-        {
-            //viewCroppedImage?.SetDetectedWord("No text detected");
-        }
-
         return croppedRois;
-    }
-
-    private Rect ConvertModelRectToContentRect(Rect modelRect, Rect contentRect)
-    {
-        if (contentRect.width <= 1e-5f || contentRect.height <= 1e-5f)
-        {
-            return modelRect;
-        }
-
-        float localXMin = Mathf.InverseLerp(contentRect.xMin, contentRect.xMax, modelRect.xMin);
-        float localXMax = Mathf.InverseLerp(contentRect.xMin, contentRect.xMax, modelRect.xMax);
-        float localYMin = Mathf.InverseLerp(contentRect.yMin, contentRect.yMax, modelRect.yMin);
-        float localYMax = Mathf.InverseLerp(contentRect.yMin, contentRect.yMax, modelRect.yMax);
-
-        localXMin = Mathf.Clamp01(localXMin);
-        localXMax = Mathf.Clamp01(localXMax);
-        localYMin = Mathf.Clamp01(localYMin);
-        localYMax = Mathf.Clamp01(localYMax);
-
-        return Rect.MinMaxRect(localXMin, localYMin, localXMax, localYMax);
-    }
-
-    private Rect ConvertLocalToFullFrameBounds(Rect normalizedLocal, Rect parentYoloBounds)
-    {
-        return new Rect(
-            parentYoloBounds.x + normalizedLocal.x * parentYoloBounds.width,
-            parentYoloBounds.y + normalizedLocal.y * parentYoloBounds.height,
-            normalizedLocal.width * parentYoloBounds.width,
-            normalizedLocal.height * parentYoloBounds.height
-        );
     }
 
     /*
         Merges bounding boxes that sit on the same horizontal text line.
         Two boxes merge when they overlap vertically by at least
         MergeVerticalOverlap of the shorter box AND the horizontal
-        gap between them is less than MergeHorizontalGapFactor × average height.
+        gap between them is less than MergeHorizontalGapFactor times average height.
         Repeats until no more merges occur.
     */
     private List<Rect> MergeBoxesOnSameLine(List<Rect> boxes)
@@ -477,7 +324,6 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
 
     /*
         Connected-component search over the threshold mask.
-        Runs synchronously — profile via the log to verify timing.
     */
     private List<Rect> FindTextBoxes(bool[,] inputMask, float[,] inputScores)
     {
@@ -605,13 +451,6 @@ public class ProcessOCRDetection_MVP2 : MonoBehaviour
             convertRenderTexture.Release();
             Destroy(convertRenderTexture);
             convertRenderTexture = null;
-        }
-
-        if (debugPreviewRT != null)
-        {
-            debugPreviewRT.Release();
-            Destroy(debugPreviewRT);
-            debugPreviewRT = null;
         }
     }
 }

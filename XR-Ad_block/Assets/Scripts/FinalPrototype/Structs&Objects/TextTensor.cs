@@ -1,14 +1,17 @@
+/*
+    Summary:
+    Wraps a cropped text-region tensor passed from OCR post-processing to
+    text recognition.
+*/
+
 using Unity.InferenceEngine;
-using UnityEngine;
 
 public readonly struct TextTensor
 {
     public readonly Tensor<float> textRegion;
-    public readonly Rect relativeBounds; // DEBUG FOR UI
 
-    public TextTensor(Tensor<float> tensor, Rect bounds)
+    public TextTensor(Tensor<float> tensor)
     {
         textRegion = tensor;
-        relativeBounds = bounds;
     }
 }
