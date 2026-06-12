@@ -1,22 +1,10 @@
 /*
-    OptionsUI
+    Summary:
+    Builds the blocker-image options panel from Resources/BlockerImages and
+    stores the selected sprite for future block visuals.
 
-    PURPOSE:
-    Allows the user to select a custom image to display on the blocking
-    quad instead of the default transparent blue material. Images are
-    loaded at runtime from the Resources/BlockerImages folder.
-
-    ARCHITECTURE:
-    - On enable, loads all Sprites from Resources/BlockerImages and
-      instantiates one button per image using imageButtonPrefab.
-    - Selecting an image stores it in the static BlockerImageSettings
-      so BlockVisualization can read it when spawning blocks.
-    - Reset to Default clears the selection, restoring the default material.
-    - Close button hides the panel without changing the selection.
-
-    SETUP:
-    - Place image files inside Assets/Resources/BlockerImages/.
-    - Images must be imported as Sprite (2D and UI) texture type.
+    Pipeline:
+    OptionsUI -> BlockerImageSettings -> BlockVisualization
 */
 
 using System.Collections.Generic;
@@ -53,13 +41,11 @@ public class OptionsUI : MonoBehaviour
 
     private void LoadImageOptions()
     {
-        // Clear old buttons
         foreach (Transform child in imageButtonContainer)
             Destroy(child.gameObject);
 
         _loadedSprites.Clear();
 
-        // Load all sprites from Resources/BlockerImages
         Sprite[] sprites = Resources.LoadAll<Sprite>("BlockerImages");
         Debug.Log($"[Options] Found {sprites.Length} sprites in Resources/BlockerImages");
         foreach (var s in sprites)
@@ -73,7 +59,6 @@ public class OptionsUI : MonoBehaviour
                 $"[Options] Instantiated button at position {btn.transform.localPosition}, size {btn.GetComponent<RectTransform>().sizeDelta}"
             );
 
-            // Set preview image
             Image previewImage = btn.transform.Find("PreviewImage")?.GetComponent<Image>();
             Debug.Log($"[Options] PreviewImage found: {previewImage != null}");
 
@@ -93,12 +78,11 @@ public class OptionsUI : MonoBehaviour
             else
                 Debug.LogWarning("[Options] TextMeshProUGUI not found on button prefab");
 
-            // Wire selection
             Sprite captured = sprite;
             btn.GetComponent<Button>().onClick.AddListener(() => OnImageSelected(captured));
         }
 
-        Canvas.ForceUpdateCanvases(); // Ensure layout is updated after adding buttons
+        Canvas.ForceUpdateCanvases();
         UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(
             imageButtonContainer.GetComponent<RectTransform>()
         );
